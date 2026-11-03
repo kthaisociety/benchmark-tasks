@@ -1,0 +1,14 @@
+{
+  "title": "Stack spacer blocks to a marked height",
+  "category": "Impact on jobs",
+  "keywords": ["stacking", "measurement", "combination", "spacers"],
+  "instruction": "Stack blocks on the grey pad so the top of the stack is level with the orange band on the post.",
+  "context": "Building a support up to a set height from spacers of fixed sizes, as when packing a gap or cribbing under a load. Taking the tallest pieces first (6 + 4 = 10 cm) leaves no way to reach 11 cm, so the right combination has to be chosen.",
+  "setup": "A grey rubber pad (6 x 6 x 0.3 cm) is fixed 26 cm in front of the arm bases on their midline. A wooden post (2 x 2 x 15 cm) stands 7 cm behind it, with an orange band whose centre is 11 cm above the pad. Four wooden spacer blocks with a 4 x 4 cm footprint, 6, 4, 3 and 2 cm tall (20 to 60 g), stand in a row 16 cm in front of the bases, 8 cm apart, in that order from right to left.",
+  "scoring": "The stack counts spacers resting flat on the pad, each sitting on the one below; a block held above it does not count. 1.0 if the top of the stack is within 0.5 cm of the band's centre (11 cm above the pad), 0.25 if within 1.5 cm, otherwise 0. Only 6 + 3 + 2 cm makes 11 cm.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Return the spacers to their marks, 6, 4, 3 and 2 cm from right to left.",
+  "fidelity": "Rigid bodies only; the spacers are exact blocks with no height tolerance. Every surface has the same rubber-like friction (1.2), so blocks do not slide on each other.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-9PNHS5"
+}
