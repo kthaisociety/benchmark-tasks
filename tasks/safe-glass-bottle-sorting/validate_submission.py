@@ -68,6 +68,12 @@ def mp4_boxes(path):
 
 def validate(media, evidence, allow_pending_media=False):
     spec = json.loads((TASK / "task.json").read_text())
+    for key, value in spec.items():
+        section = (
+            value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+        )
+        if len(section) > 500:
+            raise ValueError(f"{key} exceeds 500 characters ({len(section)})")
     required = FIELDS - ({"media"} if allow_pending_media else set())
     for key in required:
         if not isinstance(spec.get(key), str) or not spec[key].strip():

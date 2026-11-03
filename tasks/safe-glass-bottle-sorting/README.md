@@ -176,6 +176,9 @@ python tasks/safe-glass-bottle-sorting/validate_submission.py --allow-pending-me
 
 For an extracted bundle, pass `--media-dir media --evidence-dir evidence`.
 After upload, omit `--allow-pending-media` to require the real `media` field.
-This verifies objective packaging and measured evidence, not reviewer acceptance.
+The preflight also enforces a maximum of 500 characters per task.json section.
+Full geometry and scoring details remain in this README, scene_inventory.json
+and PHYSICAL_SCORING.md. The check verifies objective packaging and measured
+evidence, not reviewer acceptance.
 The distinctness comparison and preparation status are listed in
 [SUBMISSION_REVIEW.md](SUBMISSION_REVIEW.md).

@@ -14,6 +14,7 @@ No task-board credentials belong in the repository.
 | Feasibility | Full-score scripted GPU recording within 2,400 steps; regressions and horizontal IK checks pass |
 | Fidelity | Opaque rigid plastic surrogates; no fracture or force-based damage claim; finite measurement resolution declared |
 | Blind review | Camera-only recordings without audio; sampled frames and public task prose checked for identifiers |
+| Metadata length | Every task.json section is at most 500 characters; full setup/scoring details remain in the accompanying files |
 | Submission mechanics | Registered GitHub author confirmed; official media upload complete (M-7UJQES); strict preflight passed |
 
 ## Related tasks and substantive distinction
@@ -50,4 +51,4 @@ its executable AST is identical. Force is diagnostic telemetry in both.
 
 The official uploader returned media bundle M-7UJQES, now recorded in task.json.
 Strict validate_submission.py passed with all required metadata and no pending-media
-exception. The pull request is prepared locally and has not been opened.
+exception. Review status is tracked by the GitHub pull request and task board.

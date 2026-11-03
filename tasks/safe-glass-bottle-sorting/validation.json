@@ -61,11 +61,12 @@
   "submission_status": {
     "media_upload": "Complete: official uploader returned M-7UJQES; task.json records the media ID.",
     "duplicate_check": "Authenticated board checked 2026-11-03; closest pending bottle-retrieval task compared in SUBMISSION_REVIEW.md; reviewer judgment remains.",
-    "pull_request": "Not opened; local preparation only.",
+    "pull_request": "Prepared for submission to robocurve/benchmark-tasks main; live review status is on GitHub and the task board.",
     "registered_pr_author_confirmed": true,
     "simple_tools_scoring": "Finalized: pose/fall/release/stability criteria, ruler/protractor/calibrated-video protocol. Force is telemetry only.",
     "blind_review": "Public task prose, setup and five sampled frames from each final camera-only video checked; no identifiers found; no audio.",
-    "preflight": "Strict validation passed: required media ID, source equivalence, measured scores, traces, media hashes and format."
+    "preflight": "Strict validation passed: required media ID, every task.json section at most 500 characters, source equivalence, measured scores, traces, media hashes and format.",
+    "task_json_max_section_characters": 486
   },
   "edge_probe": {
     "diagnostic_only": true,
