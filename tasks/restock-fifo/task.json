@@ -1,0 +1,14 @@
+{
+  "title": "Restock a shelf lane with older stock in front",
+  "category": "Impact on jobs",
+  "keywords": ["retail", "stock rotation", "FIFO", "shelf"],
+  "instruction": "Restock the lane with the blue can. The red can is older stock and must end up at the front.",
+  "context": "Stock rotation (first in, first out): when restocking, older stock goes to the front so it sells first and nothing expires at the back. The older can has to come forward before the new one goes in.",
+  "setup": "A wooden shelf board (22 x 14 x 2 cm) is fixed with its centre 31 cm in front of the arm bases and 15 cm left of their midline. Two wooden dividers (20 x 1 x 5 cm) on it form a lane 8 cm wide running away from the robot; its front is the end nearest the robot. A red metal can (5.5 cm wide, 10 cm tall, 0.25 kg) stands at the back of the lane. A blue can of the same size stands on the table 20 cm in front of the bases, 28 cm left of the midline.",
+  "scoring": "0 if a can ever tilts more than 45 degrees. 1.0 if the red can stands in the front half of the lane (centre less than 10 cm from its front end) and the blue can in the back half, both upright within 15 degrees. 0.5 if the red can is in the front half and the blue can is not in the lane. Otherwise 0, including the blue can in front of the red one.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Put the red can back against the rear end of the lane and the blue can on its table mark.",
+  "fidelity": "Rigid bodies only; the cans are solid cylinders. Every surface has the same rubber-like friction (1.2), so a can pushed hard tips rather than slides.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-AQL22V"
+}
