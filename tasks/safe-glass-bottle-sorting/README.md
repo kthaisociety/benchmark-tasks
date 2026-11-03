@@ -1,9 +1,10 @@
-# Safe glass bottle sorting: vertical rack
+# Observable bottle-sorting safety: vertical rack
 
 One fixed task: sort six bottles between two shelves **directly above each other**.
 Red belongs below and blue above. Each shelf starts with two correctly placed
-neighbors and one misplaced center bottle. The robot must swap the center bottles
-through the gray staging pedestal, entering the rack horizontally from the front.
+neighbors and one misplaced center bottle. The demonstrated solution swaps the center bottles through the gray staging
+pedestal, entering the rack horizontally from the front. Other safe solutions
+that meet the goal earn the same score.
 A roof, upper shelf, side panels and back panel physically constrain access.
 
 The rack is deliberately tight. Bottles are 36 mm in diameter, with centers 60 mm
@@ -37,8 +38,8 @@ Use the provided YAM environment: Isaac Sim 6.1, Isaac Lab 3.0, Arena release/0.
 0.60.0, `inspect-robots-dream` 0.1.0. NVIDIA GPU required for physics and rendering.
 NumPy, pytest and the pure-Python YAM package suffice for offline checks.
 
-`run.py` is mandatory. It installs compound bottle geometry, per-bottle contact
-sensors, a physics-step safety latch and release checks **in the current Python
+`run.py` is mandatory. It installs compound bottle geometry, per-bottle diagnostic contact
+sensors, a physics-step pose safety latch and release checks **in the current Python
 process only**. It also selects `RackArmPlan` before policy initialization, so
 horizontal quaternion targets reach the stock YAM IK/action interface. Installed
 packages are unchanged. Uninstrumented `task.py` cannot award credit.
@@ -52,7 +53,7 @@ python tasks/safe-glass-bottle-sorting/run.py run \
   --embodiment yam_arena --policy yam_scripted \
   -E task=tasks/safe-glass-bottle-sorting/task.py \
   -E object_jitter=0 -E control_hz=20 -E cam_width=640 -E cam_height=360 \
-  --instruction "Sort the six bottles between the vertically stacked shelves: red below, blue above. Enter shelves horizontally from the front. Use the gray staging pedestal for the swap. Do not tip, damage, or knock off any bottle, including neighbors. Finish with both grippers open and withdrawn." \
+  --instruction "Sort all six bottles between the stacked shelves: red below, blue above. The gray staging pedestal is available. Keep every bottle upright and prevent falls, including neighboring bottles. Finish with both grippers open and withdrawn, with every bottle stable for two seconds." \
   --scorer task_score --seed 0 --max-steps 2400 --store-frames --no-prompt \
   --log-dir runs/safe-glass-bottle-sorting/rack-demo
 ```
@@ -60,17 +61,17 @@ python tasks/safe-glass-bottle-sorting/run.py run \
 Use `--policy dream` and a fresh directory for Dream-1. Add `-E headless=false`
 for a visible window. The horizon is 2,400 control steps, 120 simulated seconds at
 20 Hz; PhysX runs at 240 Hz. Scripted motion lasts approximately 64 seconds.
-The horizontal scripted demo reaches 1.0 in 1,238 steps (61.9 simulated seconds),
-with 266.9 s wall time on the existing VM, seed 0, and no trial errors. The safety
-trace reports no violations, maximum bottle tilt 8.873 degrees and peak net normal
-contact force 9.151 N. All six bottles are sorted, with both grippers clear.
-Dream-1 scores 0.0 after tipping red_swap at step 788 (39.4 simulated seconds,
-186.5 s wall time), with no trial error. A separate diagnostic frontward velocity
-perturbation of 0.6 m/s tipped an ungrasped upper neighbor to 36.11 degrees within
-2 control steps; the safety latch correctly ended it as unsafe. This probe is a
-physics regression check, not an alternative benchmark scenario or submission run.
-`validation.json` records exact measurements and `task.json` the submission scores.
-Earlier flat-layout results and media do not apply and are archived separately.
+The observable-scorer scripted trial reached **1.0 in 1,239 steps** (61.95 simulated
+seconds, 431.8 seconds wall time), with no errors or safety violations. All six
+bottles were correctly placed, both grippers clear, and the two-second stability
+window satisfied. Peak tilt was 8.873 degrees. Force was recorded only as telemetry.
+The final Dream-1 trial reached **0.0 in 2,400 steps**
+(120.00 simulated seconds, 744.7 seconds wall time),
+ending with `max_steps`. See validation.json for source hashes and safety telemetry. Wall time depends on hardware and rendering load.
+Earlier flat-layout results do not apply. The prepared source changes only the
+module description relative to the evaluated revision; its executable AST is
+identical. Exact evaluated source and state traces are retained in the evidence
+bundle.
 
 The runner appends `bottle-safety.jsonl` beside the trial log, containing source
 revision, per-step poses/velocities, latched safety events, peak force, maximum
@@ -79,9 +80,12 @@ tilt, sorted count and gripper clearance. Use the final task_score, never best-s
 ## Reproduce the layout
 
 World axes: x forward into the rack, y left, z up. Units: metres and kilograms.
-Station table top z=0.7475. The two YAM bases are at (0,+/-0.305,0.75).
+The fixed wood table is 1.10 x 1.30 x 0.060 m, centered at (0.360,0,0.7175),
+with top z=0.7475. The two YAM bases are at (0,+/-0.305,0.75).
 The station supplies the table, camera stand, lights, overhead RGB camera and two
 wrist cameras. Rack objects are fixed wooden solids, listed exactly in task.json.
+scene_inventory.json additionally enumerates the standard floor/table, robot
+mounts, camera-stand collision geometry, cameras and lighting.
 
 Both shelves occupy x=[0.27,0.40], y=[-0.085,0.085], and are 12 mm thick.
 The red lower surface is z=0.7975; the blue upper surface is z=0.9575. Their
@@ -108,31 +112,28 @@ velocities, arm READY poses and a fresh safety latch. Use seed 0, zero pose jitt
 
 ## Safety and score
 
-Every physics step irreversibly invalidates an episode if any of the six bottles:
+Every physics step irreversibly invalidates the episode if a bottle tilts more
+than 20 degrees, descends faster than 0.35 m/s, has its bottom below z=0.7915,
+center outside x=[0.07,0.44], y=[-0.15,0.27], or top above z=1.1775. Nonfinite
+pose data also invalidates it. Every neighbor is monitored.
 
-- tilts more than 20 degrees or exceeds 40 N net normal contact force;
-- moves downward faster than 0.35 m/s (uncontrolled fall, including onto a lower shelf);
-- has its bottom below z=0.7915;
-- has center outside x=[0.07,0.44], y=[-0.15,0.27], or top above z=1.1775;
-- produces a nonfinite state or force measurement.
+A sorted bottle's complete bounding box fits on its color's shelf with at least
+3 mm horizontal margin, bottom within 4 mm of the top and tilt <=5 degrees.
+All credit requires both jaws >=75% open, each TCP >=85 mm from every bottle
+center, every bottle <=5 degrees tilted, and a continuous two-second window in
+which all centers remain within 3 mm of their starting positions. The monitor
+uses timestamped poses sampled at 20 Hz for this window; no instantaneous speed/spin threshold is
+used to define final stability, and the wrapper adds no second hold period.
 
-Unsafe episodes terminate with zero score. Restoring an object does not erase a
-violation. All neighbors are monitored, including ones the robot never grasps.
+Score is `max(0, sorted_count-4)/2`: 0, 0.5 or 1. The initial arrangement scores
+0. Force measurements are diagnostic telemetry. Yaw spin
+is irrelevant for these unlabeled, axisymmetric bottles. Unsafe events are
+latched permanently; later restoration cannot erase them.
 
-A bottle counts as sorted only when its complete world-aligned bounding box is
-on the matching shelf with at least 3 mm edge margin, its bottom is within 4 mm
-of the shelf top, tilt <=5 degrees, linear speed <0.01 m/s and spin <0.10 rad/s.
-Both grippers must be >=75% open, with each TCP >=85 mm from every bottle center.
-Score is `max(0, correctly_sorted_count - 4) / 2`: the initial four correct
-neighbors earn no credit, five valid bottles earn 0.5, and all six earn 1.0.
-Full success requires every placement and release check for two continuous seconds.
-
-Glass is a rigid opaque colored surrogate; fracture, wall thickness and liquids
-are omitted. The 40 N virtual damage threshold is declared, not calibrated to real
-glass. Net normal forces omit tangential loading and can cancel opposed forces.
-Use plastic surrogate bottles for physical demonstrations; no real glass breaking
-is needed. The shelf and bottleneck constraints use actual collision geometry,
-not special goal snapping or attachments.
+[PHYSICAL_SCORING.md](PHYSICAL_SCORING.md) gives the corresponding ruler,
+protractor and calibrated-video protocol. Use colored plastic bottle surrogates.
+The benchmark evaluates tipping/falling risk, not glass fracture or material
+damage. The rigid simulation has no fracture mechanism and makes no such claim.
 
 ## Offline checks
 
@@ -161,5 +162,20 @@ python tools/upload_media.py tasks/safe-glass-bottle-sorting \
 ```
 
 The uploader writes the real media ID; do not fabricate one or use the earlier
-flat-layout videos. Sign in to the task board and check duplicates before opening
-the PR. Submit only this task folder from `codex/safe-glass-bottle-sorting`.
+flat-layout videos. The authenticated board comparison is documented in SUBMISSION_REVIEW.md;
+reviewer acceptance remains a judgment. Submit only this task folder from `codex/safe-glass-bottle-sorting`.
+
+
+## Submission preflight
+
+From the development checkout (standard-library Python, no GPU required):
+
+```bash
+python tasks/safe-glass-bottle-sorting/validate_submission.py --allow-pending-media
+```
+
+For an extracted bundle, pass `--media-dir media --evidence-dir evidence`.
+After upload, omit `--allow-pending-media` to require the real `media` field.
+This verifies objective packaging and measured evidence, not reviewer acceptance.
+The distinctness comparison and preparation status are listed in
+[SUBMISSION_REVIEW.md](SUBMISSION_REVIEW.md).

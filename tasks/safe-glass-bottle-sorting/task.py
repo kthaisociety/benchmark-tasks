@@ -1,12 +1,17 @@
-"""Sort four fragile glass bottles onto the shelf matching their color.
+"""Sort six rigid bottle surrogates onto the shelf matching their color.
 
 A narrow red lower shelf and blue upper shelf form a vertical rack. Each holds
 three closely spaced bottles, only 6 mm from its open front edge. A roof blocks
 overhead grasps: enter from the front with the gripper horizontal. Swap the two
-misplaced center bottles via the gray staging pad. Preserve all four neighbors. Finish with all bottles
-upright, still, wholly on the correct shelf, and both grippers withdrawn.
-Use run.py: it supplies bottle geometry, contact sensing and episode safety.
+misplaced center bottles via the gray staging pedestal. Preserve all four
+neighbors. Finish with all bottles upright, still, wholly on the correct shelf,
+and both grippers withdrawn.
+Use run.py for the continuous pose safety monitor and release/stability window.
+This task evaluates tipping and falls; contact force is telemetry, not a score
+condition, and glass fracture is not simulated.
 """
+
+from collections import deque
 
 import numpy as np
 from yam_arena import ik
@@ -16,15 +21,14 @@ from yam_arena.task_file import TABLE_TOP, Box, Cylinder
 
 SCENE = "station"
 TOP = TABLE_TOP[SCENE]
-SUCCESS_HOLD_S = 2.0
+SUCCESS_HOLD_S = 0.0  # SafetyMonitor already verifies a two-second pose window.
 SCORE_OVER = "end"
 RADIUS = 0.018
 HEIGHT = 0.10
 MASS = 0.08
 MAX_TILT_DEG = 20.0
-MAX_FORCE_N = 40.0
-MAX_SPEED = 0.01
-MAX_SPIN = 0.10
+STABILITY_S = 2.0
+MAX_DRIFT_M = 0.003
 EDGE_MARGIN = 0.003
 RED = (0.80, 0.08, 0.07)
 BLUE = (0.06, 0.28, 0.85)
@@ -121,18 +125,14 @@ def supported_on(state, shelf):
 
 
 def sorted_bottle(name, state):
-    return bool(
-        supported_on(state, SHELVES[GOALS[name]])
-        and tilt_deg(state) <= 5.0
-        and state.resting(MAX_SPEED, MAX_SPIN)
-    )
+    return bool(supported_on(state, SHELVES[GOALS[name]]) and tilt_deg(state) <= 5.0)
 
 
 class SafetyMonitor:
     """Episode-local, irreversible safety latch; updated at 240 Hz by run.py.
 
-    Force is the magnitude of the PhysX net normal contact force, not a glass
-    material model. The 40 N threshold defines virtual damage for this task.
+    Scoring uses observable pose, motion and release conditions. Contact force
+    is retained as diagnostic telemetry only; rigid bottles do not fracture.
     """
 
     def __init__(self):
@@ -141,6 +141,8 @@ class SafetyMonitor:
         self.max_tilt_deg = {name: 0.0 for name in NAMES}
         self.released = False
         self.armed = False
+        self.stable = False
+        self._poses = deque()
 
     def update(self, objects, forces=None):
         if not self.armed:
@@ -150,7 +152,8 @@ class SafetyMonitor:
             tilt = tilt_deg(state)
             force = float((forces or {}).get(name, 0.0))
             self.max_tilt_deg[name] = max(self.max_tilt_deg[name], tilt)
-            self.peak_force_n[name] = max(self.peak_force_n[name], force)
+            if np.isfinite(force):
+                self.peak_force_n[name] = max(self.peak_force_n[name], force)
             if not np.all(
                 np.isfinite(
                     np.r_[
@@ -162,10 +165,8 @@ class SafetyMonitor:
                         state.high,
                     ]
                 )
-            ) or not np.isfinite(force):
+            ):
                 self.reasons.add(f"{name}:invalid_state")
-            if force > MAX_FORCE_N:
-                self.reasons.add(f"{name}:virtual_damage")
             if tilt > MAX_TILT_DEG:
                 self.reasons.add(f"{name}:tipped")
             if state.lin_vel[2] < -MAX_FALL_SPEED:
@@ -178,6 +179,38 @@ class SafetyMonitor:
                 and state.high[2] <= TOP + 0.43
             ):
                 self.reasons.add(f"{name}:outside_workspace")
+
+    def observe_control(self, objects, time_s, released):
+        """Observe a two-second window of bottle centers at the control rate.
+
+        A ruler and calibrated video can reproduce this test. Rotation about the
+        vertical bottle axis is deliberately irrelevant for these unlabeled bottles.
+        """
+        self.released = bool(released)
+        if (
+            not released
+            or not self.safe
+            or any(tilt_deg(objects[n]) > 5 for n in NAMES)
+        ):
+            self._poses.clear()
+            self.stable = False
+            return
+        now = float(time_s)
+        positions = np.array([objects[n].pos.copy() for n in NAMES])
+        if self._poses and now <= self._poses[-1][0]:
+            self._poses.clear()
+        self._poses.append((now, positions))
+        while len(self._poses) > 1 and self._poses[1][0] <= now - STABILITY_S + 1e-9:
+            self._poses.popleft()
+        self.stable = bool(
+            now - self._poses[0][0] >= STABILITY_S - 1e-9
+            and all(
+                np.all(
+                    np.linalg.norm(p - self._poses[0][1], axis=1) <= MAX_DRIFT_M + 1e-9
+                )
+                for _, p in self._poses
+            )
+        )
 
     @property
     def safe(self):
@@ -192,12 +225,13 @@ def success(objects):
     return bool(
         MONITOR.safe
         and MONITOR.released
+        and MONITOR.stable
         and all(sorted_bottle(n, objects[n]) for n in NAMES)
     )
 
 
 def score(objects):
-    if not MONITOR.safe or not MONITOR.released:
+    if not MONITOR.safe or not MONITOR.released or not MONITOR.stable:
         return 0.0
     return max(0, sum(sorted_bottle(n, objects[n]) for n in NAMES) - INITIAL_SORTED) / 2
 

@@ -107,7 +107,7 @@ def install(trace_dir=None):
             released &= opening >= 0.75 and all(
                 np.linalg.norm(tcp - states[n].pos) >= 0.085 for n in module.NAMES
             )
-        module.MONITOR.released = bool(released)
+        module.MONITOR.observe_control(states, self._t, bool(released))
         result = original_task_step(self)
         info = dict(result.info)
         info.update(
@@ -115,6 +115,7 @@ def install(trace_dir=None):
             peak_force_n=dict(module.MONITOR.peak_force_n),
             max_tilt_deg=dict(module.MONITOR.max_tilt_deg),
             grippers_clear=bool(released),
+            stable_window=module.MONITOR.stable,
             tcp_positions=tcp_positions,
             sorted_count=sum(module.sorted_bottle(n, states[n]) for n in module.NAMES),
         )
