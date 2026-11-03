@@ -1,0 +1,14 @@
+{
+  "title": "Find the heavier block with a balance",
+  "category": "Other",
+  "keywords": ["balance", "weighing", "physical reasoning", "inspection"],
+  "instruction": "One of the three grey blocks is heavier than the others. Use the balance to find it and put only that block in the bin.",
+  "context": "Finding the odd part out by physical testing when it cannot be told apart by sight, as in quality checks or sorting unlabelled stock. The robot has to run the test, read the result and act on it.",
+  "setup": "A pine plank (36 x 8 x 1.2 cm, 0.15 kg) lies level, left to right, on a fixed wooden ridge (6 x 2 x 3 cm tall) 28 cm in front of the arm bases, on their midline. Three grey wooden 4 cm cubes that look the same stand in a row 16 cm in front of the bases, 10 cm apart and centred on the midline: the middle one has a lead insert and weighs 0.20 kg, the others 0.10 kg. A blue bin (10 x 10 cm inside, 2 cm walls) is taped 20 cm in front of the bases, 30 cm left of the midline.",
+  "scoring": "A weighing counts when two cubes rest on opposite ends of the plank (more than 3 cm from the ridge) at the same time and the plank is still. 0 if no weighing happens. Otherwise 1.0 if the bin holds the heavy cube and no other, and 0.25 if not. A cube is in the bin when its centre is inside the walls and it rests on the bin floor.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Return the cubes to their marks with the heavy one in the middle, and lay the plank level on the ridge.",
+  "fidelity": "Rigid bodies only. The plank pivots on the ridge's two top edges, 2 cm apart, as a real plank on a narrow block does; there is no hinge. Every surface has the same rubber-like friction (1.2), so cubes do not slide on the tilted plank.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-8V9988"
+}
