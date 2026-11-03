@@ -60,15 +60,6 @@ def main():
         controls["demo"] = not controls["demo"]
         controls["reset"] = True
 
-    def on_press(callback):
-        # Remote desktops can deliver down/up between Kit render frames.
-        # Activate once on press so short clicks do not depend on release timing.
-        def pressed(_x, _y, button, _modifiers):
-            if button == 0:
-                callback()
-
-        return pressed
-
     panel = ui.Window("Bottle rack preview", width=480, height=360)
     panel.width = 480
     panel.height = 360
@@ -82,15 +73,13 @@ def main():
     ):
         ui.Label("Red lower shelf / blue upper shelf", height=30)
         status = ui.Label("", height=30)
-        ui.Button("Pause / Resume", mouse_pressed_fn=on_press(toggle_pause), height=44)
+        ui.Button("Pause / Resume", clicked_fn=toggle_pause, height=44)
         with ui.HStack(spacing=8, height=44):
-            ui.Button("Reset layout", mouse_pressed_fn=on_press(reset))
-            ui.Button("Demo / Static", mouse_pressed_fn=on_press(toggle_demo))
+            ui.Button("Reset layout", clicked_fn=reset)
+            ui.Button("Demo / Static", clicked_fn=toggle_demo)
         with ui.HStack(spacing=6, height=44):
             for name in presets:
-                ui.Button(
-                    name, mouse_pressed_fn=on_press(lambda name=name: camera(name))
-                )
+                ui.Button(name, clicked_fn=lambda name=name: camera(name))
         ui.Label("Scroll: zoom   Alt-drag: orbit", height=30)
         ui.Label("Select object + F: focus", height=30)
     camera("Overview")
