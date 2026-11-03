@@ -1,0 +1,54 @@
+{
+  "task_sha256": "bc5a4b6680bcd5e9044db1c97c042ab1a804c31e51bd62b891ef05c803d1228e",
+  "physics_hz": 240,
+  "control_hz": 20,
+  "seed": 0,
+  "object_jitter_m": 0,
+  "offline_tests_passed": 14,
+  "reachability": {
+    "worst_position_error_mm": 2.171,
+    "worst_orientation_error_deg": 0.562
+  },
+  "trials": {
+    "scripted_demo": {
+      "score": 1.0,
+      "control_steps": 1146,
+      "simulated_time_s": 57.3,
+      "wall_time_s": 200.79154383900004,
+      "termination_reason": "success",
+      "environment_revision": "bc5a4b6680bc",
+      "errored_trials": 0
+    },
+    "dream_1": {
+      "score": 0.0,
+      "control_steps": 1723,
+      "simulated_time_s": 86.15,
+      "wall_time_s": 289.6840219310002,
+      "termination_reason": "unsafe",
+      "environment_revision": "bc5a4b6680bc",
+      "errored_trials": 0
+    }
+  },
+  "scripted_demo_safety": {
+    "peak_force_n": {
+      "blue_swap": 10.76818561553955,
+      "red_neighbor": 0.7883008718490601,
+      "red_swap": 9.055392265319824,
+      "blue_neighbor": 0.7877784371376038
+    },
+    "max_tilt_deg": {
+      "blue_swap": 2.683301579178969,
+      "red_neighbor": 0.0010164902249167754,
+      "red_swap": 2.350760899085059,
+      "blue_neighbor": 0.0009898333675307572
+    },
+    "safety_violations": [],
+    "sorted_count": 4,
+    "grippers_clear": true
+  },
+  "submission_status": {
+    "media_upload": "Pending team credentials; no media ID fabricated.",
+    "duplicate_check": "Task board redirected to sign-in; authenticated check pending.",
+    "pull_request": "Prepared locally; not opened."
+  }
+}
