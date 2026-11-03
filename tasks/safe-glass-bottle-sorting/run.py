@@ -17,6 +17,11 @@ import numpy as np
 
 def install(trace_dir=None):
     import yam_arena.inspect_embodiment as ie
+    from yam_arena import scripted
+    from yam_arena.task_file import load
+
+    # Inspect Robots can construct policy plans before starting the simulator.
+    scripted.ArmPlan = load(Path(__file__).with_name("task.py")).module.RackArmPlan
 
     original_ensure = ie.YamArenaEmbodiment._ensure_sim
     original_reset = ie.YamArenaEmbodiment.reset
@@ -43,6 +48,10 @@ def install(trace_dir=None):
         if not installed:
             install_scene()
             installed = True
+        # The rack requires full quaternion targets rather than stock top-down yaw.
+        from yam_arena import scripted
+
+        scripted.ArmPlan = self.task.module.RackArmPlan
         original_ensure(self, goal)
 
     def reset(self, scene, *, seed=None):
@@ -86,6 +95,7 @@ def install(trace_dir=None):
         module = self.task.module
         states = object_states(self._env, module.NAMES)
         released = True
+        tcp_positions = {}
         for arm in ie.ARMS:
             robot = self._base.scene[arm]
             opening = (
@@ -93,6 +103,7 @@ def install(trace_dir=None):
                 / FINGER_OPEN
             )
             tcp = tcp_world(robot)
+            tcp_positions[arm] = tcp.tolist()
             released &= opening >= 0.75 and all(
                 np.linalg.norm(tcp - states[n].pos) >= 0.085 for n in module.NAMES
             )
@@ -104,6 +115,7 @@ def install(trace_dir=None):
             peak_force_n=dict(module.MONITOR.peak_force_n),
             max_tilt_deg=dict(module.MONITOR.max_tilt_deg),
             grippers_clear=bool(released),
+            tcp_positions=tcp_positions,
             sorted_count=sum(module.sorted_bottle(n, states[n]) for n in module.NAMES),
         )
         if self._bottle_trace is not None:
@@ -154,7 +166,14 @@ def install_scene():
 
     original_object = scene.task_object
     original_callback = scene.env_cfg_callback
-    names = ("blue_swap", "red_neighbor", "red_swap", "blue_neighbor")
+    names = (
+        "blue_swap",
+        "red_left",
+        "red_right",
+        "red_swap",
+        "blue_left",
+        "blue_right",
+    )
 
     @clone
     def spawn_bottle(prim_path, cfg, translation=None, orientation=None, **kwargs):
@@ -233,6 +252,8 @@ def install_scene():
 
         def configure(cfg):
             cfg = original(cfg)
+            cfg.sim.default_visualizer_cfg.eye = (-0.18, -0.01, 1.08)
+            cfg.sim.default_visualizer_cfg.lookat = (0.32, 0, 0.95)
             for name in names:
                 setattr(
                     cfg.scene,

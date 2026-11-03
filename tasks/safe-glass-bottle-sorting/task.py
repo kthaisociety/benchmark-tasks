@@ -1,15 +1,17 @@
 """Sort four fragile glass bottles onto the shelf matching their color.
 
-The left red shelf and right blue shelf each start with one red and one blue
-bottle. A gray staging pad between them is available for swaps. Preserve every
-bottle, including the two correctly placed neighbors. Finish with all bottles
+A narrow red lower shelf and blue upper shelf form a vertical rack. Each holds
+three closely spaced bottles, only 6 mm from its open front edge. A roof blocks
+overhead grasps: enter from the front with the gripper horizontal. Swap the two
+misplaced center bottles via the gray staging pad. Preserve all four neighbors. Finish with all bottles
 upright, still, wholly on the correct shelf, and both grippers withdrawn.
 Use run.py: it supplies bottle geometry, contact sensing and episode safety.
 """
 
 import numpy as np
-from yam_arena.constants import FINGER_OPEN
-from yam_arena.demo import Waypoint, pick_place_waypoints
+from yam_arena import ik
+from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN
+from yam_arena.demo import ArmPlan
 from yam_arena.task_file import TABLE_TOP, Box, Cylinder
 
 SCENE = "station"
@@ -27,22 +29,44 @@ EDGE_MARGIN = 0.003
 RED = (0.80, 0.08, 0.07)
 BLUE = (0.06, 0.28, 0.85)
 
-# Shallow open shelves, not enclosed bins: all bottle sides remain accessible.
+# Front is -X. Both occupied shelves and the roof have the same XY footprint.
+RACK_FRONT = 0.27
+RACK_BACK = 0.40
 SHELVES = {
     "red": Box(
-        "red_shelf", pos=(0.225, 0.13, TOP + 0.006), size=(0.27, 0.16, 0.012), color=RED
+        "red_shelf", pos=(0.335, 0, TOP + 0.044), size=(0.13, 0.17, 0.012), color=RED
     ),
     "blue": Box(
-        "blue_shelf",
-        pos=(0.225, -0.13, TOP + 0.012),
-        size=(0.27, 0.16, 0.024),
-        color=BLUE,
+        "blue_shelf", pos=(0.335, 0, TOP + 0.204), size=(0.13, 0.17, 0.012), color=BLUE
     ),
 }
+FIXTURES = [
+    Box(
+        "rack_roof",
+        pos=(0.335, 0, TOP + 0.364),
+        size=(0.13, 0.17, 0.012),
+        color=(0.56, 0.47, 0.35),
+    ),
+    Box(
+        "rack_back",
+        pos=(0.406, 0, TOP + 0.21),
+        size=(0.012, 0.194, 0.32),
+        color=(0.40, 0.34, 0.27),
+    ),
+    *[
+        Box(
+            "rack_side_" + side,
+            pos=(0.335, y, TOP + 0.185),
+            size=(0.13, 0.012, 0.37),
+            color=(0.46, 0.39, 0.30),
+        )
+        for side, y in [("left", 0.091), ("right", -0.091)]
+    ],
+]
 STAGE = Box(
     "staging_pad",
-    pos=(0.205, 0.0, TOP + 0.006),
-    size=(0.22, 0.065, 0.012),
+    pos=(0.25, 0.23, TOP + 0.08),
+    size=(0.08, 0.08, 0.16),
     color=(0.52, 0.54, 0.58),
 )
 
@@ -64,14 +88,21 @@ def bottle(name, x, y, shelf, color):
 
 
 BOTTLES = [
-    bottle("blue_swap", 0.16, 0.13, SHELVES["red"], BLUE),
-    bottle("red_neighbor", 0.29, 0.13, SHELVES["red"], RED),
-    bottle("red_swap", 0.16, -0.13, SHELVES["blue"], RED),
-    bottle("blue_neighbor", 0.29, -0.13, SHELVES["blue"], BLUE),
+    bottle("blue_swap", 0.294, 0.0, SHELVES["red"], BLUE),
+    bottle("red_left", 0.294, 0.060, SHELVES["red"], RED),
+    bottle("red_right", 0.294, -0.060, SHELVES["red"], RED),
+    bottle("red_swap", 0.294, 0.0, SHELVES["blue"], RED),
+    bottle("blue_left", 0.294, 0.060, SHELVES["blue"], BLUE),
+    bottle("blue_right", 0.294, -0.060, SHELVES["blue"], BLUE),
 ]
-OBJECTS = [*SHELVES.values(), STAGE, *BOTTLES]
+OBJECTS = [*SHELVES.values(), *FIXTURES, STAGE, *BOTTLES]
 NAMES = tuple(b.name for b in BOTTLES)
 GOALS = {name: name.split("_")[0] for name in NAMES}
+INITIAL_SORTED = 4
+MAX_FALL_SPEED = 0.35
+# Local +Z approaches along world +X; local X closes the jaws along world Y.
+HORIZONTAL_ROTATION = np.array([[0.0, 0.0, 1.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0]])
+HORIZONTAL_QUAT = ik.matrix_to_quat_xyzw(HORIZONTAL_ROTATION)
 
 
 def tilt_deg(state):
@@ -137,12 +168,14 @@ class SafetyMonitor:
                 self.reasons.add(f"{name}:virtual_damage")
             if tilt > MAX_TILT_DEG:
                 self.reasons.add(f"{name}:tipped")
-            if state.low[2] < surface(STAGE) - 0.006:
+            if state.lin_vel[2] < -MAX_FALL_SPEED:
+                self.reasons.add(f"{name}:uncontrolled_fall")
+            if state.low[2] < min(surface(s) for s in SHELVES.values()) - 0.006:
                 self.reasons.add(f"{name}:fell_below_shelves")
             if not (
-                0.07 <= state.pos[0] <= 0.38
-                and -0.23 <= state.pos[1] <= 0.23
-                and state.high[2] <= TOP + 0.32
+                0.07 <= state.pos[0] <= 0.44
+                and -0.15 <= state.pos[1] <= 0.27
+                and state.high[2] <= TOP + 0.43
             ):
                 self.reasons.add(f"{name}:outside_workspace")
 
@@ -166,46 +199,109 @@ def success(objects):
 def score(objects):
     if not MONITOR.safe or not MONITOR.released:
         return 0.0
-    return max(0, sum(sorted_bottle(n, objects[n]) for n in NAMES) - 2) / 2
+    return max(0, sum(sorted_bottle(n, objects[n]) for n in NAMES) - INITIAL_SORTED) / 2
 
 
 def distance(objects):
     return float(
-        sum(
-            np.linalg.norm(objects[n].pos[:2] - np.asarray(SHELVES[GOALS[n]].pos[:2]))
-            for n in NAMES
-        )
+        sum(abs(objects[n].low[2] - surface(SHELVES[GOALS[n]])) for n in NAMES)
         / len(NAMES)
     )
 
 
-def demo():
-    """Four sequential moves through two staging positions; no arm crosses over."""
-    blue, _, red, _ = BOTTLES
-    stage_blue = (0.27, 0.0, surface(STAGE) + HEIGHT / 2)
-    stage_red = (0.14, 0.0, surface(STAGE) + HEIGHT / 2)
-    red_goal = (0.16, 0.13, surface(SHELVES["red"]) + HEIGHT / 2)
-    blue_goal = (0.16, -0.13, surface(SHELVES["blue"]) + HEIGHT / 2)
-    travel = TOP + 0.18
-    parks = {"left": (0.11, 0.26, TOP + 0.16), "right": (0.11, -0.26, TOP + 0.16)}
-    plans = {"left": [], "right": []}
-    for side, pick, place in [
-        ("left", blue.pos, stage_blue),
-        ("right", red.pos, stage_red),
-        ("left", stage_red, red_goal),
-        ("right", stage_blue, blue_goal),
-    ]:
-        move = pick_place_waypoints(
-            pick, (place[0], place[1], place[2] + 0.0015), travel_z=travel, speed=0.75
+class RackWaypoint:
+    """A Cartesian target with an explicit quaternion, including horizontal grips."""
+
+    def __init__(self, duration, pos, finger, label="", quat=HORIZONTAL_QUAT):
+        self.duration = duration
+        self.pos = tuple(pos)
+        self.finger = finger
+        self.label = label
+        self.quat = np.asarray(quat)
+
+
+class RackArmPlan(ArmPlan):
+    """Use the stock IK/action layout with full 3D gripper orientation targets."""
+
+    def target(self, t):
+        from yam_arena.urdf import quat_xyzw_to_matrix
+
+        prev_pos, prev_rot, prev_finger = (
+            self.start_pos,
+            self.start_rot,
+            self.finger_start,
         )
-        move.append(Waypoint(1.5, parks[side], FINGER_OPEN, "withdraw"))
+        for w in self.waypoints:
+            goal = np.asarray(w.pos)
+            rot = quat_xyzw_to_matrix(w.quat)
+            if t < w.duration:
+                s = ik.smoothstep(t / w.duration)
+                return (
+                    prev_pos + s * (goal - prev_pos),
+                    ik.slerp_matrix(prev_rot, rot, s),
+                    prev_finger + s * (w.finger - prev_finger),
+                    w.label,
+                )
+            t -= w.duration
+            prev_pos, prev_rot, prev_finger = goal, rot, w.finger
+        return prev_pos, prev_rot, prev_finger, "done"
+
+
+def demo():
+    """Enter horizontally, lift 20 mm, withdraw fully, then change shelf level."""
+    blue = BOTTLES[0]
+    red = BOTTLES[3]
+    stage = (STAGE.pos[0], STAGE.pos[1], surface(STAGE) + HEIGHT / 2)
+    red_goal = (blue.pos[0], 0, surface(SHELVES["red"]) + HEIGHT / 2)
+    blue_goal = (red.pos[0], 0, surface(SHELVES["blue"]) + HEIGHT / 2)
+    parks = {"left": (0.23, 0.23, TOP + 0.20), "right": (0.23, -0.23, TOP + 0.20)}
+    opening = FINGER_OPEN * 0.55
+    plans = {
+        side: [RackWaypoint(2, pos, opening, "park horizontally")]
+        for side, pos in parks.items()
+    }
+
+    def move(pick, place):
+        px, py, pz = pick
+        qx, qy, qz = place
+        # At x=0.20 the whole carried bottle is outside the shelf front.
+        # The staging pad is approached from x=0.21.
+        ex = 0.20 if px > RACK_FRONT else 0.21
+        fx = 0.20 if qx > RACK_FRONT else 0.21
+        return [
+            RackWaypoint(2, (ex, py, pz), opening, "align outside shelf"),
+            RackWaypoint(2, pick, opening, "enter horizontally between neighbors"),
+            RackWaypoint(1, pick, FINGER_CLOSED, "grasp bottle"),
+            RackWaypoint(1, (px, py, pz + 0.020), FINGER_CLOSED, "lift 20 mm"),
+            RackWaypoint(
+                2, (ex, py, pz + 0.020), FINGER_CLOSED, "withdraw horizontally"
+            ),
+            RackWaypoint(
+                3, (fx, qy, qz + 0.020), FINGER_CLOSED, "transfer outside rack"
+            ),
+            RackWaypoint(2, (qx, qy, qz + 0.020), FINGER_CLOSED, "insert horizontally"),
+            RackWaypoint(1, (qx, qy, qz + 0.001), FINGER_CLOSED, "set down"),
+            RackWaypoint(1, (qx, qy, qz + 0.001), opening, "release carefully"),
+            RackWaypoint(2, (fx, qy, qz + 0.001), opening, "withdraw empty gripper"),
+        ]
+
+    for side, pick, place in [
+        ("left", blue.pos, stage),
+        ("right", red.pos, red_goal),
+        ("left", stage, blue_goal),
+    ]:
+        motion = move(pick, place)
+        motion.append(RackWaypoint(2, parks[side], opening, "park clear"))
         other = "right" if side == "left" else "left"
-        plans[side].extend(move)
+        plans[side].extend(motion)
         plans[other].append(
-            Waypoint(
-                sum(w.duration for w in move), parks[other], FINGER_OPEN, "wait clear"
+            RackWaypoint(
+                sum(w.duration for w in motion), parks[other], opening, "wait clear"
             )
         )
     for side, plan in plans.items():
-        plan.append(Waypoint(3, parks[side], FINGER_OPEN, "verify stability"))
+        plan.append(
+            RackWaypoint(2, parks[side], FINGER_OPEN, "open grippers and verify")
+        )
+        plan.append(RackWaypoint(3, parks[side], FINGER_OPEN, "verify stability"))
     return plans
