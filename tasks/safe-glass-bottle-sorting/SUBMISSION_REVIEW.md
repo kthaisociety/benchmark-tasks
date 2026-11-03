@@ -14,7 +14,7 @@ No task-board credentials belong in the repository.
 | Feasibility | Full-score scripted GPU recording within 2,400 steps; regressions and horizontal IK checks pass |
 | Fidelity | Opaque rigid plastic surrogates; no fracture or force-based damage claim; finite measurement resolution declared |
 | Blind review | Camera-only recordings without audio; sampled frames and public task prose checked for identifiers |
-| Submission mechanics | Registered GitHub author confirmed; media ID must be filled by official upload before opening the PR |
+| Submission mechanics | Registered GitHub author confirmed; official media upload complete (M-7UJQES); strict preflight passed |
 
 ## Related tasks and substantive distinction
 
@@ -48,6 +48,6 @@ evaluated source; the preflight checks their consistency and media hashes.
 The prepared task differs from the evaluated task only in its module description;
 its executable AST is identical. Force is diagnostic telemetry in both.
 
-Upload the final recordings with tools/upload_media.py, commit the resulting real
-media ID, and rerun validate_submission.py without --allow-pending-media. A local
-check that permits pending media is preparation, not a completed submission.
+The official uploader returned media bundle M-7UJQES, now recorded in task.json.
+Strict validate_submission.py passed with all required metadata and no pending-media
+exception. The pull request is prepared locally and has not been opened.

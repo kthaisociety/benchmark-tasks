@@ -10,4 +10,4 @@ Validation on the GPU simulator, seed 0, zero pose jitter, 2,400-step limit:
 - 18 regression tests pass; both arms' horizontal IK errors are below 0.1 mm and 0.02 degrees.
 - Recordings fully decode as H.264/yuv420p, 640x360 at 20 fps, with faststart and no audio.
 
-README.md supplies dependencies, commands, runtime, seed, layout, reset and fidelity. scene_inventory.json enumerates the scene. SUBMISSION_REVIEW.md records the authenticated board comparison and distinctness rationale. The evidence preflight checks source equivalence, scores, traces and media hashes. The official media ID must be uploaded and committed before opening this PR.
+README.md supplies dependencies, commands, runtime, seed, layout, reset and fidelity. scene_inventory.json enumerates the scene. SUBMISSION_REVIEW.md records the authenticated board comparison and distinctness rationale. The evidence preflight checks source equivalence, scores, traces and media hashes. The official uploader returned media bundle `M-7UJQES`; strict submission preflight passes.

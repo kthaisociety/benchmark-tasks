@@ -14,5 +14,6 @@
   "run_limit": "2,400 control steps (120 seconds at 20 Hz)",
   "reset_notes": "Restore the six listed upright bottle poses, zero velocities, arms to READY, and a fresh safety latch. Fixtures remain fixed. Use seed 0 and zero pose jitter.",
   "fidelity": "PhysX rigid-body contact and gravity at 240 Hz, 20 Hz robot control. Real collision geometry for shelves, roof, panels and rigid compound bottle surrogates; no object snapping or attachments. This benchmark measures visible tipping/falling and final placement stability. Opaque rigid bottles do not fracture, and no glass-breakage or force-based damage performance is claimed. Contact force is diagnostic telemetry only. Downward speed is a declared fall proxy measurable from calibrated video. The supplied run.py provides continuous safety latching and a two-second pose-drift window; rotation about the vertical bottle axis is irrelevant. Physical reproduction uses colored plastic bottle surrogates.",
-  "scores": "Dream-1 run: 0.0; scripted demo: 1.0. Both recorded under the finalized observable scorer."
+  "scores": "Dream-1 run: 0.0; scripted demo: 1.0. Both recorded under the finalized observable scorer.",
+  "media": "M-7UJQES"
 }

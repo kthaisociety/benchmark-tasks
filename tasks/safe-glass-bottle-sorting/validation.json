@@ -59,13 +59,13 @@
     "stable_window": true
   },
   "submission_status": {
-    "media_upload": "Prepared; official upload and real media ID still required.",
+    "media_upload": "Complete: official uploader returned M-7UJQES; task.json records the media ID.",
     "duplicate_check": "Authenticated board checked 2026-11-03; closest pending bottle-retrieval task compared in SUBMISSION_REVIEW.md; reviewer judgment remains.",
     "pull_request": "Not opened; local preparation only.",
     "registered_pr_author_confirmed": true,
     "simple_tools_scoring": "Finalized: pose/fall/release/stability criteria, ruler/protractor/calibrated-video protocol. Force is telemetry only.",
     "blind_review": "Public task prose, setup and five sampled frames from each final camera-only video checked; no identifiers found; no audio.",
-    "preflight": "Objective metadata/evidence/media checks pass with --allow-pending-media; strict mode requires the actual media ID."
+    "preflight": "Strict validation passed: required media ID, source equivalence, measured scores, traces, media hashes and format."
   },
   "edge_probe": {
     "diagnostic_only": true,
