@@ -66,8 +66,8 @@
   "unit_tests_passed": 16,
   "lint": "ruff check passed",
   "dream_1": "completed; score 0.0",
-  "media_upload": "not uploaded",
-  "submission": "prepared for PR",
+  "media_upload": "uploaded",
+  "submission": "ready for review",
   "source_sha256": {
     "task.py": "8ce0214c453b688cd33a3bb9a4714d699ae2a6f874ed769c68a9fb088cda31ed",
     "run.py": "708b9b12eaead52c191ad1524c0fe2a8a1bf50c7b8953f599cf921a92f8c0b54",
@@ -118,5 +118,6 @@
     "height": 176,
     "bytes": 405525,
     "full_decode": "passed"
-  }
+  },
+  "media": "M-6W7NDA"
 }

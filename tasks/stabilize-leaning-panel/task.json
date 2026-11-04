@@ -14,5 +14,6 @@
   "run_limit": "1,200 steps (60 seconds at 20 Hz)",
   "reset_notes": "Restore the 20-degree panel lean, panel foot mark and loose stopper starting pose. Clear episode history and all external wrenches. Fixed fixtures stay in place. No consumables.",
   "fidelity": "Rigid low-mass scale analogue. The panel remains dynamic; the stopper is retained only by collision geometry. Friction: panel/base static 0.22, dynamic 0.176 with min combination; wall and shallow foot-guide friction 0. No fracture, deformation or full-size handling claims. The standardized pull uses an external wrench; examiner string/pulley is not rendered. Release uses measured opening and TCP clearance, not every arm link.",
-  "scores": "Dream-1 run: 0.0 (1,200 steps); scripted demo: 1.0 (520 steps)."
+  "scores": "Dream-1 run: 0.0 (1,200 steps); scripted demo: 1.0 (520 steps).",
+  "media": "M-6W7NDA"
 }
