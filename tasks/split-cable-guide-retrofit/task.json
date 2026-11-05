@@ -14,5 +14,6 @@
   "run_limit": "800 steps (40 seconds at 20 Hz)",
   "reset_notes": "Return both inserts and sleeve to their start marks. Open the keeper, close and latch the drawer, and fully seat both plugs. Clear trial history.",
   "fidelity": "Rigid split guides and sleeve, jointed slack loop, compliant mock plugs, and a spring force driving a constrained carriage. Contact determines whether the sleeve passes. Gripper proximity is used to detect assistance. Jacket wear, electrical behaviour and fracture are outside the model.",
-  "scores": "Dream-1: 0.0 in 800 steps. Scripted demo: 1.0 in 463 steps."
+  "scores": "Dream-1: 0.0 in 800 steps. Scripted demo: 1.0 in 463 steps.",
+  "media": "M-D4EQMT"
 }
