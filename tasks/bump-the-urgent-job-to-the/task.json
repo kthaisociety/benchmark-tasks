@@ -10,5 +10,5 @@
   "reset_notes": "Nothing is consumed. Put each box back on its starting pad, centre within 1 cm and upright, with its edges parallel to the pad edges.",
   "fidelity": "Approximate: rigid boxes and flat pads in simulation, friction 1.2 everywhere, boxes only turn about the vertical, no joints. The arms are weak and the 0.1 kg boxes are light. The pads are thin flat markers, not recesses, so a box can rest anywhere on them.",
   "scores": "Dream-1 run: 0.0; demo: 1.0",
-  "media": "M-TODO"
+  "media": "M-VBBA8P"
 }
