@@ -9,5 +9,6 @@
   "run_limit": "2,400 steps (2 minutes at 20 Hz)",
   "reset_notes": "Return the three boxes to their marks, the steel case on the left.",
   "fidelity": "Rigid boxes of uniform density with the same rubber-like friction (1.2). The simulator does not model crushing, and in it a stack with the steel case on top stays standing; the score applies the stockroom rule instead. The arm lifts the 1.5 kg case with some sag; for real trials, use a case heavy enough to dent a carton but within the arm's payload.",
-  "scores": "Dream-1 run: 0.0; demo: 1.0"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-M226US"
 }
