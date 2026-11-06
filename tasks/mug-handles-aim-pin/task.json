@@ -15,5 +15,5 @@
   "reset_notes": "Nothing is consumed. Put each mug back with its centre on its square's centre (within 1 cm) and its handle at the stated start bearing (within 5 degrees).",
   "fidelity": "Approximate: rigid bodies with friction 1.2, mugs turn only about the vertical, no joints. Mugs are a library model scaled to 9 cm across, light at 0.2 kg. The pin, tape squares and tray are plain shapes. Scoring reads object poses only.",
   "scores": "Dream-1 run: 0.0; demo: 1.0",
-  "media": "M-AB12CD"
+  "media": "M-8QU3FB"
 }
