@@ -56,6 +56,7 @@ OBJECTS = [SHELF, *BOTTLES, *_tray()]
 START_XY = {b.name: np.array(b.pos[:2]) for b in BOTTLES}
 _fell = False
 _disturbed = False
+_last = {}
 
 
 def _tilt_deg(obj):
@@ -73,10 +74,24 @@ def _in_tray(obj):
     return bool(inside and obj.low[2] < TRAY_FLOOR + 0.01 and obj.resting())
 
 
+def _new_trial(objects):
+    """The task module lives across trials, so a reset is recognised by every bottle jumping back to its mark
+    within one control step. A bottle stood back up by the arm never jumps, so its fall still counts."""
+    pose = {n: (objects[n].pos.copy(), _tilt_deg(objects[n])) for n in START_XY}
+    jumped = any(
+        np.linalg.norm(pose[n][0] - _last[n][0]) > 0.03 or abs(pose[n][1] - _last[n][1]) > 30 for n in _last
+    )
+    _last.update(pose)
+    at_marks = all(
+        _moved(objects, n) < 0.005 and _tilt_deg(objects[n]) < 2 and objects[n].resting() for n in START_XY
+    )
+    return jumped and at_marks
+
+
 def _track(objects):
     """Remember, for the whole trial, whether any bottle fell or any amber bottle was tilted."""
     global _fell, _disturbed
-    if all(_moved(objects, n) < 0.005 and _tilt_deg(objects[n]) < 2 for n in START_XY):
+    if _new_trial(objects):
         _fell = _disturbed = False
     _fell = _fell or any(_tilt_deg(objects[n]) > 45 for n in START_XY)
     _disturbed = _disturbed or any(_tilt_deg(objects[n]) > 10 for n in OTHERS)
