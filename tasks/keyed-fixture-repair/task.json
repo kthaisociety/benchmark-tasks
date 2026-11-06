@@ -13,5 +13,6 @@
   "run_limit": "1,800 steps (90 seconds at 20 Hz)",
   "reset_notes": "Original guide in nest, spare guides on table, backward test part in cradle, red tray empty. Clear all recorded checks; fixed layout, seed 0, no jitter.",
   "fidelity": "Rigid compound colliders set the physical stops under gravity. The bench trainer is unpowered. The removable guide geometry, tolerances and depth marks are represented directly. Parts do not deform or wear.",
-  "scores": "Dream-1 run: 0.0 (1,800 actions); scripted demo: 1.0 (1,453 actions)."
+  "scores": "Dream-1 run: 0.0 (1,800 actions); scripted demo: 1.0 (1,453 actions).",
+  "media": "M-5B8HNH"
 }
