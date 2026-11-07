@@ -1,0 +1,14 @@
+{
+  "title": "Correct mixed recycling bins",
+  "category": "Impact on jobs",
+  "keywords": ["recycling", "sorting", "inspection", "industrial operations"],
+  "instruction": "Correct the recycling bins: put the green glass bottles in the blue bin, the brown cardboard boxes in the yellow bin, and the silver metal cans in the gray bin. Place the red out-of-category item in the purple tray.",
+  "context": "At a workplace recycling station, misplaced items can contaminate a material stream. Inspecting bins and moving incorrect items to the right stream supports sorting operations; items outside the available streams are set aside.",
+  "setup": "Four fixed square trays, each with a 14 x 14 cm opening, 3 cm walls and a 4 mm floor, sit on the station table. Their centers (x forward, y left, in cm) are blue glass (28, 16), yellow cardboard (28, 0), gray metal (28, -16) and purple set-aside (45, 0). Blue starts with one glass bottle, one metal can, one cardboard box and one red item; yellow starts with one cardboard box, one glass bottle and one metal can; gray starts with one metal can, one glass bottle and one cardboard box; purple starts empty. Bottles and cans are 3.6 cm diameter by 6.5 cm tall cylinders; cardboard and the red item are 4 x 4 x 6.5 cm boxes. Each loose item is 0.10 kg. The rigid shapes are colored material proxies: green glass, silver metal, brown cardboard and red out-of-category.",
+  "scoring": "Each destination earns 0.25 if all items assigned to it are in it and no item assigned elsewhere is in it. Otherwise that destination earns 0. An item counts in a destination when it is resting upright within 15 degrees, its bounding box is inside the 14 x 14 cm opening, and its bottom is between 2 mm below and 8 mm above the tray floor. The total is the sum of the four checks.",
+  "run_limit": "2,400 control steps (2 minutes at 20 Hz); provisional",
+  "reset_notes": "Restore each item to its specified start slot and keep the set-aside tray empty. The complete fixed poses are defined in resort_trash_bins.py.",
+  "fidelity": "Draft: rigid primitive shapes and color stand in for glass, metal, cardboard and an out-of-category item; no actual material properties, organic waste, damage or breakage are simulated. The shallow trays simplify real recycling bins. The scene and demo have not been validated in simulation.",
+  "scores": "Pending: scripted demo and Dream-1 have not been run.",
+  "media": ""
+}
