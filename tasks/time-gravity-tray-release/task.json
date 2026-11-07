@@ -1,0 +1,19 @@
+{
+  "title": "Time a gravity-chute release into an empty moving tray",
+  "category": "Impact on jobs",
+  "keywords": [
+    "sortation",
+    "gravity feed",
+    "timed release",
+    "moving tray",
+    "material handling"
+  ],
+  "instruction": "Use the two gates to send the yellow ball into the empty moving tray. Let the ball stop at the second gate before releasing it.",
+  "context": "Parcel sorters stage items upstream and release them in time to meet a receiving tray in motion. Releasing an item when the tray is already under the outlet can be too late because the item still has to travel down the chute. This tabletop trainer measures whether a robot can skip an occupied tray and time the release for the empty one.",
+  "setup": "World axes in metres: x forward, y left, z up from the table. Fixed steel chute at x 0.225 from y +0.252 to -0.415, 0.124 m wide, with a 5.5-degree slope and a 0.042 m outlet height. It has steel legs, side rails, a slotted upper guard and two open vertical guides. At y +0.190 and -0.090 are teal and orange 95 g polymer gates, each a 92 x 14 x 44 mm blade with a 29 x 22 x 30 mm handle. A yellow 40 mm, 30 g polymer ball starts just uphill of the teal gate. A steel rail bed (556 x 155 mm) at y -0.490 carries two blue polymer trays 134 mm apart along x. Each tray has a 96 x 122 mm interior, 8 mm floor and walls 10 mm at the inlet and 30 mm elsewhere. Each has a rubber liner with crossed ribs 4 mm wide and 3 mm high at 24 mm spacing. A red 66 x 66 x 44 mm dummy load is fixed in the +x tray in layout A. A starts with the shuttle centred at x 0.390, travelling toward x 0.080 at 0.100 m/s once the trial starts. The screenshot shows the top camera (left) and right wrist camera (right) at the start. See README for the three timing-control layouts.",
+  "scoring": "0.25 while the ball remains stopped at the seated second gate after a 0.5 s dwell below 2.5 cm/s. 1.0 when a valid release sends the ball along the guarded chute into the empty tray moving at least 4 cm/s at capture, and the ball remains on its floor within the tray at less than 5 cm/s relative speed for the final 1 s. Early opening, knocking a gate out of its guide, a path bypass, an occupied or missed tray, and loss of the ball after capture all score 0. Other outcomes score 0. See README for exact geometric tolerances.",
+  "run_limit": "600 steps (30 seconds at 20 Hz)",
+  "reset_notes": "Return both gates to the guides and the yellow ball uphill of the teal gate. Start the empty and occupied trays at the specified home pose with the shuttle stopped. Run with object jitter disabled.",
+  "fidelity": "Dry tabletop trainer for timed induction. Gravity drives the ball and contact holds it at each stop. The trays share a single motor-driven linear shuttle and the red dummy load is fixed in its tray. Rigid ribs approximate a textured catch liner. The sorter loop, belts, sensors and packaging deformation are omitted.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0"
+}
