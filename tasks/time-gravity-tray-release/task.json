@@ -15,5 +15,6 @@
   "run_limit": "600 steps (30 seconds at 20 Hz)",
   "reset_notes": "Return both gates to the guides and the yellow ball uphill of the teal gate. Start the empty and occupied trays at the specified home pose with the shuttle stopped. Run with object jitter disabled.",
   "fidelity": "Dry tabletop trainer for timed induction. Gravity drives the ball and contact holds it at each stop. The trays share a single motor-driven linear shuttle and the red dummy load is fixed in its tray. Rigid ribs approximate a textured catch liner. The sorter loop, belts, sensors and packaging deformation are omitted.",
-  "scores": "Dream-1 run: 0.0; demo: 1.0"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-99BEJ5"
 }
