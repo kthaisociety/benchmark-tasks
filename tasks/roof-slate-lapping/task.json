@@ -1,0 +1,14 @@
+{
+  "title": "Slate both faces of a gable roof so every slate laps over the one below",
+  "category": "Impact on jobs",
+  "keywords": ["roofing", "lapping order", "water shedding", "construction", "bimanual"],
+  "instruction": "Lay the four slates on the roof, one on each course.",
+  "context": "Roofers lay slates from the eaves up so that each course laps over the one below: rain running down the roof then flows over every joint instead of into it. Laid in the wrong order, the lower slate sits on top of the upper one and each joint channels water under the roof, causing leaks and rot, though the roof looks finished. The same lapping rule governs shingles, tiles, cladding, building wrap and flashing. Here the two faces of a gable fall in opposite directions, toward and away from the robot, so the order must be worked out for each face from which way water runs, ridge to gutter. The instruction says only to lay the slates. Done by: roofers and slaters.",
+  "setup": "A model gable roof stands between the arms, its ridge running left to right 30 cm in front of the arm bases. Two faces of pine sarking board (17.5 x 10 cm, 1.2 cm thick) on rafters pitch 25 degrees from a red ridge tile 10.4 cm high down to eaves 3 cm high: one at 14 cm out, nearest the arms, the other at 46 cm out. A grey plastic gutter (2 x 14 cm) runs along each eaves, with a downpipe at its right end. Two white chalk lines across each face mark the tails of its two courses: one at the eaves, one 5.5 cm up the slope. Four grey slates (11 x 6 x 1 cm, 100 g) lie flat on two pine pallets (30 x 9 x 1.2 cm), two 17 cm left of centre and two 17 cm right, at 22 and 36 cm out. Also: an aluminium ladder, a slater's hammer, a box of nails and a spare ridge tile on the far side of the table.",
+  "scoring": "A slate is laid on a course when it rests on that face tilted 5 to 45 degrees, its long side within 20 degrees of straight up the slope, its centre within 2 cm of the roof's centre line and within 2 cm of the course's centre along the slope (2.4 cm for the upper course). Per face, 0.5 when both its courses hold a slate and the upper slate's tail (lower edge) lies on top of the lower slate; 0 for that face if the lower slate lies on top of the upper one, or a course is empty. Scored at the end.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Lift the four slates off the roof and lay them flat back on the pallet marks; nothing is consumed and the roof does not move.",
+  "fidelity": "A small model roof: two courses per face, slates 1 cm thick, so an upper slate lies a few degrees steeper than the one below. Slates rest on the sarking by friction (rubber-like, 1.2) instead of being nailed or hooked, and chalk lines stand in for battens. The roof is rigid and too heavy for the arms to move.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-EMVSHX"
+}
