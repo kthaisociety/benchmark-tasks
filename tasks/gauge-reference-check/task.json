@@ -1,0 +1,20 @@
+{
+  "title": "Check the gauge with a reference block before quarantining a failed part",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "quality control",
+    "measurement system check",
+    "known-good reference",
+    "go/no-go gauge"
+  ],
+  "instruction": "The grey block on the orange mat just failed this gauge. Check the gauge with the green-banded reference block on its test pad, then deal with the part and the gauge according to the result: the red bin is quarantine, the blue tray is retest, and the yellow tag marks a gauge out of service. Put the reference block back in its holder.",
+  "context": "When a part fails, the part may be bad or the gauge may be. Inspectors test a known-good reference on the same gauge before rejecting anything. If the reference passes, the gauge is trusted and the part is quarantined. If it fails, the gauge is tagged out and its rejects go for retest, so good parts aren't scrapped (AIAG MSA; ISO 9001 7.1.5). Unlike #71 (correct a gauge's zero error against a reference), the check decides a disposition. Unlike #658 and #331, the gauge itself is in question. Done by: inspectors and machine operators (O*NET 51-9061.00).",
+  "setup": "Station table, positions in cm from the midpoint between the arm bases (x forward, y left). Gauge (fixed, 10 kg): dark base plate 17 x 34 cm centred at x 40, y 0, with a steel test pad 8 x 8 x 1.2 cm at x 36, y 0; a black TEST button cap 3.5 x 3.5 cm, 4.3 cm high, 8 mm travel, at x 38, y -14; a grey lamp housing 4 x 12 x 6 cm at x 46, y -1 with a green PASS and a red FAIL lamp; a yellow tag plate 8 x 8 cm at x 38, y 13. Loose: failed part, plain aluminium block 4 x 4 x 5 cm (216 g), on an orange mat 8 x 8 cm at x 24, y 13; reference block, same size and material with a green top band, in a green open holder (8 x 8 cm pocket, walls 6 mm thick, 2 cm tall) at x 24, y -12; out-of-service tag, yellow polymer stand 5 x 3.5 x 6 cm (60 g) with a red top band, on a yellow mat at x 50, y 12. Fixed open frames, same walls, 10 x 10 cm pockets: red quarantine bin at x 33, y 29; blue retest tray at x 47, y 27.",
+  "scoring": "Two trials per run with the same layout; the run's score is their mean. Trial 1: the gauge is in calibration (passes the reference, fails the part). Trial 2: it has drifted and fails every block. A test is a TEST press with a block standing on the pad (centre within 2 cm of the pad centre, bottom within 6 mm of the pad top); it lights one lamp until the next test. Each trial, from photos and a ruler, objects still: 0 unless the reference alone was tested. Then 0.25 for that check; +0.25 for the reference in its holder at the end; +0.5 for the correct disposition: trial 1, part in the quarantine bin; trial 2, tag standing on the tag plate (0.25) and part in the retest tray (0.25). In a bin or tray or on the plate: centre inside its walls, bottom under 2 cm above the table. Capped at 0.25 if, at any time, the part or tag was placed before the check, the part went to the wrong place, the tag was placed in trial 1, or the reference was put in a bin or tray. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,200 steps per trial (60 s at 20 Hz), two trials",
+  "reset_notes": "Between trials, return every block and the tag to its start and set the gauge's state for the next trial: in calibration for trial 1, drifted for trial 2. On a real rig the evaluator sets a hidden switch that makes the gauge fail every block.",
+  "fidelity": "Rigid blocks and frames; the button is a spring slider, and each lamp is a coloured lens under a dark shutter the task lowers to show it. The gauge's measurement is modelled, not simulated: a press tests whatever stands on the pad, and the trial's gauge state decides the lamp. No measuring contact, wear or electronics.",
+  "scores": "Dream-1 run: 0.0 (0.0 in both 1,200-step trials); scripted demo: 1.0 (1.0 in both trials, 615 and 808 steps)",
+  "media": "M-5Q4SYU"
+}
