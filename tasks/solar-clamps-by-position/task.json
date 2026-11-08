@@ -1,0 +1,14 @@
+{
+  "title": "Clamp two solar panels with the right clamp at each position: end clamps at the row ends, mid clamps between",
+  "category": "Impact on jobs",
+  "keywords": ["solar installation", "renewable energy", "part selection", "construction", "bimanual"],
+  "instruction": "Clamp the panels to the rails.",
+  "context": "Solar panels are fixed to their mounting rails with two kinds of clamp. An end clamp has a single lip and goes only at a row end, gripping one panel's outer edge; a mid clamp has a lip each side and sits in the gap between two panels, holding both. A mid clamp at a row end grips nothing on its outer side, and an end clamp in the gap holds only one panel, so in both cases a panel can lift off in the wind. Installers fit every array this way, following the mounting system makers' instructions. The instruction says only to clamp the panels; which clamp goes where must be worked out from the clamps' shapes and the positions. Done by: solar installers and roofers.",
+  "setup": "A strip of grey roof (30 x 48 cm) 36 cm in front of the arm bases on the centre line carries two aluminium mounting rails (42 x 2 x 2 cm) running left to right, 31 and 41 cm out. Two blue solar panels (18 x 14 x 1.2 cm) lie on the rails side by side with a 3 cm gap on the centre line. An orange parts tray (22 x 8 cm) beside each arm, 27 cm left and 27 cm right of centre, holds two end clamps and one mid clamp at 18, 25 and 32 cm out: aluminium, a 3 x 1.2 x 1.2 cm body with a 0.4 cm lip on top, 6 cm long on a mid clamp and 3 cm long reaching toward the panels on an end clamp, and a dark 1.2 x 1.2 x 3 cm bolt head, 30 g. Also: an inverter, two cable reels and a torque wrench on the far side.",
+  "scoring": "There are six clamp positions, three on each rail: at each row end, with the clamp body just outside the panel's outer edge, and in the gap between the panels. A clamp counts at a position when it stands level (tilted less than 10 degrees) and at rest on the rail with its centre within 1.2 cm of the position. A sixth for each position holding the right kind: an end clamp at a row end, a mid clamp in the gap. Scored at the end.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Put each clamp back on its tray mark, end clamps with their lip toward the panels; nothing is consumed.",
+  "fidelity": "A small model array: panels, rails and clamps are rigid, and clamps rest on the rails instead of being bolted down, so tightening is not modelled. The scorer checks what an inspector checks: the right kind of clamp seated at each position.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-7PBPX7"
+}
