@@ -1,0 +1,19 @@
+{
+  "title": "Shuffle a sorted deck so no colours touch, then deal it round the table",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "card dealing",
+    "stack reordering",
+    "turn order"
+  ],
+  "instruction": "Shuffle the deck on the dark mat so that no two cards of the same colour touch, using the grey mats, then deal it from the top, one card at a time, clockwise to the three yellow seats, starting with the seat on your left, until each seat has two cards.",
+  "context": "Dealers at card tables and game venues reorder a deck without spreading it out and then hand cards out strictly in deck order and seat rotation. A misdealt card changes every later hand, so order matters as much as placement.",
+  "setup": "Fixed YAM station. Six rigid plastic card tiles, 90 x 56 x 16 mm, 40 g each (2 red, 2 green, 2 blue), stacked on a dark grey 110 x 80 x 2 mm mat, sorted red, red, green, green, blue, blue from the bottom. Two light grey 110 x 80 x 2 mm shuffle mats. Three yellow 130 x 100 x 2 mm seat mats across the far side: left, middle, right. All mats are fixed plastic; positions are in README.md and task.py.",
+  "scoring": "0 unless the last six-card stack formed on the dark or a grey mat before the first deal has no two same-coloured cards adjacent. Then 0.25, plus 0.125 for each deal in an unbroken run from the first in which the card is the next from the top of that deck, lands at rest and flat within 40 x 35 mm of the centre of the seat whose turn it is (left, middle, right, repeated), and stays there. 1.0 for all six. A card resting off the mats, tilted over 15 degrees, or off the table scores 0.",
+  "run_limit": "3,000 control steps (150 seconds at 20 Hz)",
+  "reset_notes": "Restack all six cards on the dark mat in the starting order. Nothing is consumed.",
+  "fidelity": "Cards are 16 mm rigid tiles because the station's downward parallel grippers can't pick up a 0.3 mm playing card. Shuffling is done by single-card moves between three piles, not a riffle. Tiles are coloured on every face, so they are dealt face up. PhysX rigid contact.",
+  "scores": "Dream-1 run: 0.0 in 3,000 steps. Scripted YAM demo: 1.0 in 2,406 steps.",
+  "media": "M-YQ8VBZ"
+}
