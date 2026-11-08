@@ -1,0 +1,20 @@
+{
+  "title": "Fit five boxes into a tote they only fit one way",
+  "category": "Impact on jobs",
+  "keywords": [
+    "packing",
+    "bin packing",
+    "spatial reasoning",
+    "order fulfilment",
+    "bimanual"
+  ],
+  "instruction": "Put all five boxes in the tote, each lying flat on the tote floor.",
+  "context": "Order packers fit each order into the smallest tote that holds it; packed carelessly, the last item no longer fits and the order goes into a bigger box. Here no packing plan is given: the five boxes only all fit flat with the three long ones lying side to side in rows and the short ones fitted into the space left beside the rows. Placing any of four boxes in the middle of the tote, or packing them the way they lie, leaves no room for the last one.",
+  "setup": "Positions in metres from the midpoint between the two arm bases (bases at y = +0.305 and -0.305), x forward, y to the robot's left; heights above the table top. Tote (fixed: tape or clamp to the table): four dark grey walls 1 cm thick and 6 cm tall standing on the table, enclosing an inner area 28 cm along x (x 0.16 to 0.44) by 36 cm along y (y -0.18 to +0.18); the table is the tote floor. Five loose rigid boxes, all 6.5 cm tall, matte painted (cardboard product boxes or wood blocks weighted to the stated mass), lying flat: yellow 18 x 6 cm, 120 g, centred at (0.42, 0.235), long side along x; blue 22 x 7 cm, 130 g, at (0.42, 0.335), long side along x; red 24 x 6 cm, 150 g, at (0.44, 0.43), long side along x; green 11 x 6 cm, 100 g, at (0.33, -0.29), long side along y; purple 9 x 7 cm, 100 g, at (0.43, -0.275), long side along y. Nothing else is on the table.",
+  "scoring": "Judged after the robot lets go and everything is still (under 1 cm/s and 0.5 rad/s), from a photo from above, a ruler and a phone level. A box is packed when its lowest point is within 5 mm of the tote floor (the table), its top face is within 10 degrees of level, and its whole outline seen from above is inside the tote's inner walls. 1.0: all five boxes packed. 0.25: exactly four packed and the fifth lying on the table outside the tote's outer walls. 0 otherwise, including a box on top of another box, propped on a wall or another box, standing on end, or held. In simulation the tote cannot move; on a real rig a trial in which the tote moves more than 1 cm scores 0.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Lay the five boxes back on their marks, red, blue and yellow long side along x and green and purple long side along y.",
+  "fidelity": "Approximate: product boxes are rigid blocks with one friction (1.2), so nothing squashes, and the tote is four fixed walls with the table as its floor. The puzzle is two-dimensional (boxes may only lie flat), matching a top-down parallel gripper that turns only about the vertical. The tote's size leaves the intended arrangement 2 to 2.5 cm of clearance around each box, the room the fingers need.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-PX79UY"
+}
