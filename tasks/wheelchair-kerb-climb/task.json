@@ -1,0 +1,20 @@
+{
+  "title": "Tip a wheelchair back to get it up a kerb",
+  "category": "Societal relevance",
+  "keywords": [
+    "wheelchair",
+    "kerb",
+    "tipping lever",
+    "assisted mobility",
+    "caregiving"
+  ],
+  "instruction": "Get the wheelchair up onto the grey kerb so that all four of its wheels rest on top, without tipping it over or letting the dummy fall off the seat. Then let go of the chair.",
+  "context": "Kerbs without a dropped crossing are an everyday barrier for wheelchair users, and attendants are taught a set way up a low kerb. Tip the chair back on its rear wheels by pressing the tipping lever, roll forward until the front casters are over the kerb, and lower them onto it. Then push the rear wheels up. Small casters can't roll up a step: pushed straight at the kerb they jam and pitch the occupant forward. The scene is at 1:4 scale: a 6 cm kerb and a transit chair with 28 cm rear wheels.",
+  "setup": "At 1:4 scale on the station's table. Positions are in cm from the midpoint between the arm bases, x forward, y toward the left arm, heights above the table. Road: a dark grey painted strip from x = 8 to 37, y = -20 to 20. Kerb: a grey concrete block 23 x 40 x 1.5 cm high, its face at x = 37, centred on y = 0. Wheelchair, 0.40 kg, facing +x with its rear axle's middle at (23, 0): an aluminium frame and black plastic parts; two rubber rear wheels 7 cm across, 15.6 cm apart; two rubber front casters 2.4 cm across, 11 cm apart, 12 cm ahead of the axle, about 0.8 cm from the kerb face, which don't swivel; a blue padded seat 10 x 12 cm with its top 7.5 cm up; a blue backrest to 16 cm; two black push handles 3.8 cm long, joined at their ends by a black push bar 10 cm wide at 15 to 16 cm, 5 cm behind the axle; two tipping levers low at the back, joined at their ends by an orange bar 14 x 3 cm, 2.5 to 4 cm up, centred 9.5 cm behind the axle; a footrest 3 cm deep, 2.6 cm up. Dummy: a dark grey weighted plastic block 6 x 8 x 6 cm high, 120 g, on the seat centred 4.5 cm ahead of the axle. With the dummy, the chair's centre of mass is 1.2 cm ahead of the rear axle. The screenshot shows the start.",
+  "scoring": "Read at the end of the run. A wheel is up when its centre is 1 cm or more past the kerb face and it rests on the kerb top (its lowest point within 3 mm). 0 for good if at any time: the chair tips back more than 25 degrees, forward more than 15 or sideways more than 12; all four wheels are more than 5 mm clear of the road, kerb top and kerb edge at once (lifted); or the dummy leaves the seat (its centre off the seat's area or more than 4 cm above the seat top, or the dummy tilted 20 degrees on the seat). Otherwise 0 with the casters not both up; 0.25 with both casters up; 0.6 with all four wheels up; 1.0 with all four wheels up, the chair level within 3 degrees, at rest (under 1 cm/s and 0.2 rad/s) and both grippers' tool centre points 5 cm or more from the chair's outline, for 1 s.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Put the chair back at its start and the dummy back on the seat. Nothing is consumed.",
+  "fidelity": "Rigid bodies at 1:4 scale. Each wheel is a free joint with a sphere collider: real tyres are cylinders and give. The casters don't swivel, since the chair only rolls straight. The tipping levers are joined by a bar for a gripper to press, where an attendant steps on one lever; the push bar stands in for both handles. The dummy is a rigid block.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-8U3T25"
+}
