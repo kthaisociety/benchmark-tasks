@@ -1,0 +1,20 @@
+{
+  "title": "Route a train round a passing loop with one points lever",
+  "category": "Impact on jobs",
+  "keywords": [
+    "railway points",
+    "timing",
+    "moving object",
+    "two-step sequence",
+    "lever"
+  ],
+  "instruction": "The blue ball is a train, and the red wagon is stopped on the main line. Send the ball round the loop and back onto the main line: pull the black points lever toward you before the ball reaches the first junction, then push it back once the ball is past that junction and before it reaches the end of the loop. Never move the lever while the ball is on a junction, and do not touch the track or the ball.",
+  "context": "Yard crews line hand-thrown switches ahead of moving cars and must never throw one while a wheel is on the points; the same skill runs manual diverter gates on conveyors and baggage lines. The robot never touches the moving object: it must predict when the ball arrives and fit two throws into the gaps.",
+  "setup": "Grey track board 214 x 660 x 12 mm centred 490 mm in front of the arm bases, with white polymer channel walls (8 mm thick, 22 mm high, 36 mm clear). The straight main line runs left to right 440 mm forward to a buffer stop; a 45-degree entry diagonal leads to a parallel loop 100 mm further forward and a 45-degree exit diagonal leads back. Past the exit junction the loop runs straight on into a yellow sand drag ending at a wall. Two steel flapper blades (6 x 64 x 20 mm) hinged at the junctions. A black steel points lever (100 mm to its white 22 x 50 x 26 mm polymer handle, 150 g) in front of the right arm on a dark 80 x 60 x 34 mm frame, swinging 22 degrees either side of vertical with no spring, starting normal (leaning away from the arms) and linked to both blades by a rod under the board. A blue 28 mm hard-rubber ball (30 g) waits behind a yellow 32 x 8 x 28 mm gate at the left end of the main line; the gate lifts at 5 s. A red 30 x 60 x 32 mm polymer wagon is fixed on the main line between the junctions. A white exit line crosses the main line 60 mm past the exit junction. Exact positions are in README.md and layout.py.",
+  "scoring": "1.0 if the ball goes round the loop and its centre crosses the white exit line on the main line. 0.5 if the ball enters the loop through the first junction but does not reach the exit line (e.g. it runs into the sand drag). 0 otherwise, including running into the wagon. A fault scores 0 whatever follows: the lever partway over (10-90% of its throw) or moving more than 10% of its throw while the ball's centre is within 19 mm of the area a blade sweeps; either gripper's tool centre point over the track (360-640 mm forward of the arm bases and within 340 mm either side of their midpoint) lower than 120 mm above the table; or the ball's centre more than 8 mm below or 12 mm above its running height.",
+  "run_limit": "400 control steps (20 seconds at 20 Hz)",
+  "reset_notes": "Return the lever to normal (leaning away from the arms), which resets both blades, and place the ball back behind the lowered gate. Nothing is consumed.",
+  "fidelity": "Rigid PhysX bodies with real contact: the ball rolls and is turned only by the channel walls and blades; the blades and lever turn on revolute joints, and the lever's two stops and over-centre action come from its own weight. Simplified: a stiff angular spring per blade stands in for the rod from the lever; the ball is driven toward the exit by a constant 7 mN pull with 0.1 N s/m drag (7 cm/s on the straight, standing in for a train under power); the gate is lifted by a fixed force at 5 s.",
+  "scores": "Dream-1 run: 0.0 (149 actions; gripper over the track); scripted demo: 1.0 (333 actions)",
+  "media": "M-7J3W8R"
+}
