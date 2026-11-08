@@ -1,0 +1,14 @@
+{
+  "title": "Lay plasterboard across the ceiling joists, turning each board so both ends land on a joist",
+  "category": "Impact on jobs",
+  "keywords": ["drylining", "construction", "orientation", "hidden structure", "bimanual"],
+  "instruction": "Lay the two boards on the joists.",
+  "context": "Plasterboard ceilings are fixed with the boards' long edges at right angles to the joists and every end landing on a joist: a board is much stronger along its length, and an end or edge with nothing behind it cannot be screwed and sags or cracks. Board makers' drylining guides state this, and it is taught to every apprentice. Here both boards start lying along the joists, so each must be turned a quarter turn before it is laid; the test is orienting a part to the hidden structure it is fixed to, which the instruction does not mention. Done by: dryliners, plasterers and carpenters.",
+  "setup": "A ceiling bay built upside down so it can be boarded from above: three pine joists (20 x 2 x 4 cm) run away from the arms between two pine wall plates, from 26 to 46 cm in front of the arm bases, 10 cm apart, on the centre line and 10 cm to each side. Two plasterboards (22 x 6 x 1 cm, 120 g, white with a grey paper seam) lie on dark board dollies (24 x 7 x 0.8 cm) 26 cm out, 26 cm left and 26 cm right of centre, their long edges running front to back like the joists. Also: a screw-gun case, a tub of drywall screws, a drywall T-square and a utility knife on the far side of the table.",
+  "scoring": "A board is laid when it rests flat on the joists (bottom within 3 mm of their tops), its long edges within 15 degrees of square to them, its centre between the wall plates, and both of its ends within 1.5 cm of a joist's centre line, so each end has a joist behind it. 0.5 for each laid board. Scored at the end.",
+  "run_limit": "1,800 steps (90 seconds at 20 Hz)",
+  "reset_notes": "Lift the boards off the joists and lay them back on their dollies, long edges front to back; nothing is consumed.",
+  "fidelity": "The ceiling is modelled upside down: in a building the boards are screwed up to the joists' undersides, and the orientation rule is the same. Boards are rigid scaled-down sheets resting on the joists by friction (1.2) instead of being screwed, so a board laid the wrong way does not sag here; the scorer checks the orientation and end support an inspector would.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-VVX59Q"
+}
