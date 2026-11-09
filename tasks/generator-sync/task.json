@@ -1,0 +1,21 @@
+{
+  "title": "Synchronise a generator before closing it onto the grid",
+  "category": "Impact on jobs",
+  "keywords": [
+    "power plant",
+    "synchroscope",
+    "generator synchronisation",
+    "timing",
+    "closed-loop control",
+    "control panel"
+  ],
+  "instruction": "Bring the generator online.",
+  "context": "Before a generator is connected to the grid, the operator matches it to the grid on a synchroscope: raise or lower its speed until the pointer turns slowly, then close the breaker as the pointer passes 12 o'clock. Closing at a large speed difference or out of phase causes a current and torque surge that can damage the generator and trip the grid. Done by: power plant operators and generator technicians.",
+  "setup": "On the table, centred 33 cm in front of the arm bases and 12 cm right of centre, stands a light-grey steel control panel (20 cm deep, 18 cm wide, 6 cm tall, 20 kg). On its top: a synchroscope (white dial 10 cm across in an 11 cm black bezel, centred 2.5 cm beyond and 3.5 cm left of the panel's centre) with a black pointer (8.5 cm long, 8 mm wide, pivot 2.25 cm from its tail) and a green mark (14 x 10 mm) just outside the bezel at 12 o'clock, on the side away from the robot; a red CLOSE push-button (3.5 cm square, 4.5 cm nearer the robot and 5 cm right of the panel's centre) and two black push-buttons (2.5 cm square), RAISE 6 cm and LOWER 1.5 cm beyond the panel's centre, 6 cm right of it. All buttons stand 12 mm proud on springs and travel 8 mm. Left of the panel, 43 cm in front of the arm bases and 8 cm left of centre, sits a fixed generator model: a dark-grey steel skid (20 x 12 x 2 cm) under a green-painted body (14 x 10 x 8 cm) with five cooling ribs, a shaft stub towards the robot and a terminal box, cabled to the panel's left edge by a black 12 mm cable. At the start the pointer is at 6 o'clock, turning counter-clockwise once every 2 s (generator 0.5 Hz slow); each RAISE press makes the generator 0.125 Hz faster, each LOWER press 0.125 Hz slower, and the pointer turns clockwise when the generator is fast.",
+  "scoring": "Only the first CLOSE press counts (pushed 4 mm or more). At that moment, if the pointer turns faster than once per 6.7 s in either direction (speed difference over 0.15 Hz): 0. Otherwise 1.0 if the pointer is within 15 degrees of 12 o'clock, 0.5 if within 30 degrees, 0 beyond. If CLOSE is never pressed: 0.25 if at the end the pointer turns once per 6.7 s or slower, else 0. The trial ends 1 s after a 1.0 close.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "The pointer restarts at 6 o'clock with the generator 0.5 Hz slow; the speed setting and the CLOSE record reset with each trial.",
+  "fidelity": "No electrical simulation: a software model turns the synchroscope pointer at the speed difference and each RAISE or LOWER press steps it by 0.125 Hz, where a real governor ramps speed while the switch is held. The breaker closes the instant CLOSE is pressed. The generator is a fixed model. A real-world rig needs a servo-driven pointer running the same model.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-MBQ43D"
+}
