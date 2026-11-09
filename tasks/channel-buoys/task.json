@@ -1,0 +1,20 @@
+{
+  "title": "Moor red and green channel buoys on the correct side for ships entering harbour",
+  "category": "Impact on jobs",
+  "keywords": [
+    "maritime navigation",
+    "IALA buoyage",
+    "lateral marks",
+    "frame of reference",
+    "harbour operations"
+  ],
+  "instruction": "Lay the six buoys for the two harbour channels.",
+  "context": "Ships follow lateral buoys to stay in deep water. Under IALA Region A, used in Europe, Africa and most of Asia, a ship entering from sea keeps red marks to port and green marks to starboard, so a buoy moored on the wrong side sends a ship towards the shallows. On this chart model, two channels run in from open sea to harbours at different ends, and one of them bends. Each gate has two mooring pads, one either side of the channel, with nothing to say which colour goes where. The robot has to work out from where the land and harbour lie which way a ship travels through each gate, then place red on that ship's left and green on its right. The right answer changes from gate to gate, so no fixed side of the table works for all three. Region A applies throughout. The instruction does not mention the rule. Done by: buoy tender crews, harbour authorities and coastguard aids-to-navigation teams.",
+  "setup": "A dark blue sea chart (46 x 84 cm) covers the table, with channels in light blue, 8 cm wide. Channel A: straight, 26 cm left of centre, from the far edge in to harbour A, a brown land strip (9 x 32 cm) at the near edge with a grey quay, two small buildings and a moored boat. Channel B: from the near edge 24 cm right of centre, straight out to 44 cm, then bending left along 40 cm out to harbour B, a brown land block (23 x 15 cm, 33 to 56 cm out, 1 cm right to 14 cm left) with a grey quay, two buildings, a white lighthouse and a moored boat. Six dark grey concrete mooring pads (6 x 6 cm): at 38 cm out, 19 and 33 cm left; at 33.5 cm out, 17 and 31 cm right; at 6 cm right, 33 and 47 cm out. A grey workboat deck (8 x 36 cm) 24 cm out holds six plastic buoys, 80 g, on dark 5 x 5 cm feet, in a row 24 cm out: green 15 cm left, red 9 left, green 3 left, red 3 right, green 9 right, red 15 right. Red buoys are square columns 6.8 cm tall; green buoys are stepped, 7.5 cm tall.",
+  "scoring": "One sixth for each pad holding a buoy of the required colour, upright (tilted less than 10 degrees), at rest and within 3 cm of the pad's centre. Required colours: at 38 cm out, red on the pad 19 cm left and green 33 cm left; at 33.5 cm out, red 17 cm right and green 31 cm right; at 6 cm right, red 33 cm out and green 47 cm out. A pad with the other colour or nothing on it earns 0. Maximum 1.0. Scored at the end.",
+  "run_limit": "1,500 steps (75 seconds at 20 Hz)",
+  "reset_notes": "Stand the six buoys back in their row on the workboat deck in the listed order; nothing is consumed.",
+  "fidelity": "A tabletop chart model with light rigid buoys on flat pads. Real buoys are heavy and laid from a tender with a crane, and channels are charted rather than painted; the pads stand for moorings. Depth, tides and currents are not simulated. The scorer checks which colour stands on which side of each channel, as an inspector would from a chart.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-7CVUDV"
+}
