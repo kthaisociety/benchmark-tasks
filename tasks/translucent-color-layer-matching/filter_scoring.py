@@ -1,7 +1,10 @@
-"""Pose-only, simulator-independent scoring for the draft filter task.
+"""Pose-only, simulator-independent scoring for the filter-matching task.
 
 Positions are metres in the table frame.  A state has ``pos`` and
 ``quat_xyzw`` attributes, as in yam_arena's ObjectState / PartState.
+
+Every tolerance is chosen so the result can be checked from a photograph or
+with a tape measure: 1 cm centring, a 3 mm height gap, 10 degrees of tilt.
 """
 
 from __future__ import annotations
@@ -10,22 +13,27 @@ from collections import deque
 from itertools import product
 import math
 
+from optics import MATCHING_SETS, REQUIRED  # noqa: F401  (REQUIRED re-exported)
+
 PLAQUE_SIZE = (0.060, 0.060, 0.020)
 STACK_XY = (0.300, 0.055)
 LIGHTBOX_H = 0.010
 FILTER_NAMES = ("amber", "cyan", "violet", "lime")
-REQUIRED = frozenset(("amber", "cyan"))
+# The reference is two clear plaques in a fixed holder, so the correct
+# two-plaque stack and the reference are seen through the same glazing.
 REFERENCE = "reference"
+REFERENCE_PARTS = ("reference", "reference_top")
 
-CENTRE_TOL = 0.005       # metres, along each table axis
-SUPPORT_GAP = 0.0005     # max positive gap to the support, m (provisional)
-SUPPORT_OVERLAP = 0.0005 # max penetration below the support, m (provisional)
-MAX_TILT = math.radians(3)
+CENTRE_TOL = 0.010       # metres along each table axis; 1 cm, measurable
+SUPPORT_GAP = 0.003      # max gap above the support, m
+SUPPORT_OVERLAP = 0.003  # max penetration below the support, m
+MAX_TILT = math.radians(10)
 STILL_STEPS = 20          # one second at 20 Hz
-STILL_POSITION = 0.002    # max distance from final position over those samples, m
-STILL_ROTATION = math.radians(2)
-REF_POSITION = 0.003      # displacement from pose recorded after reset, m
-REF_ROTATION = math.radians(2)
+STILL_POSITION = 0.003    # max distance from final position over those samples, m
+STILL_ROTATION = math.radians(5)
+REF_POSITION = 0.005      # displacement from pose recorded after reset, m
+REF_ROTATION = math.radians(5)
+DISPLAY_TOL = 0.020       # looser window used only to drive the lightbox colour
 TOUCH_Z = 0.003           # include misplaced extras touching a credited stack, m
 TOUCH_OVERLAP = 0.001     # projected overlap (separating-axis depth), m
 EPS = 1e-9
@@ -124,23 +132,30 @@ class Trial:
         self.reset(None)
 
     def reset(self, reference):
+        """``reference`` maps each reference part name to its settled state."""
         self.violated = False
         self.initial = None
         self.recent = {name: deque(maxlen=STILL_STEPS) for name in FILTER_NAMES}
         if reference is not None:
             try:
-                self.initial = _pose(reference)
-            except (ValueError, TypeError, AttributeError):
+                self.initial = {name: _pose(reference[name]) for name in REFERENCE_PARTS}
+            except (KeyError, ValueError, TypeError, AttributeError):
                 self.violated = True
+
+    def _reference_moved(self, objects):
+        for name in REFERENCE_PARTS:
+            p, q = _pose(objects[name])
+            p0, q0 = self.initial[name]
+            if _distance(p, p0) > REF_POSITION + EPS or _angle(q, q0) > REF_ROTATION + EPS:
+                return True
+        return False
 
     def observe(self, objects):
         if self.initial is None:
             self.violated = True
             return
         try:
-            p, q = _pose(objects[REFERENCE])
-            p0, q0 = self.initial
-            if _distance(p, p0) > REF_POSITION + EPS or _angle(q, q0) > REF_ROTATION + EPS:
+            if self._reference_moved(objects):
                 self.violated = True
             for name in FILTER_NAMES:
                 self.recent[name].append(_pose(objects[name]))
@@ -158,8 +173,7 @@ class Trial:
             return 0.0
         try:
             # Also fail closed if called with a changed reference before observe().
-            p, q = _pose(objects[REFERENCE])
-            if _distance(p, self.initial[0]) > REF_POSITION + EPS or _angle(q, self.initial[1]) > REF_ROTATION + EPS:
+            if self._reference_moved(objects):
                 self.violated = True
                 return 0.0
             geometry = {name: _geometry(objects[name]) for name in FILTER_NAMES}
@@ -187,8 +201,8 @@ class Trial:
             stack.append(name)
             support_top = g["top"]
 
-        found = REQUIRED.intersection(stack)
-        if not found:
+        stacked = frozenset(stack)
+        if not stacked:
             return 0.0
 
         # Include crooked, unstable or offset extras in contact with the stack,
@@ -200,5 +214,35 @@ class Trial:
             if not attached:
                 break
             connected.update(attached)
-        return round(0.10 + (0.45 if REQUIRED.issubset(stack) else 0.0)
-                     + (0.45 if not (connected - REQUIRED) else 0.0), 2)
+        extras = frozenset(connected) - stacked
+        present = stacked | extras
+
+        # Credit follows the colour, not two hard-coded names: any set whose
+        # combined tint is the reference tint counts as a match.
+        if not extras and stacked in MATCHING_SETS:
+            return 1.0
+        if any(match <= present for match in MATCHING_SETS):
+            return 0.5
+        if not extras and any(stacked < match for match in MATCHING_SETS):
+            return 0.25
+        return 0.0
+
+
+def display_stack(objects):
+    """Plaques resting over the stack lightbox, bottom first.
+
+    Drives the lightbox window colour only, so it uses a looser window than
+    scoring and does not wait for the stillness history: the window should
+    follow a plaque as soon as it is set down.
+    """
+    over = []
+    for name in FILTER_NAMES:
+        try:
+            g = _geometry(objects[name])
+        except (KeyError, ValueError, TypeError, AttributeError):
+            continue
+        x, y, _ = g["pos"]
+        if (g["flat"] and abs(x - STACK_XY[0]) <= DISPLAY_TOL + EPS
+                and abs(y - STACK_XY[1]) <= DISPLAY_TOL + EPS):
+            over.append((g["bottom"], name))
+    return [name for _, name in sorted(over)]

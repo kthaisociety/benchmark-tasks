@@ -1,18 +1,20 @@
-"""Nominal tint model and a preliminary comparison of captured image regions.
+"""Tint model for the filter set.
 
-The componentwise model is a hypothesis, not a measurement of the simulator.
+Stacked filters multiply componentwise, which is how the lightbox window
+colour is computed at run time and how scoring decides whether a stack
+matches the reference. The renderer does not composite stacked glass, so the
+window colour is computed from this model rather than ray traced; see
+README.md.
 """
 
 import argparse
 from itertools import combinations
 import math
 
-from filter_scoring import REQUIRED
-
 FILTER_TINTS = {"amber": (1.00, 0.60, 0.25), "cyan": (0.25, 0.90, 1.00),
                 "violet": (0.80, 0.25, 0.85), "lime": (0.55, 1.00, 0.32)}
-REFERENCE_TINT = tuple(math.prod(FILTER_TINTS[name][channel] for name in REQUIRED) for channel in range(3))
-MATCH_TOLERANCE = 0.05  # preliminary maximum per-channel difference
+REQUIRED = frozenset(("amber", "cyan"))
+MATCH_TOLERANCE = 0.05  # maximum per-channel difference counted as the same tint
 
 
 def nominal_tint(names):
@@ -26,6 +28,14 @@ def difference(a, b):
 def subsets():
     for n in range(len(FILTER_TINTS) + 1):
         yield from combinations(FILTER_TINTS, n)
+
+
+REFERENCE_TINT = nominal_tint(REQUIRED)
+# Every set of filters whose combined tint is the reference tint. Scoring uses
+# this rather than the names in REQUIRED, so any set that genuinely reproduces
+# the reference colour earns full credit.
+MATCHING_SETS = frozenset(frozenset(names) for names in subsets()
+                          if difference(nominal_tint(names), REFERENCE_TINT) <= MATCH_TOLERANCE)
 
 
 def _roi(value):
