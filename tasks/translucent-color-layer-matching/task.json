@@ -1,0 +1,18 @@
+{
+  "title": "Match a reference tint with translucent layers",
+  "category": "Other",
+  "keywords": [
+    "color matching",
+    "translucent plaques",
+    "lighting filters",
+    "visual reasoning"
+  ],
+  "instruction": "Stack the translucent plaques in the outlined area to match the color of the reference plaque. Do not move the reference plaque.",
+  "context": "Draft application: select and combine lighting filters to reproduce a reference tint.",
+  "setup": "Fixed station, metres: x forward, y left, z up; heights are relative to the tabletop. Four loose, flat, 50 g plaques, each 60 x 60 x 20 mm, start at amber (0.150, 0.280), cyan (0.330, 0.280), violet (0.150, -0.330) and lime (0.330, -0.330). Each is a nominal 4 mm tinted acrylic sheet above four dark PLA rails, 8 mm wide and 16 mm high. Two fixed white acrylic lightboxes, each 120 x 120 x 10 mm, are centred at (0.300, 0.055) and (0.300, -0.145); equal 44 x 44 mm upward white USD rectangle lights sit 0.3 mm above their tops. A 60 x 60 mm outer dark square outline, 2 mm wide and 0.2 mm high, marks the first box. The second carries a separate loose 50 g reference plaque of the same construction. Plaques start 1 mm above their supports to settle. Nominal tints, light settings and limitations are in README.md.",
+  "scoring": "Draft assumption: add 0.10 for at least one required plaque in the geometric stack, 0.45 for both, and 0.45 if at least one is in it and no extra is connected by the proximity rule in README.md. Amber and cyan are required in either order. A counted plaque must be sheet-up within 3 degrees of horizontal, centred within 5 mm per axis, and within 2 mm and 2 degrees of its final pose for 20 control-step samples. Its lowest corner must be from 0.5 mm below to 0.5 mm above the previous support top. This is a pose approximation: a held plaque within tolerance can still count, and color is not measured. Movement of the reference by more than 3 mm or 2 degrees from its pose recorded at reset latches score 0 for the trial; sampling can miss motion between callbacks.",
+  "run_limit": "2,400 control steps (2 minutes at 20 Hz); provisional, not yet demonstrated",
+  "reset_notes": "After the underlying reset, the hook clears the latch and pose histories and records the reference pose. This pose is intended to be settled, and ordinary reset is expected to restore all initial poses; neither has been verified. Nothing is consumed.",
+  "fidelity": "Draft rigid framed plaques with glass shader tints and USD lights. Actual version/API compatibility, light and material loading, spectral transmission, render appearance, grasping, support, release and reset are unverified. Scoring uses sampled poses, not measured color or contact; brief motion between callbacks may be missed.",
+  "scores": "Not measured: no model or scripted simulator trial has been run."
+}
