@@ -15,5 +15,6 @@
   "run_limit": "2,400 control steps (2 minutes at 20 Hz)",
   "reset_notes": "Nothing is consumed. The reset restores all gels to their starting layout, clears the reference-moved latch and the stillness history, and re-records the reference pose.",
   "fidelity": "Rigid framed gels, lit lightbox windows and a pose-based scorer. The renderer does not composite stacked transmissive sheets, so the glazing is clear and each window is lit with the gel colours above it multiplied componentwise, rather than ray traced. Scoring uses pose, not contact: a gel held steady within the 3 mm support tolerance can count as placed.",
-  "scores": "Dream-1 run: 0.0; demo: 1.0"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-MPBPSJ"
 }
