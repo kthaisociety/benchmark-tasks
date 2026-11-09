@@ -1,0 +1,20 @@
+{
+  "title": "Place two reverse-shot cameras without crossing the line between the actors",
+  "category": "Impact on jobs",
+  "keywords": [
+    "film production",
+    "180-degree rule",
+    "camera placement",
+    "spatial reasoning",
+    "line of action"
+  ],
+  "instruction": "Set the two yellow model cameras for the second angle on this tabletop film set.",
+  "context": "When two actors face each other, editors cut between shots of them. Film crews keep every camera on one side of the imaginary line through the actors, the 180-degree rule. A camera on the far side makes the actors appear to swap places on screen when the shots are cut together, and the mistake usually means shooting the scene again. Here each pair of actors already has a first camera, and a yellow camera has been left on the wrong side of the line. Nothing on the floor marks the line or the correct side. The robot has to infer the line from the two actors in each set, which runs at a different angle in each, work out which side the first camera is on, carry the yellow camera across and turn its lens towards the actors. The instruction asks only for the second angle; it does not mention the rule. Done by: camera operators, camera assistants and studio crews.",
+  "setup": "A dark grey studio floor (46 x 84 cm) covers the table. Left set: plastic actor figures (cylinder 3.2 cm wide, 7 cm tall, 2.6 cm head) in blue at 30 cm out, 14 cm left, and in red at 38 cm out, 26 cm left, each on a yellow tape cross. Right set: figures in green at 28 cm out, 12 cm right, and in purple at 42 cm out, 22 cm right. Each set has a fixed dark first camera (foot 7 x 7 cm, body 7 x 4 x 3.5 cm, lens at the front, top handle bar 7 cm long, 11.5 cm tall): left at 22 cm out, 13 cm left, lens turned 30 degrees to the left of straight ahead; right at 46 cm out, 12 cm right, lens turned 154 degrees to the right. Each set has one yellow camera of the same shape, 250 g, lens straight ahead, on the opposite side of the actors: left at 44 cm out, 16 cm left; right at 25 cm out, 25 cm right. Also: a director's chair, a light stand and a clapperboard beyond the floor.",
+  "scoring": "Per set, using the straight line through the centres of its two actors: 0.25 when the yellow camera stands upright (tilted less than 10 degrees) and at rest with its foot on the floor, its centre within 18 cm of the midpoint of the actors, on the same side of the line as the first camera and at least 4 cm from the line. A further 0.25 when, standing there, its lens points at the midpoint of the actors within 30 degrees. Maximum 1.0. Any other position scores 0 for that set. Scored at the end.",
+  "run_limit": "1,500 steps (75 seconds at 20 Hz)",
+  "reset_notes": "Stand each yellow camera back on its start position with its lens straight ahead; nothing is consumed.",
+  "fidelity": "The set is at about 1:20 scale, with rigid plastic figures and cameras that are lighter than real ones and carried by a top handle. Nothing is filmed: the scorer checks each camera's position and heading against the line through the actors, as a script supervisor would with a floor plan.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-NHPA29"
+}
