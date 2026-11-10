@@ -1,0 +1,20 @@
+{
+  "title": "Set up a drill guide for a pipe hole through a ceiling joist",
+  "category": "Impact on jobs",
+  "keywords": [
+    "carpentry",
+    "building control",
+    "timber joist",
+    "service holes",
+    "trade coordination"
+  ],
+  "instruction": "The plumber has chalked a cross where he wants his 15 mm pipe to pass through this ceiling joist. Stand the drill guide on the joist where the 22 mm hole for it should be bored, then let go of it.",
+  "context": "Every hole bored through a joist weakens it. UK building-control guidance (LABC Hertfordshire Technical Guidance Note 22; NHBC Standards 6.4.18) allows holes in solid timber joists only on the centre line, 0.25 to 0.4 of the clear span from a support, at most 0.25 of the depth across and at least three diameters apart. Other trades mark where they would like their runs; the carpenter answers for the joist and moves the hole to a place the joist can take. Done by: carpenters and joiners, also plumbers and electricians.",
+  "setup": "Positions from the midpoint between the arm bases (61 cm apart): x forward, y to the left. Joist: a full-size pressure-treated (green-tinged) C16 softwood ceiling joist, 47 x 97 x 800 mm, cut to fit hangers 800 mm apart (clear span 800 mm), lying flat on the table with a 97 mm face up, clamped (fixed), its long axis left to right, centred at x 36 cm, y 0. On its face: a white chalk cross (50 x 26 mm, 7 mm strokes) at mid-span, centred 15 mm in from the near edge; a dark 22 mm disc, the electrician's earlier hole, on the centre line 260 mm from the left end. Drill guide: a beech block, 60 mm cube, 150 g, with a steel bush (32 mm ring, 22 mm bore) centred in its top face, standing on the table at x 21 cm, y 0, square to the table edges.",
+  "scoring": "Measured with a tape at the end, at the bore's centre on the joist face. 1.0 if the guide stands on the joist face (base within 3 mm of it, tilted at most 5 degrees), the bore is 200 to 320 mm from the nearer end of the joist, within 10 mm of its centre line and at least 66 mm from the existing hole's centre, and the guide is let go (no part of either gripper within 5 cm of it) and has moved at most 2 mm over the last second. Otherwise 0: every other spot breaks the guidance, so there is no partial credit. Only the right-hand zone can score; all of the left-hand zone is within 66 mm of the existing hole. The guide's turn doesn't matter.",
+  "run_limit": "600 steps (30 seconds at 20 Hz)",
+  "reset_notes": "Stand the guide back on the table at x 21 cm, y 0, square to the table edges. Nothing is bored or consumed; the joist stays clamped.",
+  "fidelity": "Full-size joist, guide and marks; no drilling is simulated. The joist is a fixed rigid box, so it can't move or bend; its marks are thin painted shapes, and the existing hole is a dark disc, not cut through. Physics friction is 1.0 to 1.2, grippier than planed timber. Scoring uses the guide's pose and the grippers' positions (from joint angles), not forces.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-APGKLE"
+}
