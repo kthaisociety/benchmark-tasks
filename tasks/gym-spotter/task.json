@@ -1,0 +1,20 @@
+{
+  "title": "Spot a lifter through a set of bench presses",
+  "category": "Impact on jobs",
+  "keywords": [
+    "spotting",
+    "timing",
+    "moving object",
+    "human assistance",
+    "gym"
+  ],
+  "instruction": "Spot the bar through this set of bench presses.",
+  "context": "Spotting is everyday work for personal trainers, strength coaches and rehab assistants. A good spotter keeps their hands off the bar while the lifter is moving it, and takes hold only when a rep stalls, before the bar comes back down on the chest. Then they help just enough to get it to lockout so the lifter can rack it. Nothing in the scene says which rep will fail; the reps visibly slow down first.",
+  "setup": "Station table; cm from the midpoint between the arm bases, x forward, y to the robot's left. A scaled smith machine, one rigid 15 kg unit: two dark grey uprights 3 x 3 x 26 cm at x 32, y -18.5 and +18.5, on feet 16 x 3 x 1.2 cm; a black bench 39 x 10 x 4 cm from x 22 to 61 along x. A lifter figure lies on it, head toward the robot: skin-coloured head 4 x 4.5 x 3.6 cm at x 23 to 27, blue torso 16 x 13 x 4 cm at x 28 to 44 (chest top 8 cm above the table), dark hips, legs to x 61. The bar is a steel octagonal rod 2.2 cm across, 39 cm long, along y at x 32, on carriages that slide vertically on the uprights: its centre moves between 9.1 cm (resting on the chest) and 19.1 cm (lockout). On it: four black octagonal plates 9 cm across and 1.2 cm thick at y -15.3, -14, +14 and +15.3, red collars, and the lifter's hands at y -11.5 and +11.5 with 7 cm forearms hanging below, all moving with the bar. The bar starts at lockout.",
+  "scoring": "Scored at the end. The bar's height is measured from where it rests on the chest (0) to lockout (10 cm). 0 if: the machine was moved more than 1 cm or turned more than 3 degrees; or the bar was held or pushed more than 2 cm off the lifter's own path for 0.25 s or more while the lifter moved it alone (the hold before the first rep, every lowering, reps 1 to 4 on the way up, and after the bar is racked). Otherwise: 1.0 if the stalled sixth rep was brought to within 1 cm of lockout without its bar ever coming back within 8 mm of the chest; 0.5 if it was brought to lockout only after that; 0.25 if it was never brought to lockout but at the end is held at least 2 cm off the chest; else 0.",
+  "run_limit": "700 steps (35 s at 20 Hz)",
+  "reset_notes": "The scripted lifter restarts the set from lockout on every reset; nothing is consumed.",
+  "fidelity": "The lifter is scripted: a position drive on the bar's guide follows a fixed set (reps slowing, the sixth failing) and goes along with a bar that the spotter lifts. The figure is rigid apart from the hands and forearms moving with the bar. Scale is about one fifth; forces aren't modelled, only the bar's path. No real weight, no rack hooks: the lifter racks the bar once it reaches lockout on the failed rep.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-3L94RU"
+}
