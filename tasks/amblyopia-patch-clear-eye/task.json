@@ -1,0 +1,22 @@
+{
+  "title": "Patch the correct eye for amblyopia occlusion therapy",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "medical",
+    "amblyopia",
+    "occlusion therapy",
+    "visual reasoning",
+    "colour code",
+    "paediatric"
+  ],
+  "instruction": "Read the eye chart beside the child mannequin, then apply one adhesive eye patch over the correct eye for today's amblyopia occlusion therapy, following standard patch practice, and leave the other eye uncovered. Then let go.",
+  "context": "Amblyopia ('lazy eye') occlusion therapy works by patching the stronger eye, forcing the brain to rely on and strengthen the weaker one; the intuitive but wrong move is to patch the weak eye instead, as if bandaging an injury, which gives no treatment benefit and wastes a child's narrow window for vision development (O*NET 29-2057.00 Ophthalmic Medical Technicians; paediatric ophthalmology / orthoptics clinics). The chart marks which eye is this week's flagged (weaker) eye; the robot has to apply that convention itself, since the chart never says 'patch this one'.",
+  "setup": "Station table; cm from the midpoint between the arm bases (x away from the robot, y to the robot's left; everything here sits on the robot's right, y negative). A tan cylindrical head board (14 cm dia, 3 cm tall, fixed) lies flat at x 40, y -10, standing in for a child mannequin's face seen from above. Two identical neutral grey-blue eye markers (3.2 cm dia, 4 mm tall, fixed) sit on its top face at x 41.5, y -5.5 and y -14.5 (the two eye positions; otherwise unmarked). A cream chart card (5 x 8.5 cm, 6 mm thick, fixed) lies flat at x 20, y -10, between the robot and the head, with two small flat dots on top at the same y-offsets as the head's eyes (x 20, y -5.5 and y -14.5): the y -5.5 dot is dark grey (today's flagged, weaker eye) and the y -14.5 dot is green (today's clear, stronger eye); column position (same y as the matching eye on the head), not left/right, is what ties each dot to its eye. A low raised guide ring (6 cm inner square, 4 mm walls, 1.2 cm tall, fixed, the same neutral colour as the eye markers) surrounds each eye marker on the head - both get one, symmetric, no hint - like the alignment guides a training mannequin often has, so a set-down patch can't roll off its mark. Two identical pale tan rigid foam occlusion cups standing in for eye patches (2.6 cm dia, 5 cm tall, 333 g each, loose) sit at x 26, y -5.5 and y -14.5.",
+  "scoring": "A patch counts as resting on an eye when its centre (top view) is within 3.5 cm of that eye marker's centre and it rests on the head's top surface (within 1 cm of it) with both grippers released. Score 0 if: the head or chart moved from its mark; any patch rests on the eye beside the chart's grey (flagged) dot; neither patch rests within 3.5 cm of the eye beside the chart's green (clear) dot; a gripper is still within 4.5 cm of a patch at the end. Otherwise: 1.0 if a patch's centre is within 1.5 cm of the clear eye marker's centre; 0.5 if within 1.5-3.5 cm.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Lift any patch off the head and set both back on their marks at x 26, y -5.5 and y -14.5. Check the head and chart haven't shifted from x 40/y -10 and x 20/y -10.",
+  "fidelity": "Patches are modelled as rigid foam-coloured occlusion cups, 5 cm tall and 333 g, rather than flat light adhesive stickers - a real paediatric product, sized and weighted for the gripper to close on reliably (probed on Brev: lighter and shorter discs were grazed, flung, or shoved instead of held - see tasks/pin-fit's pin_a, matched here). A low raised guide ring around each eye position keeps a set-down patch from rolling off its mark, the same role tasks/place-ecg-leads-correct-electrodes's cups play for its clips. No adhesion is simulated, only final position with both grippers released. Head and chart are flat rigid boards; the chart's dots are flat coloured cylinders, not printed text. The two eye markers on the head itself are identical and carry no colour hint - only the chart's dots do - so the task can't be solved by looking at the head alone.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-CAL7XX"
+}
