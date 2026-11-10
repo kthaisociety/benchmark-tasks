@@ -1,0 +1,20 @@
+{
+  "title": "Run conduit for a concealed cable from a socket to a new back box",
+  "category": "Impact on jobs",
+  "keywords": [
+    "electrician",
+    "concealed wiring",
+    "route planning",
+    "implicit trade rule",
+    "bimanual"
+  ],
+  "instruction": "Run conduit for a new cable from the socket to the empty back box on this wall panel, using the grey conduit lengths. The panel is for a house in the UK and will be boarded over. Leave any length you don't need on the bench.",
+  "context": "Electricians run cable in walls that are then boarded or plastered over. In the UK, an unprotected concealed cable must run horizontally or vertically in line with the accessory it serves (or near the ceiling or a corner), so that whoever drills the wall later can predict where it is. The short diagonal route breaks this rule; the instruction does not state it.",
+  "setup": "Station table. A section of a timber-frame wall panel lies flat, its floor edge (a 45 x 45 x 400 mm timber sole plate) nearest the robot: an 18 mm OSB face, 360 mm up the wall by 400 mm along it. Fixed to the face, each 80 x 80 mm and 20 mm proud: an existing white socket low on the left and an empty grey back box 190 mm higher and 237.5 mm to the right. On the bench, two loose lengths left of the panel and one right of it, lying in the up-the-wall direction: rigid grey PVC conduit, 170 mm long, 25 x 25 mm square, 60 g each. Exact positions in README.md and task.py.",
+  "scoring": "End state, top view. A length is laid if any part of it is over the panel within 30 mm of the face. Each box has a column (up and down the wall in line with the box) and a row (along the wall level with it), each the 80 mm box width plus 10 mm either side. 0 if any laid length is not wholly inside one strip within 10 degrees of its direction, tilts over 10 degrees, rests over 6 mm above the face, or is still moving. Otherwise 1.0 if laid lengths chain from the socket to the back box with every joint (gap between length and length, or length and box) at most 20 mm; 0.5 if every joint is at most 50 mm; 0.25 if any laid length is within 20 mm of a box; else 0. Lengths left on the bench are ignored.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Return the three conduit lengths to their bench positions. Nothing is consumed; the panel and boxes are fixed.",
+  "fidelity": "Rigid bodies only, no cable: the conduit lengths stand for the cable run. Round conduit is modelled as a 25 mm square bar so it can be gripped and can't roll. The panel is a straight section with no ceiling or corner on it, and its service-void battens are omitted. The boxes are fixed and stand 20 mm proud so joints are visible. No electricity is involved.",
+  "scores": "Dream-1 run: 0.0 in 2,400 steps; scripted demo: 1.0 in 540 steps",
+  "media": "M-PBUS6N"
+}
