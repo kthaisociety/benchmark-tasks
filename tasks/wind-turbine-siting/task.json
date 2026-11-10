@@ -1,0 +1,20 @@
+{
+  "title": "Site wind turbines on two plots so none stands in another's wake",
+  "category": "Societal relevance",
+  "keywords": [
+    "wind energy",
+    "wind farm layout",
+    "turbine wakes",
+    "prevailing wind",
+    "spatial reasoning"
+  ],
+  "instruction": "Site the six wind turbines on the two plots.",
+  "context": "A wind turbine leaves a wake of slower, turbulent air behind it, and a turbine standing in that wake produces less power and wears faster. Wind farm layouts therefore space turbines several rotor diameters apart, with much more room along the prevailing wind than across it; common rules of thumb are 5 to 9 diameters downwind and 3 to 5 across, and wake losses of several percent to over 10% of a farm's output are typical. This model uses 7 diameters along the wind and 3 across. Plot A is long in the direction of the wind and plot B is long across it, so lining the turbines up along each plot's long side works on plot B and puts plot A's turbines in each other's wake. The robot has to read the wind from the wind rose and windsock and lay out each plot to suit it. The instruction does not mention wakes or spacing. Done by: wind farm developers and layout engineers.",
+  "setup": "A brown moorland surface (46 x 84 cm) covers the table. Plot A, a pale field with a dark border, runs 22 to 50 cm out and 13 to 37 cm left of centre (28 cm along the wind, 24 cm across). Plot B runs 28 to 44 cm out and 12 to 40 cm right (16 cm along the wind, 28 cm across). A wind rose (10 cm disc) at 45 cm out on the centreline has its longest petal pointing away from the arms, and a windsock at 53 cm out streams towards the arms: the prevailing wind blows from the far side towards the arms. Six model wind turbines (100 g): a dark 5.5 cm square foot, a white tower 2 cm square and 10.5 cm tall, a nacelle facing the wind and a three-blade rotor 3 cm across. They stand in two rows 7 cm left and 7 cm right of centre, at 17, 26 and 35 cm out. Also: a farmhouse near the left front corner, a substation near the right front corner and two hedges.",
+  "scoring": "A turbine counts when it stands upright (tilted less than 10 degrees) and at rest with its centre inside a plot, and no other turbine stands upwind of it (further from the arms, or level within 1 cm) less than 21 cm (7 rotor diameters) away along the wind while less than 9 cm (3 diameters) away across it. Each plot earns 0.5 when three turbines count inside it and 0.25 when two do. Maximum 1.0. Scored at the end.",
+  "run_limit": "2,000 steps (100 seconds at 20 Hz)",
+  "reset_notes": "Stand the six turbines back in their two rows at the listed positions; nothing is consumed.",
+  "fidelity": "A tabletop model of two plots with light rigid turbines and no air flow; real layouts are planned with wind data and wake models, and real turbines turn to face the wind. The scorer applies fixed spacing rules of 7 rotor diameters along the wind and 3 across, a simplification of a wake model.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-G7K24F"
+}
