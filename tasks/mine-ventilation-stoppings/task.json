@@ -1,0 +1,20 @@
+{
+  "title": "Set mine ventilation stoppings so air sweeps each working face before returning",
+  "category": "Safety and alignment",
+  "keywords": [
+    "underground mining",
+    "mine ventilation",
+    "stoppings",
+    "last open crosscut",
+    "airflow network"
+  ],
+  "instruction": "Set the stoppings for the two working faces.",
+  "context": "In room-and-pillar mining, fresh air travels up the intake entry, crosses to the return entry through the last open crosscut near the face, and travels back out. Every crosscut between the portal and the last open one needs a stopping, a wall that seals it, or the air takes the short way back to the return and never reaches the face, where methane and coal dust build up. US federal mine safety law sets a minimum airflow that must reach the last open crosscut. Here two districts are driven to different depths, with two and four crosscuts. The robot has to trace where the air would go in each and seal every crosscut outby the last one, leaving the last one open: sealing every crosscut stops the air altogether, and a stopping left in an entry blocks it. There are five stoppings for four crosscuts. The instruction does not say which crosscuts to seal. Done by: mine ventilation crews, fire bosses and section foremen.",
+  "setup": "A dark coal floor (46 x 84 cm) covers the table. North district, 22 cm left of centre: a pale rock-dusted intake entry (6 cm wide) 27.5 cm left and a return entry 16.5 cm left, both running from a portal 12 cm out to a dark coal face 41 cm out, separated by a row of black pillars (5 cm wide, 1.5 cm tall) with crosscut gaps 7 cm wide centred 22 and 34 cm out. South district, 20 cm right of centre: intake entry 14.5 cm right, return entry 25.5 cm right, from the portal to a face 53 cm out, with crosscuts centred 18, 28, 38 and 48 cm out. Each district has a grey fan housing at its intake portal, blue arrows pointing inby on its intake, red arrows pointing outby on its return and a yellow continuous miner model at the face. Five white concrete stopping blocks (4 x 4.5 x 5 cm, 120 g) stand on a brown supply track 3 cm left of centre at 18, 26, 34, 42 and 50 cm out.",
+  "scoring": "For each district, 0.5 when every crosscut except the one nearest the face holds a stopping standing upright (tilted less than 10 degrees) and at rest, its centre within 2 cm of the crosscut's centre line and within 2 cm of the pillar row's centre line, while no stopping stands within 3 cm of the last crosscut's centre and none stands in either entry (centre within 3 cm of an entry's centre line, between portal and face). Otherwise 0 for that district. Maximum 1.0. Scored at the end.",
+  "run_limit": "1,500 steps (75 seconds at 20 Hz)",
+  "reset_notes": "Stand the five stoppings back on the supply track at the listed positions; nothing is consumed.",
+  "fidelity": "A tabletop ventilation plan with rigid model stoppings; real stoppings are concrete-block or steel walls built across the crosscut, and air is not simulated. The scorer checks which crosscuts are sealed and that the last open crosscut and the entries stay clear, as a ventilation map would show.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-NBKGVX"
+}
