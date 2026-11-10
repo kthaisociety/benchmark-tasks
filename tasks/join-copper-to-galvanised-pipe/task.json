@@ -1,0 +1,20 @@
+{
+  "title": "Join a new copper section between galvanised and copper pipe",
+  "category": "Impact on jobs",
+  "keywords": [
+    "plumbing",
+    "fitting selection",
+    "material perception",
+    "orientation",
+    "bimanual"
+  ],
+  "instruction": "Join the new copper pipe into the line: seat a fitting from the tray in each of the two gaps, then let go.",
+  "context": "Plumbers (O*NET 47-2152.00) tying new copper into old galvanised steel water pipe must keep the two metals apart: a plain coupling there corrodes the joint (galvanic corrosion), so codes require a dielectric union, with its brass end on the copper side. Copper to copper takes a plain copper coupling; a steel fitting there corrodes too. The robot has to tell the pipe metals apart by sight, pick the fitting for each joint and turn the union the right way round.",
+  "setup": "Positions in cm: forward of the arm bases (61 cm apart), left/right of their midpoint (robot's view); heights above the table. Fixed pipe bench 38 cm forward: a 10 x 64 x 1 cm wooden board with a pipe run along it, axis 5.7 cm high, on 3 x 3 cm steel posts: galvanised steel pipe (4 cm across) 31 to 21 cm left; gap; copper pipe (4 cm) 9 cm left to 9 cm right; gap; copper pipe 21 to 31 cm right. Each 12 cm gap has a grey steel saddle plate (7 x 12 cm, top 3 cm high) with two 1 x 0.8 cm rails along the pipe, 3.2 cm apart. Fixed dark plastic tray 20 cm forward (13 x 32 x 1.2 cm), slots with the same rails at 10 cm left, centre, 10 cm right, holding three fittings 9 cm long and 5 cm across, axes pointing at the robot: galvanised steel coupling (180 g); dielectric union (300 g: brass half nearest the robot, black insulating ring, steel nut, galvanised half); copper coupling (150 g). Details in the README.",
+  "scoring": "Judged at the end. A fitting is seated in a gap when it rests in the saddle, let go (no part of a gripper within 5 cm of it) and still (moved at most 2 mm over the last 1 s): centre within 1 cm of the pipe line front to back and 1.5 cm of the gap centre along it, axis height within 6 mm of resting on the rails, axis within 15 degrees of the pipe line. Score 0 if the bench moved 1 cm or turned 2 degrees at any time, or if at the end a fitting that does not belong is in a gap (centre within 5 cm front to back and 7 cm along the pipe of the gap centre, at most 4 cm above the pipe axis): the steel coupling in either gap, the copper coupling in the left gap, the union in the right gap, or the union in the left gap with its brass end within 60 degrees of pointing at the steel pipe. Otherwise 0.75 for the union seated in the left gap with its brass end toward the copper pipe, plus 0.25 for the copper coupling seated in the right gap; 1.0 for both.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Lay the three fittings back in their tray slots, axes pointing at the robot, the union's brass end nearest the robot.",
+  "fidelity": "Pipes and fittings are rigid cylinders. A fitting counts as fitted when it lies in the saddle between the pipe ends with 1.5 cm of play at each end: no threads, solder or push-on, so pipe ends don't enter the fittings. Pipe size is scaled up (4 cm pipe, 5 cm fittings) so the grippers can hold the fittings, and the fittings are lighter than real ones. The bench is one heavy body (20 kg) rather than bolted down.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-RC2HUT"
+}
