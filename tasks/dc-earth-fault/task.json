@@ -1,0 +1,22 @@
+{
+  "title": "Find a DC earth fault by pulling fuses one at a time",
+  "category": "Impact on jobs",
+  "keywords": [
+    "substation",
+    "DC auxiliary supply",
+    "earth fault",
+    "insulation monitor",
+    "fuse carrier",
+    "fault finding",
+    "switching procedure"
+  ],
+  "instruction": "Locate the fault on the DC system.",
+  "context": "Substations and power plants run protection relays and breaker controls from an unearthed DC battery system. One earth fault is harmless, but a second can trip a breaker for no reason or stop it tripping when it must, so the first is found at once. Operators sectionalise: pull one circuit's fuse, watch the insulation monitor, and if it stays in the red, put the fuse back before trying the next, so protection is never lost on two circuits at once. Done by: substation and power plant operators, protection technicians.",
+  "setup": "On the table, centred 35 cm in front of the arm bases and 12 cm right of centre, stands a light-grey steel DC distribution panel (26 cm deep, 16 cm wide, 3 cm tall, 20 kg). On its top a black busbar strip runs front to back along its left side, with four feeder strips branching towards the robot's right, 6 cm apart: F1 nearest the robot to F4 farthest. Each feeder strip runs through a fuse socket, 3 cm right of the panel's centre line: a black square block 4.1 cm across and 3 cm tall with a 2.5 cm square hole, 3 cm deep. In each socket stands a fuse carrier: a black plastic body 2 x 2 x 7.5 cm (80 g) with a red cap on top, standing 4.5 cm proud of the socket. Any carrier fits any socket. Left of the panel, 36 cm in front of the arm bases and 6 cm left of centre, stands an insulation monitor (light-grey steel box, 14 x 14 x 6 cm) with a white dial 10 cm across in an 11 cm black bezel, a red zone mark on the right and a green one on the left, and a black needle 6 cm long. Behind it sits a battery bank (four blue cells, 7 x 2.8 x 6 cm each, on a dark-grey base 10 x 14 x 2 cm), cabled to the monitor, which is cabled to the panel. At the start the needle points at the red mark: there is an earth fault on F3. While F3's socket is empty the needle swings to the green mark within about a second; otherwise it returns to red.",
+  "scoring": "A socket counts as closed while a carrier stands in it with its bottom within 10 mm of the socket floor, and open otherwise. At the end of the trial: 1.0 if F3's socket is the only open one and two or more sockets were never open at the same time; 0.5 if F3's is the only open one but two or more were open together at some point; 0.25 if F3's socket is open together with any other; 0 if F3's socket is closed, whichever carrier is in it.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "All four carriers go back in their own sockets and the needle returns to red at each reset; the record of sockets open together is cleared.",
+  "fidelity": "No electrical simulation: a software model moves the needle with a 0.4 s lag towards green while F3's socket is empty, red otherwise. Carriers are plain blocks in square sockets with 2.5 mm of clearance; real fuse carriers have spring contacts and need a firmer pull, and operators would first notify protection staff. The faulty feeder is fixed (F3). A real-world rig needs a needle driven by switches in the socket floors.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-7H5HR8"
+}
