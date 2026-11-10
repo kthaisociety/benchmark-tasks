@@ -1,0 +1,22 @@
+{
+  "title": "Hold a rail end stopper down and slide the carriage off past it",
+  "category": "Impact on AI timelines",
+  "keywords": [
+    "linear guide",
+    "carriage",
+    "end stopper",
+    "bimanual",
+    "spring slider",
+    "servicing",
+    "undercut rail"
+  ],
+  "instruction": "Hold the orange stopper down and slide the blue carriage along the grey rail off its open end, keeping it within 1.5 cm of the rail line and no more than 3 cm above it until it is past the stopper. Set it upright with its centre on the blue mat, then let go of both and keep both fingers at least 3 cm from the post.",
+  "context": "Linear-guide rails on gantries and wafer handlers carry an end stopper that keeps the carriage from running off. To service the carriage a technician holds the stopper down with one hand and slides the carriage off with the other, because forcing it past the stop face damages the balls and the stopper. One gripper cannot press the stopper and pull the carriage at once, so the task needs two coordinated arms: hold a spring part down for the whole slide, release it only after the carriage is clear, and never lift the carriage over the stop. The score is latched, so a lift over the stopper cannot be undone.",
+  "setup": "Positions in cm from the arm-base line (x forward) and the midline (y left), table height; one fixed layout matching the screenshot. Floor slab: 40 x 56 x 0.04 cm, light grey, fixed. Rail: grey T-rail (rigid, 6 kg, friction 1.2), 19.5 cm long, axis along x at y -1 from x 23.3 (open end, toward the arms) to x 42.8, neck 0.8 cm, head 1.6 cm wide, top 2.6 cm above the table, on a dark blue plinth (19.5 x 1.2 x 1.2 cm, fixed); a grey far-end block (2 x 2.8 x 3 cm) at x 42.8 to 44.8. Carriage: blue plastic, 80 g, 3.6 x 2.6 cm, channel and lips fitting the rail with 1 mm clearance, 3 cm wide grip post 6 cm tall, centre at x 38.6, y -1 (seated near the far end). Stopper: orange, 4 g, a 1 cm wide, 0.44 cm thick plate whose carriage-side face (6 mm tall) is at x 26.4 beside the rail head, joined by a 1 cm bar to a 2 x 2 cm pad (top 2.6 cm above the table) centred at x 26, y -16; 0.2 N/mm spring, 7 mm travel, pressing the pad drops the face below the carriage. Blue mat: 10 x 10 x 0.3 cm, light blue, fixed, centred at x 30, y +18. Both arms are at the base line, 30.5 cm either side of the midline.",
+  "scoring": "1.0 if the carriage is wholly off the rail (past its open end or clear of it sideways), upright within 3 degrees, its centre inside the 10 x 10 cm blue mat, and for the last 1 s still (under 1 mm), released (both arms' fingers at least 90% open and 3 cm from the post) and the stopper back up. 0.5 if it is off the rail but not all of that holds. 0 if it is still on the rail, or if at any time before it was wholly past the stopper (its far end beyond the stopper's rear edge) it was lifted more than 3 cm above its seat or its centre was more than 1.5 cm sideways from the rail axis (latched, stays 0). Primary score only.",
+  "run_limit": "600 steps (30 seconds at 20 Hz)",
+  "reset_notes": "Put the carriage back on the rail at its far end; the stopper resets itself.",
+  "fidelity": "Rigid bodies from boxes and one cylinder; rail, far block and stopper housing are one 6 kg part that stays put. The stopper is a prismatic joint with a spring drive (0.2 N/mm, 7 mm travel) so its force is far below a real ball-lock stop. Friction is 1.2 everywhere, clearances 1 mm. No contact force cap is enforced, so damage to the balls is not modelled; the lift rule stands in for it.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-NJ76XY"
+}
