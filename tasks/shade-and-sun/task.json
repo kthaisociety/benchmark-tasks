@@ -1,0 +1,14 @@
+{
+  "title": "Put the vaccine cool box in the shade and the solar charger in the sun",
+  "category": "Societal relevance",
+  "keywords": ["shadow", "light direction", "spatial reasoning", "cold chain", "outdoor clinic"],
+  "instruction": "Move the blue cool box so it sits entirely in the shade, and the black solar charger so it sits entirely in the sun.",
+  "context": "At outdoor vaccination posts, vaccine carriers must be kept out of direct sun, while solar chargers for phones and fridge monitors need full light. Knowing where a shadow falls, from the light's direction and height and from how tall the object is, decides both.",
+  "setup": "Station table; cm from the midpoint between the arm bases (x away from the robot, y to the robot's left). One lamp hangs high on the robot's right at x 4, y -80, 194 cm above the table, as the sun. A cream rigid screen (30 x 2 x 40 cm tall, fixed) stands upright along x, centred at x 40, y 0. A blue rigid cool box (6 cm cube, 300 g) stands at x 50, y 30, in the sun. A black rigid flat solar charger (12 x 4.5 x 2 cm, 150 g, long side along x) lies at x 36, y 12, in the screen's shadow.",
+  "scoring": "Top view at the end. The cool box earns 0.5 if it rests upright on the table (tilt under 20 degrees, within 1 cm of the table) and all four corners of its lid are in the screen's shadow at lid height. The charger earns 0.5 if it lies flat on the table and none of its top corners is in the screen's shadow. Score is the sum (0, 0.5 or 1.0). An object still in the air earns nothing.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Set the cool box back at x 50, y 30 and the charger at x 36, y 12. The screen and lamp do not move.",
+  "fidelity": "The lamp is the station's fixed point light, standing in for a low sun; the shadow is rendered and scored geometrically from the lamp, screen and box positions. Rigid boxes stand in for the cool box and the folding charger; no heat or charging is simulated.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-UHM9U8"
+}
