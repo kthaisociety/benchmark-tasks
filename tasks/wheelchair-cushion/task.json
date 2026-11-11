@@ -1,0 +1,21 @@
+{
+  "title": "Put a pressure-relief cushion in a wheelchair the right way round",
+  "category": "Impact on jobs",
+  "keywords": [
+    "care home",
+    "wheelchair",
+    "pressure injury prevention",
+    "seating",
+    "orientation",
+    "regrasp"
+  ],
+  "instruction": "Put the cushion in the wheelchair.",
+  "context": "A contoured pressure-relief cushion has a sunken well that takes the sit bones and a raised ridge that supports the thighs. It only works one way round: well at the back, against the backrest. Fitted backwards, it puts the sit bones on the ridge and causes the pressure injuries it is meant to prevent, a common error in care homes. Carers check the orientation every time they put the cushion back. Done by: care assistants, nurses, occupational therapists.",
+  "setup": "On the table, 41 cm in front of the arm bases and 19 cm right of centre, stands a wheelchair seen from above: a black seat pan 22 x 22 cm with its top 5 cm up, two chrome side guards (22 x 1.5 x 10 cm tall) leaving a 22 cm gap, a black backrest (2 cm thick, 16 cm tall) along the far edge, and a black wheel (22 cm across) outside each guard. On the table 19 cm in front of the arm bases and 3 cm left of centre lies a contoured cushion (250 g): a blue foam base 16 cm front to back, 18 cm wide, 3 cm thick, with a light-grey ridge 5 cm wide and 2 cm high across one end, a dark sunken well 6.5 x 12 cm at the other end, and a grey carry handle 2 x 2 x 6 cm standing in its middle. It lies backwards: well toward the robot, ridge toward the wheelchair.",
+  "scoring": "From the cushion's pose at the end of the trial. 0 unless the well faces the backrest (the cushion's front-to-back axis within 20 degrees of the chair's, well at the back) and the cushion is at rest. Then: 1.0 if it sits flat on the seat pan (bottom within 5 mm, tilt at most 5 degrees, centre within 4 cm of the pan's centre front to back); 0.5 if its centre is over the pan but it isn't seated (on a guard, tilted); 0.25 if it lies flat on the table; otherwise 0.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Lay the cushion back on the table at its start, backwards (well toward the robot).",
+  "fidelity": "The cushion is rigid (real foam gives) and has a carry handle on top; real covers have a side handle. The well is a dark patch, not a recess. One fixed start, backwards, so a 180-degree turn is always needed; the wrist turns it as two quarter turns with a set-down and regrasp in between.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-6EA9J9"
+}
