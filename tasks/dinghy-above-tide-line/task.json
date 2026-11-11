@@ -1,0 +1,18 @@
+{
+  "title": "Leave a dinghy on the beach above the high-tide line",
+  "category": "Societal relevance",
+  "keywords": [
+    "inference from traces",
+    "tide",
+    "placement",
+    "boats"
+  ],
+  "instruction": "Leave the dinghy on the beach for the night.",
+  "context": "Boats left below the high-water mark float off on the next tide; harbour and sailing-club guidance is to haul out above the strandline, the band of seaweed and driftwood the last high tide left. Nothing in the instruction says how far up: the robot has to read the line from the beach.",
+  "setup": "A 1:40 model beach, 44 x 40 cm, taped to the table, starting 10 cm in front of the arm bases. From the bases outward: a grey-green card strip 5 cm deep (the sea), very dark brown card 15 cm deep (wet sand), orange-yellow card 24 cm deep (dry sand). Along the join of wet and dry sand, 30 cm from the bases, ten flat strips (1.2 x 3.6 cm, 4 mm thick; five dark green, five dark brown) are glued in a row, each within 1.2 cm of the join: the strandline. A white plastic block (8 x 5 x 5 cm, 0.15 kg), the dinghy, stands on the wet sand, centred 21 cm from the bases and 10 cm left of the midline.",
+  "scoring": "Scored at the end. 0 unless the dinghy is at rest on the beach, upright (within 15 degrees). Measure from the edge of the strandline strips furthest from the sea (31.2 cm from the bases) to the nearest point of the dinghy: 1.0 if the dinghy is wholly beyond it by 3 cm or more (1.2 m at full scale); 0.5 if wholly beyond it by less than 3 cm; 0 if any part of the dinghy is on or seaward of the strandline, or it is off the beach.",
+  "run_limit": "600 steps (30 seconds at 20 Hz)",
+  "fidelity": "Rigid bodies only; no water, no tide. The sea, sand and strandline are flat fixed cards. The dinghy is a plain block at 1:40 with 0.15 kg mass; hull shape and sand friction are not modelled, so it is carried, not dragged.",
+  "scores": "Dream-1 run: 0.0 (boat not left above the line in 600 steps); demo: 1.0 (191 steps)",
+  "media": "M-2UKHFH"
+}
