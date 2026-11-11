@@ -1,0 +1,22 @@
+{
+  "title": "Push-fit an elbow onto a copper and a plastic pipe, with an insert in the plastic one",
+  "category": "Impact on jobs",
+  "keywords": [
+    "plumbing",
+    "push-fit fitting",
+    "pipe insert",
+    "PEX pipe",
+    "copper pipe",
+    "insertion",
+    "bimanual"
+  ],
+  "instruction": "Fit an elbow onto each pipe.",
+  "context": "Push-fit plumbing fittings hold the pipe with a toothed grab ring and seal on an O-ring. On plastic (PEX) pipe a metal pipe insert must go into the pipe end first: without it the ring squeezes the soft wall, and the joint weeps or blows off under pressure. Copper is rigid and needs none, and an insert in a copper pipe stops the fitting going fully home. Done by: plumbers and heating engineers.",
+  "setup": "On the table, a grey wall block (10 x 40 x 4 cm) lies across the midline 30 cm in front of the arm bases. Two pipe tails stand 8 cm proud of it, 25 cm apart: a copper one in front of the left arm and a white plastic (PEX) one in front of the right arm, each 4.4 cm across with a 3.4 cm bore. In front of the block, at 16 cm, a black tray holds two grey push-fit elbows (80 g), one in front of each pipe, socket down: a socket 4.6 cm inside and 4 cm deep, a side outlet pointing away from the robot, and a black grip tab on top. To the right, 24 cm out and 19 cm right of centre, a bright brass pipe insert (30 g) stands on a dark peg stand 5 cm tall: a 3 cm shank under a 4.2 cm collar 2.5 cm tall.",
+  "scoring": "A part is on a pipe when its centre is within 3 mm of the pipe's axis and it tilts at most 5 degrees. The insert is seated when its collar rests on a pipe end (within 3 mm); an elbow is fully on when its socket's cap rests on the pipe end, or on the insert's collar if one is seated in that pipe (within 3 mm). At the end of the trial, 0.5 for the copper joint (an elbow fully on, no insert in it) plus 0.5 for the plastic joint (the insert seated, an elbow fully on over it, and no elbow ever pushed fully onto the plastic pipe without the insert, latched for the trial).",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Elbows back in the tray in front of their pipes, socket down; the insert back on its stand; the latch is cleared.",
+  "fidelity": "The pipes and the elbows' sockets are 12-sided tubes (they read as round at 320 x 176; the task format has no hollow cylinders), 4.4 cm pipe in a 4.9 cm socket. No grab ring or O-ring is simulated: an elbow is on when it rests fully home. The insert's collar is taller than a real one (2.5 cm, so the gripper can hold it) and sits on the pipe end; the elbow then seats on the collar.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-CKZXBJ"
+}
