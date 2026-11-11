@@ -1,0 +1,22 @@
+{
+  "title": "Stand two scaffold tubes on a lawn: sole board, base plates, then tubes",
+  "category": "Impact on jobs",
+  "keywords": [
+    "scaffolding",
+    "footing",
+    "sole board",
+    "base plate",
+    "soft ground",
+    "construction",
+    "bimanual"
+  ],
+  "instruction": "Stand the two scaffold tubes up on the lawn at the two marks.",
+  "context": "A scaffold standard put straight on soil or grass punches in under load and the scaffold leans or collapses. Scaffolders build the footing first: a timber sole board laid on the ground to spread the load, a steel base plate centred on the board under each standard, and the standard stood in the base plate. A plate or tube that has sunk into the ground has to be dug out and re-bedded, not just lifted. Done by: scaffolders, construction labourers, event riggers.",
+  "setup": "On the table, 34 cm in front of the arm bases and centred, lies a green lawn patch (14 x 50 cm, 1 cm thick, fixed) with two white marks (3 cm squares) 30 cm apart, 15 cm either side of centre. In front of it, 22 cm out and centred, lies a timber sole board (8 x 40 x 3 cm, 0.3 kg), long side across the table. Nearer the robot, 12 cm out and 10 cm either side of centre, lie two dark steel base plates (8 x 8 cm, 6 mm thick, 0.4 kg), each with a square socket collar 3.4 cm inside and 3 cm tall. Behind the lawn, 48 cm out and 15 cm either side of centre, stand two silver scaffold tubes (3 cm across, 15 cm tall, 0.15 kg).",
+  "scoring": "Final state. 0.2 if the sole board lies on the lawn across both marks (its centre within 3 cm of the marks' midpoint, turned at most 10 degrees). 0.15 per base plate lying on the board (its bottom within 5 mm of the board's top, over the board) within 3 cm of its mark. 0.25 per tube standing in a counted base plate's collar (axis within 6 mm of the collar's, foot within 5 mm of the plate, tilted at most 5 degrees). A plate or tube that came to rest straight on the grass has sunk and earns nothing for the rest of the trial.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Board, plates and tubes back to their start places; the record of anything sunk into the grass is cleared.",
+  "fidelity": "The grass is a fixed mat; a software ground model makes a plate or tube resting straight on it sink 8 mm and lean (6 or 10 degrees) and holds it there. Real base plates have a snug spigot inside the tube; here the tube's foot sits in a square collar with about 7 mm of play, so the arm can lower it in and the tubes rock a few degrees. Tubes are short (15 cm) solid cylinders with no load: the sinking stands in for a scaffold's weight.",
+  "scores": "Dream-1 run: 0; demo: 1.0",
+  "media": "M-PYNF5Q"
+}
