@@ -142,9 +142,8 @@ def score(objects):
     return (0.3, 0.6, 1.0)[len({p for p in places if p != "tray"})]
 
 
-def success(objects):
-    """Connected in star with nothing else on the studs; held for 1 s, the trial ends."""
-    return score(objects) == 1.0
+# No success(): ending the trial 1 s after the star is made leaves the gripper over the box in the video; the
+# trial runs its full limit and the final state is scored, so the arm moves clear first.
 
 
 @on_step
@@ -171,6 +170,8 @@ DEMO_PLAN = (("w1v2", "tray"), ("v1u2", "U2-V2"), ("u1w2", "W2-U2"))
 
 GRIP_ABOVE = 0.029  # TCP above the plate's bottom: pad tips 21 mm up the link, 6 mm above the stud tops
 TRAVEL_Z = FLOOR + STUD_H + 0.02 + GRIP_ABOVE  # carried: plate bottom 2 cm above the stud tops
+CLEAR_Z = FLOOR + 0.12  # after letting go: pads ~6 cm above the handle tops (probe 4: retreating only to
+# TRAVEL_Z left the pads level with the handle tops, and the swing to the park knocked the stacked link off)
 ENTRY = STUD_H + 0.004  # pause with the plate bottom 4 mm above the stud tops before the slow set-down
 # The fingers close along the link (across the tab's 2 cm), so a brush pushes the link along its length, where the two
 # studs hold it. Probes 1-2 closed across the link: a brush rolled it about its long axis (24-32 deg) and jammed it.
@@ -203,7 +204,7 @@ def _move(pick, place, pick_yaw, yaw):
         Waypoint(2.0, (qx, qy, qz), GRIP, "set down", yaw),
         Waypoint(0.8, (qx, qy, qz), GRIP, "settle", yaw),
         Waypoint(1.5, (qx, qy, qz), RELEASE_OPEN, "release", yaw),
-        Waypoint(1.0, (qx, qy, TRAVEL_Z), RELEASE_OPEN, "retreat", yaw),
+        Waypoint(1.0, (qx, qy, CLEAR_Z), RELEASE_OPEN, "retreat", yaw),
     ]
 
 

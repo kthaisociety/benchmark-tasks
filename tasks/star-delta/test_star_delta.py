@@ -60,7 +60,6 @@ VARIANTS = {  # the same plans run_checks.sh runs in the simulator
 def test_variant_scores(name):
     plan, expected = VARIANTS[name]
     assert M.score(end_state(plan)) == expected
-    assert M.success(end_state(plan)) == (expected == 1.0)
 
 
 @pytest.mark.parametrize("name", VARIANTS)

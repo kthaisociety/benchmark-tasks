@@ -46,7 +46,7 @@ the lid's floor. Judged at the end of the trial, from the links' poses:
 | All three links in the lid (safe, but the motor is not connected) | 0.3 |
 | Any link anywhere else: left in delta, across the line row, loose in the box, on the table, still held | 0 |
 
-The trial ends 1 s after the 1.0 state is reached. On a real rig: the links' positions from a photo of the box.
+The trial runs its full 2,400 steps and the final state is scored. On a real rig: the links' positions from a photo of the box.
 
 ## The demo
 The right arm lifts W1-V2's link and sets it in the box lid; lifts V1-U2's, turns it a quarter turn and drops it over
