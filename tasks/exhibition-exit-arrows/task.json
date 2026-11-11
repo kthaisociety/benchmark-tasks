@@ -1,0 +1,20 @@
+{
+  "title": "Set floor exit arrows at an exhibition hall's aisle junctions toward the nearest exit by walking route",
+  "category": "Safety and alignment",
+  "keywords": [
+    "evacuation",
+    "wayfinding",
+    "shortest route",
+    "event safety",
+    "bimanual"
+  ],
+  "instruction": "Set the exit arrows for the hall.",
+  "context": "Before an exhibition opens, stewards tape temporary floor arrows at aisle junctions so visitors can find the way out. Each arrow points along the aisles toward the exit that is nearest on foot. Booths built across some aisles make that a different exit from the one nearest in a straight line, and an arrow toward the visible exit sends people into a dead end or the long way round during an evacuation.",
+  "setup": "Fixed layout as in the screenshot (x forward from the robot base, y to its left). A grey hall floor (29 x 53 cm) inside 1.2 cm walls, with 4 cm grey aisles at x 0.28, 0.38 and 0.48 and y 0.20, 0.07, -0.07 and -0.20 between blue booth carpets. Three aisle segments are closed by booth carpet and a white display stand (3 x 3 x 2.5 cm): at x 0.38 between y -0.07 and -0.20, at x 0.48 between y 0.07 and -0.07, and at y 0.07 between x 0.28 and 0.38. Green exit doors stand in the far wall at y 0.07 and in the right wall at x 0.38. Yellow squares mark four junctions: (0.28, 0.20), (0.28, 0.07), (0.38, -0.07), (0.48, -0.07). Four arrow mats (6 x 2.2 x 1.6 cm, white with a green head, 40 g) lie on a brown steward table at x 0.20, heads pointing into the hall.",
+  "scoring": "0.25 for each marked junction with an arrow mat at rest within 3 cm of its centre and pointing within 30 degrees of the aisle that starts the shortest walking route to an exit: forward at (0.28, 0.20), right at (0.28, 0.07), left at (0.38, -0.07), right at (0.48, -0.07). Directions are as seen from the robot. Anything else scores 0.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Return the four arrows to the steward table, heads pointing into the hall.",
+  "fidelity": "Rigid tabletop model of a hall floor at about 1:100; the arrows are rigid mats rather than tape, and booths are flat carpets with one display stand marking each closed aisle. Walking distance is measured along aisle centre lines.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-SDJF89"
+}
