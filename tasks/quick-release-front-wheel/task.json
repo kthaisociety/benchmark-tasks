@@ -1,0 +1,22 @@
+{
+  "title": "Refit a quick-release front wheel so the bike is ready to ride",
+  "category": "Societal relevance",
+  "keywords": [
+    "bicycle",
+    "quick release",
+    "wheel installation",
+    "lever",
+    "dropouts",
+    "safety check",
+    "articulated"
+  ],
+  "instruction": "Put the front wheel back in the bike's fork so that the bike is ready to ride.",
+  "context": "Riders take a quick-release front wheel out to fix a flat or fit the bike in a car, and put it back themselves. It is only safe to ride once both axle ends sit fully down in the fork's dropout slots and the lever is swung fully closed along the fork. A part-closed lever, or one closed while the axle rests on a dropout's edge, lets the wheel come out. Dahon's owner's manual: the axle \"seats firmly at the top of the slots\" and the lever \"should now be parallel to the fork blade\"; Park Tool: \"Make sure the hub is fully seated in the frame or fork\". The fork is held upside down in a stand, as a mechanic flips a bike, so its slots open upward. 1:4 scale, 20-inch wheel.",
+  "setup": "1:4 scale on the station table. Positions in cm from the midpoint between the arm bases (x forward, y toward the left arm), heights above the table. Fork: red painted steel, fixed upside down in a grey workshop stand whose base plate is 10.5 x 16 x 0.6 cm (x 29.5-40, y -20 to -4). Crown 8 x 2 cm, 0.6-1.4 cm up, centred at (34, -12). Two blades 0.8 cm thick at x 30.6 and 37.4. At their tops two dropouts, each a slot 1.8 cm wide (along y) open upward, its closed end 7.9 cm up, with a mouth flaring to 3.2 cm wide at 9.7 cm. A white reflector on the crown's +y side marks the bike's front. Wheel stand: two black rubber blocks 1.2 x 5 x 2 cm high centred at x 32.4 and 35.6, y -29 (3 mm either side of the tyre). Front wheel, 0.28 kg, standing in the stand in the fork's plane, axle along x, its middle at (34, -29, 6.5 up): black tyre 12.8 cm across and 1.4 cm wide, silver rim, 8 spokes, hub locknuts 3 cm apart, square steel axle 1 x 1 cm and 11.6 cm long, adjusting nut on the far end. On the near end, the quick-release cam with a black lever 5.8 cm long (paddle 2.3 x 2.2 cm), fully open and pointing at the robot. The lever springs open below 15 degrees of closure, snaps closed past 60, and stays where it is left in between; the skewer turns about the axle while the lever is open. The screenshot shows the start.",
+  "scoring": "At the end of the run. Where the axle crosses each dropout, that end is seated if its centre is within 3 mm of fully down in the slot and within 6 mm of the slot's centre line. The lever is closed at 80 degrees or more of its 90-degree swing. 0 for good if the axle moves 5 mm or more while the lever stays closed (e.g. closed before fitting). Otherwise: both ends seated and lever closed lying within 30 degrees of the fork blade or turned toward the rear = 1.0; closed pointing more than 30 degrees toward the bike's front = 0.75; both seated, lever not closed = 0.5; lever closed with an end not seated = 0; lever open and each end seated or in its dropout's mouth (centre within 1.6 cm of the slot line, at most 1.3 cm above the mouth) = 0.2; otherwise 0. Which side the lever is on is not scored.",
+  "run_limit": "1,200 steps (60 seconds at 20 Hz)",
+  "reset_notes": "Lift the wheel out, open the lever fully (pointing along the axle toward the robot, turned so that it would close down the blade) and stand the wheel back in its stand, lever toward the robot. Nothing is consumed.",
+  "fidelity": "Rigid bodies at 1:4. The QR is two jointed links with springs, not a cam clamp: the lever springs open below 15 deg, snaps closed past 60 deg and holds by friction between; clamping force isn't modelled, so a wheel moving under a closed lever is scored as a fault. The lever is about 3x oversize and the hub has 1.5 cm side play between the dropouts so a gripper can work them; the slot mouths are flared. The fork is fixed upside down.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-Z32Y6Y"
+}
