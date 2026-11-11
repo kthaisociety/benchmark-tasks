@@ -1,0 +1,21 @@
+{
+  "title": "Size a blood-pressure cuff to a child's arm",
+  "category": "Impact on jobs",
+  "keywords": [
+    "blood pressure",
+    "cuff sizing",
+    "pediatric",
+    "medical",
+    "size judgement",
+    "unwritten rule"
+  ],
+  "instruction": "Put a blood-pressure cuff on the training arm.",
+  "context": "The training arm is child-sized. Taking a child's blood pressure is routine work for nurses and medical assistants (O*NET 29-1141.00, 31-9092.00). The cuff has to be sized to the arm: its width should be about 40% of the arm's circumference. A cuff that is too narrow reads falsely high and one that is too wide reads falsely low, which can hide hypertension or start needless tests. All three cuffs here fit over the arm; only the sizing rule tells them apart, so the robot cannot find the right one by trying them.",
+  "setup": "Station table; cm from the midpoint between the arm bases, x forward, y to the robot's left. Child-size training arm, fixed, rigid PLA, 5 x 5 cm in section (20 cm round), lying along y at x 34: upper arm y -10 to +8 (light skin tone), elbow crease at y -10 (6 mm dark band), forearm and hand stub y -20 to -10 (darker). Three blue cuffs, each a rigid arch: two 6 mm legs 6 cm tall, 10 cm apart, a 6 mm bridge and a dark 2.5 x 2.5 x 5 cm knob on top. Widths along y: 12 cm (100 g) at y +10, 8 cm (70 g) at y -3, 4 cm (40 g) at y -15, all at x 17, standing on their legs.",
+  "scoring": "At the end, with a tape measure and a photo. 1.0: the 8 cm cuff (40% of the 20 cm arm; the others are 20% and 60%) stands on the table astride the upper arm, centre within 2.5 cm of the arm's axis, lower edge at least 2 cm above the crease, not past the shoulder end, tilted 8 degrees or less, turned 12 degrees or less, no other cuff astride the arm. 0.5: it stands astride the arm elsewhere or askew, or another cuff does too. 0.25: it is over the arm (the axis between its legs) but not standing on the table, e.g. still held. 0 otherwise.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Stand the three cuffs on their tape marks, knobs up, widths along the arm. Check the arm is on its marks.",
+  "fidelity": "Rigid bodies. Cuffs are rigid arches that stand over the arm, not fabric wrapped round it, so only a cuff's width is modelled, not its length (80-100% of the circumference); they carry no printed size range. The arm is a rigid square beam. Nothing is inflated and no reading is taken. Friction 1.0; no contact-force cap.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-FDFV5Y"
+}
