@@ -1,0 +1,20 @@
+{
+  "title": "Mark a boat's dead-reckoning position on a nautical chart",
+  "category": "Impact on jobs",
+  "keywords": [
+    "navigation",
+    "nautical chart",
+    "dead reckoning",
+    "dividers",
+    "measuring"
+  ],
+  "instruction": "The boat passed the red buoy at the start of the pencilled course line and has since run 6 nautical miles along that line. Put the position marker on the chart where the boat is now, then let go of it.",
+  "context": "Navigators keep a dead-reckoning plot by marking the distance run along the course line. On a Mercator chart distance is taken off the latitude scale beside the leg, since one minute of latitude is one nautical mile. A minute of longitude is shorter by cos(latitude); using the top or bottom scale is the classic error and here puts the boat 2.1 nm short. Done by: ship and boat captains, mates and pilots (O*NET 53-5021), fishers and yacht skippers.",
+  "setup": "Positions from the midpoint between the arm bases (61 cm apart): x forward, y to the left. Chart: a paper Mercator chart, 1:50,000, 295 x 417 mm, 1 mm thick as simulated, taped flat (fixed), centred at x 28.5 cm, y 0, north away from the robot. Open sea, 49°57'N to 50°04'N and 3°00'W to 2°44'W. Border scales: latitude on the left and right edges (alternate whole minutes in black bands, 0.1' ticks), longitude on the near and far edges; grid lines at 50°00'N, 2°55'W, 2°50'W and 2°45'W. A red buoy symbol at 49°58.3'N 2°58.5'W (x 20.3, y 15.5 cm) and a 1.5 mm dark pencil line from it on 045° true for 7 nm. Position marker: yellow disc 25 mm across and 6 mm thick with a black knob 12 mm across and 16 mm tall on top, 30 g, standing on the table at x 11.5 cm, y 0. Dividers: brass, two 8 x 7 mm legs 150 mm from hinge to steel point, 20 mm hinge head, 80 g, a free-turning hinge with no spring; lying on the chart with the hinge at x 17.5, y -3.5 cm, legs toward the right, opened 30 degrees.",
+  "scoring": "Measured on the chart at the end, at the centre of the marker's base. 1.0 if it is within 0.2 nm (7.4 mm) of the dead-reckoning position, 50°02.5'N 2°51.9'W (6 nm from the buoy along the line: x 36.1, y -0.2 cm); 0.5 within 0.5 nm (18.5 mm); 0 farther. Credit only if the marker lies flat on the charted area (base within 3 mm of the paper, tilted at most 10 degrees), has been let go (no part of either gripper within 5 cm of it) and has moved at most 2 mm over the last second. The longitude-scale answer, the buoy, the line's end and the grid crossings all score 0. Using the dividers is not required.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Stand the marker back on the table at x 11.5 cm, y 0. Lay the dividers back with the hinge at x 17.5, y -3.5 cm, legs toward the right, opened 30 degrees. The chart stays taped down; nothing is drawn or consumed.",
+  "fidelity": "Full-size chart, marker and dividers. The chart is a fixed 1 mm box with its printing as thin flat shapes: no figures or labels, and the pencil line is drawn 1.5 mm wide so the cameras show it. The marker stands in for a pencilled DR mark. The dividers are two rigid legs on a free-turning hinge. Friction is 1.0, grippier than paper. Scoring uses the marker's pose and the grippers' positions (from joint angles), not forces.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-7N9DPG"
+}
