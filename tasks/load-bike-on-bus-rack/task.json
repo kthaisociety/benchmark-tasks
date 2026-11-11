@@ -1,0 +1,21 @@
+{
+  "title": "Load a bike onto a bus's front bike rack",
+  "category": "Societal relevance",
+  "keywords": [
+    "bus bike rack",
+    "public transit",
+    "cycling",
+    "bimanual",
+    "hinged support arm",
+    "hold and secure"
+  ],
+  "instruction": "Load the bike onto the bus's bike rack, ready for the bus to drive off.",
+  "context": "Most US transit buses carry a two- or three-bike rack on the front bumper, and agencies publish how to load it so the bike stays on at speed. King County Metro: when the rack is empty, use the rack space farthest from the bus; face the front wheel toward the hook; pull the support arm out and over the top of the front wheel, the hook as close to the top of the wheel frame as possible. Metro Transit: the arm must be in direct contact with the tire, not on a fender or brake. The bike has to be held upright until the arm is on. 1:6 scale.",
+  "setup": "1:6 scale on the station table; cm from the midpoint between the arm bases (x forward, y left), heights above the table. Bus front: black rubber bumper x 42-55, y -27 to 27, 5 high; white painted steel panel x 55-57, y -29 to 29, 32 high, with a dark glass windscreen band (15 high, top at 29), an amber route sign and two headlights. Rack (steel, 6 kg, lowered) on the table in front of the bumper: two U-channels running along y from -19 to 15, 4.2 inside, walls 0.4 thick and 1.5 high, centred at x 24 (position farther from the bus) and x 31 (nearer); a 2.2 high spine at x 38. Two black steel support arms hinged at x 38, 3.5 up, at y 9 (outer position; hook end +y) and y -13 (inner; hook end -y), 14.6 and 9.7 cm long, 80 g, stowed leaning 15 degrees back toward the bus; each has a black cross-knob 10 cm long 9 cm from the hinge and a yellow hook (pad 4 x 1.4 cm, a lip either side). Bike: blue aluminium, 0.30 kg, 29 cm long, front wheel +y; wheels 11.4 across, tyres 1.0 wide, axles 17.5 apart, centred at x 14, y -2; flat top tube 1.6 wide x 2 high at 12-14; handlebar 9 wide at 16; black front brake on the fork crown just above the tyre; no fenders. It stands in a grey pavement rail at x 14 (walls 1.5 high, 0.25 free each side of the tyre). The screenshot shows the start.",
+  "scoring": "Read at the end. 0 for good if at any time the bike leans over more than 25 degrees or the rack moves 1 cm or turns 3 degrees. A wheel is in a position when its centre is within 2.4 cm of that channel's centre line, at most 1 cm above resting, inside the end stops. Both wheels in neither: 0. Nearer the bus: 0.25, or 0.5 if secured and let go. Farther from the bus: 0.25; 0.6 if secured; 1.0 if secured, let go and at rest (under 1 cm/s, 0.2 rad/s) for 1 s. Secured: lean 12 degrees or less, front wheel at the hook's end, and the hook pad's bottom centre within 1.2 cm of the front tyre's mid-plane, between 0.4 cm less and 0.8 cm more than the wheel radius (5.7) from the front axle, above it and at most 4 cm along the bike from it (near the fork, not on the brake or frame). Let go: both grippers 4 cm or more from the bike's outline and the hook.",
+  "run_limit": "1,600 steps (80 seconds at 20 Hz)",
+  "reset_notes": "Swing both support arms back to stowed against their stops, stand the bike back in the pavement rail at its start. Nothing is consumed.",
+  "fidelity": "Rigid bodies at 1:6. The bike is one rigid body (wheels don't spin; it is lifted, never rolled); tyres are 16-sided rings. The rack starts lowered: folding it down is left out. The support arms are damped hinges; a real arm's spring is stood in for by the hook's 80 g weight and a lip either side of the tyre. The channels stand on the table, not on a bumper mount.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-GB2QYM"
+}
