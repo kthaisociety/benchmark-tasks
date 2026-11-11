@@ -1,0 +1,20 @@
+{
+  "title": "Box a run of drill core in reading order, with a core-loss block where core was lost",
+  "category": "Impact on jobs",
+  "keywords": [
+    "mineral exploration",
+    "core logging",
+    "ordering",
+    "hidden gap",
+    "bimanual"
+  ],
+  "instruction": "Box the core run in the core tray.",
+  "context": "In mineral exploration every metre of drill core is logged by depth, and the log is read from the tray: rows from the top of the tray, each left to right, uphole end to the left, with a core-loss block where core was lost. A gap that is closed up shifts every later piece to the wrong depth, and the error carries into the ore body model.",
+  "setup": "Fixed layout as in the screenshot (x forward from the robot base, y to its left). A steel V-rack board (7 x 59 x 0.4 cm) at x 0.22 holds five rock core pieces in hole order from the left end, which carries a red top-of-hole tag: square bars 3 x 3 cm of length 10, 8, 13, 9 and 10 cm (granite, schist, quartz, sulphide, basalt colours, 80 g each), each with a red uphole cap at its left end, butted 3 mm apart except for a 6 cm gap between the second and third. A dark core tray (25.5 x 23.5 cm) has three rows at x 0.475, 0.39 and 0.305 between 4 mm dividers, with a yellow label at its top-left corner. Three pine core-loss blocks (3 x 3 cm, 9, 3 and 6 cm long, 30 g) lie on a pine board beside the tray.",
+  "scoring": "1/6 for each of the five core pieces and the 6 cm loss block lying flat and at rest in its tray row, centre within 2 cm of its place in reading order (rows from the far row, each filled from the left, 1.5 cm between neighbours: top row pieces 1 and 2, middle row the loss block then piece 3, bottom row pieces 4 and 5); a core piece counts only with its red cap to the left. The loss block earns nothing while a loss block of another length lies in the tray. Anything else scores 0.",
+  "run_limit": "2,000 steps (100 seconds at 20 Hz)",
+  "reset_notes": "Return the pieces to the rack and the loss blocks to their board in the screenshot layout.",
+  "fidelity": "Rigid core bars, scaled to about 0.6 of real NQ core and shortened; the V-rack is a flat board, tray dividers are 4 mm ridges, and rows are spaced wider than a real tray so the gripper fits. Rock types are shown by colour only. The core-loss rule, reading order and uphole orientation follow standard core-shed practice.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-J377JR"
+}
