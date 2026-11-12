@@ -1,0 +1,20 @@
+{
+  "title": "Set a paper cassette's two guides snug against the stack",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "paper guide",
+    "release tab",
+    "printer",
+    "office equipment"
+  ],
+  "instruction": "Set the paper tray's two guides snug against the paper stack, then let go of them.",
+  "context": "Loading a printer or copier cassette ends with closing its paper guides onto the stack: a gap lets the sheets skew and jam, a guide pushed too hard shifts the stack out of the feed corner. Office machine operators and clerks do it many times a day (O*NET 43-9071.00, 43-9061.00). Unlike pushing a part into fixed stops, here the stops move to the part: each guide is locked and slides only while its tab is squeezed, so it must be squeezed, slid to the stack, and let go.",
+  "setup": "Positions in cm from the midpoint between the two arm bases, on the table (x forward, y left). Cassette: grey ABS tray, outside 37.2 x 27.2 x 3.6 cm, inside 36 x 26 cm (0.4 cm floor, 3.2 cm walls), long side along x, centred at x 31, y 2, weighted to 5 kg so it stays put as if seated in a printer. Paper: one stack of 100 sheets of A4 80 g/m2 paper (29.7 x 21 x 1 cm, 0.5 kg), long side along x, in the tray's far-left corner, 1.5 mm off the far and left walls. Side guide: orange ABS fence 20 x 0.6 x 3.4 cm along x, centred 3 cm forward of the tray centre, its inner face 11.7 cm right of the tray centreline (3.55 cm from the stack). Rear guide: orange ABS fence 0.6 x 17 x 3.4 cm along y, centred 2.5 cm left of the tray centreline, its inner face 16.7 cm behind the tray centre (4.85 cm from the stack). Each guide has an orange release tab on top, 3 cm wide along its slide direction, 2 cm across, 3 cm tall. A guide slides only while its tab is squeezed from both sides along its slide direction, and locks where it is let go.",
+  "scoring": "Measured at the end with a ruler (or feeler gauge) and a top photo. 0 if at any time the stack moved more than 5 mm or turned more than 3 degrees in the tray, or was lifted more than 1 cm, or the tray moved more than 5 mm; 0 if a gripper is within 2 cm of a tab at the end. Otherwise, per guide: 0.5 if it is locked with at most 1 mm between it and the stack's edge, 0.25 if at most 5 mm, else 0. Possible scores: 0, 0.25, 0.5, 0.75, 1.0.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Squeeze each tab and slide both guides back fully open, then push the stack into the far-left corner, 1.5 mm off both walls. Nothing is consumed.",
+  "fidelity": "Rigid boxes; the paper stack is one rigid block, so sheets cannot bow or fan. Each guide is a prismatic joint: stiff (20 kN/m) when locked, free while both finger pads straddle its tab at most 6 cm apart, standing in for the squeeze latch. The tray is weighted so it stays put. No contact force cap.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-SN2TXR"
+}
