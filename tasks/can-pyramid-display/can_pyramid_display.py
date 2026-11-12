@@ -1,15 +1,16 @@
-"""In a grocery shop: six cans of tomato soup wait in a delivery tray next to a green display mat. A pyramid
-display (three cans, then two, then one) only stands if the bottom row is spaced so each upper can bridges two
-below it, and every can is set down square and centred.
+"""In a grocery shop: six cans of tomatoes wait on a delivery tray next to a green display mat. A pyramid display
+(three cans, then two, then one) only stands if the bottom row is spaced so each upper can bridges two below it, and
+every can is set down square and centred.
 """
 
 import math
+from itertools import combinations
 
 import numpy as np
 
 from yam_arena.constants import FINGER_OPEN
 from yam_arena.demo import Waypoint, pick_place_waypoints
-from yam_arena.task_file import TABLE_TOP, Asset, Box, Cylinder
+from yam_arena.task_file import TABLE_TOP, Box, Cylinder
 
 SCENE = "station"
 TOP = TABLE_TOP[SCENE]
@@ -21,9 +22,14 @@ TRAY = [(0.14, 0.29), (0.14, 0.37), (0.14, 0.45), (0.26, 0.29), (0.26, 0.37), (0
 PX, CY, PITCH = 0.32, 0.12, 0.070
 PLAN = [((PX, CY - PITCH), 0), ((PX, CY), 0), ((PX, CY + PITCH), 0),
         ((PX, CY - PITCH / 2), 1), ((PX, CY + PITCH / 2), 1), ((PX, CY), 2)]
-SOUP = (0.80, 0.15, 0.12)
+TOMATO, BEANS = (0.80, 0.15, 0.12), (0.25, 0.55, 0.25)
 
-CANS = [Cylinder(f"can_{i}", pos=(*xy, FLOOR + H / 2), radius=D / 2, height=H, mass=0.3, color=SOUP)
+GAP_MIN, GAP_MAX = D, D + 0.015  # centre spacing of two cans that both carry the can above
+CENTRED = 0.015  # an upper can's centre from the midpoint of its two supports
+SEATED = 0.01  # an upper can's base from the tops of its supports
+UPRIGHT, TIPPED = 10.0, 45.0
+
+CANS = [Cylinder(f"can_{i}", pos=(*xy, FLOOR + H / 2), radius=D / 2, height=H, mass=0.3, color=TOMATO)
         for i, xy in enumerate(TRAY)]
 SHELF = (0.66, 0.0)
 DRESSING = [
@@ -34,11 +40,9 @@ DRESSING = [
     Box("shelf_back", pos=(SHELF[0] + 0.05, 0.0, FLOOR + 0.15), size=(0.02, 0.80, 0.30), color=(0.95, 0.95, 0.93)),
     *[Box(f"shelf_{k}", pos=(SHELF[0], 0.0, FLOOR + 0.002 + 0.12 * k), size=(0.10, 0.80, 0.012),
           color=(0.75, 0.75, 0.78)) for k in (0, 1)],
-    *[Asset(f"stock_{i}", a, xy=(SHELF[0], y), extent=0.07) for i, (a, y) in enumerate(
-        [("ketchup_bottle_hope_robolab", -0.25), ("mustard_bottle_hope_robolab", -0.12),
-         ("bbq_sauce_bottle_hope_robolab", 0.14), ("mayonnaise_bottle_hope_robolab", 0.27)])],
+    *[Cylinder(f"stock_{k}_{i}", pos=(SHELF[0], -0.30 + 0.085 * i, FLOOR + 0.008 + 0.12 * k + H / 2), radius=D / 2,
+               height=H, color=BEANS if k else TOMATO) for k in (0, 1) for i in range(8)],
     Box("price_card", pos=(0.43, 0.12, FLOOR + 0.04), size=(0.008, 0.10, 0.08), color=(0.98, 0.85, 0.15)),
-    Box("basket", pos=(0.50, -0.28, FLOOR + 0.04), size=(0.16, 0.12, 0.08), color=(0.20, 0.35, 0.70)),
 ]
 OBJECTS = [*DRESSING, *CANS]
 
@@ -48,28 +52,63 @@ def _tilt_deg(obj):
     return float(np.degrees(np.arccos(np.clip(1 - 2 * (x * x + y * y), -1.0, 1.0))))
 
 
+def _standing(obj):
+    return _tilt_deg(obj) < UPRIGHT and obj.resting()
+
+
 def _on_mat(obj):
     centre, size = MAT
-    return bool(np.all(np.abs(obj.pos[:2] - centre) <= size / 2))
+    return bool(np.all(np.abs(obj.pos[:2] - centre) <= size / 2)) and abs(obj.low[2] - MAT_TOP) < SEATED
+
+
+def _pair_carries(a, b):
+    return GAP_MIN - 0.002 <= np.linalg.norm(a.pos[:2] - b.pos[:2]) <= GAP_MAX
+
+
+def _bridges(upper, a, b):
+    """``upper`` stands centred across ``a`` and ``b``, its base on both their tops."""
+    midpoint = (a.pos[:2] + b.pos[:2]) / 2
+    return (_pair_carries(a, b) and np.linalg.norm(upper.pos[:2] - midpoint) <= CENTRED
+            and abs(upper.low[2] - a.high[2]) < SEATED and abs(upper.low[2] - b.high[2]) < SEATED)
+
+
+def _on_single(upper, cans):
+    """``upper`` stands centred on one can, as in a tower."""
+    return any(c is not upper and np.linalg.norm(upper.pos[:2] - c.pos[:2]) <= CENTRED
+               and abs(upper.low[2] - c.high[2]) < SEATED for c in cans)
+
+
+def _bottom_row(cans):
+    """Three cans standing on the mat in a line, each next to the next: (left, middle, right) or None."""
+    on_mat = [c for c in cans if _standing(c) and _on_mat(c)]
+    for trio in combinations(on_mat, 3):
+        for mid in trio:
+            a, b = (c for c in trio if c is not mid)
+            if _pair_carries(a, mid) and _pair_carries(mid, b) and np.linalg.norm(a.pos[:2] - b.pos[:2]) > 2 * D - 0.01:
+                return a, mid, b
+    return None
 
 
 def score(objects):
-    """0 if any can ends tipped over (more than 45 degrees). Otherwise, counting upright cans (under 10 degrees) by
-    tier from the mat: 1.0 with three on the mat, two on those and one on top; 0.5 with the bottom two tiers only;
-    0.25 with exactly three upright on the mat and nothing above; 0 otherwise. Scored at the end of the trial."""
+    """0 if any can ends tipped over (more than 45 degrees) or stands centred on a single can. Otherwise 0.25 for a
+    bottom row of three cans on the mat; 0.5 when two more cans each bridge a different pair of neighbours in it;
+    1.0 when a sixth bridges those two. Scored at the end of the trial."""
     cans = [objects[c.name] for c in CANS]
-    if any(_tilt_deg(c) > 45 for c in cans):
+    if any(_tilt_deg(c) > TIPPED for c in cans) or any(_on_single(c, cans) for c in cans):
         return 0.0
-    tiers = [0, 0, 0]
-    for c in cans:
-        level = round((c.low[2] - MAT_TOP) / H)
-        if _tilt_deg(c) < 10 and c.resting() and 0 <= level <= 2 and (level > 0 or _on_mat(c)):
-            tiers[level] += 1
-    if tiers == [3, 2, 1]:
+    row = _bottom_row(cans)
+    if row is None:
+        return 0.0
+    a, mid, b = row
+    rest = [c for c in cans if all(c is not r for r in row) and _standing(c)]
+    left = [c for c in rest if _bridges(c, a, mid)]
+    right = [c for c in rest if _bridges(c, mid, b)]
+    if not (left and right):
+        return 0.25
+    second = (left[0], right[0])
+    if any(_bridges(c, *second) for c in rest if all(c is not s for s in second)):
         return 1.0
-    if tiers == [3, 2, 0]:
-        return 0.5
-    return 0.25 if tiers == [3, 0, 0] else 0.0
+    return 0.5
 
 
 def demo():
