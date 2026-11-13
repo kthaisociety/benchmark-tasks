@@ -234,7 +234,8 @@ IN_HOLE = 0.0015  # the button's middle within 1.5 mm of the red hole's middle, 
 FULL_OUT = 0.0030  # ... and its top at least 3 mm out of the tube (4 mm when fully out): it is through the hole
 LET_GO = 0.040  # every gripper TCP at least 4 cm from both crutches' axes (tip to cuff)
 ON_STAND_Z = 0.010  # a crutch is on its stand: its axis within 1 cm of where it started ...
-ON_STAND_ROLL = 20.0  # ... and its handgrip within 20 degrees of straight down
+ON_STAND_ROLL = 20.0  # ... its handgrip within 20 degrees of straight down ...
+ON_STAND_SLIDE = 0.020  # ... and slid no more than 2 cm along its stand
 DROPPED_Z = 0.040  # a crutch whose axis ever drops 4 cm, or turns over (roll beyond 60 degrees), was dropped
 DROPPED_ROLL = 60.0
 PER_CRUTCH = 0.4
@@ -279,7 +280,9 @@ def axis_distance(c_pos, c_rot, l_pos, point) -> float:
 
 
 def on_stand(name: str, c_pos, c_rot) -> bool:
-    return abs(float(c_pos[2]) - float(crutch_origin(name)[2])) <= ON_STAND_Z and roll_deg(c_rot) <= ON_STAND_ROLL
+    start = crutch_origin(name)
+    return (abs(float(c_pos[2]) - float(start[2])) <= ON_STAND_Z and roll_deg(c_rot) <= ON_STAND_ROLL
+            and abs(float(c_pos[1]) - float(start[1])) <= ON_STAND_SLIDE)
 
 
 def _tcps(base, origin) -> list[np.ndarray]:

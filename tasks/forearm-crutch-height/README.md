@@ -38,11 +38,11 @@ The task file follows the trial after every control step:
 - **A crutch is set** when its leg's button stands fully out through the red-banded hole: the button's middle is within
   1.5 mm of the hole's middle along the tube, and its top stands at least 3 mm out of the tube (4 mm when fully out). A
   button caught on the hole's edge stands lower and doesn't count, and neither does one pressed in under the wall beside
-  the hole. On a real rig, measure the button's height with a ruler and photograph both red holes.
+  the hole. On a real rig, measure the button's height with a caliper's depth rod and photograph both red holes.
 - **Let go:** every gripper's TCP (fingertip centre) is at least 4 cm from both crutches' axes, anywhere from the
   rubber tip to the cuff. A hand still pinching a leg or pressing a button fails this.
 - **On the stand:** each crutch's axis is within 1 cm of the height it lay at, with its handgrip within 20 degrees of
-  straight down.
+  straight down, and the crutch has slid no more than 2 cm along the stand.
 
 `score()` gives 0.4 for each crutch that is set. It gives 1.0 when both are set, let go, on the stand and still (every
 crutch and leg moving under 1 cm/s and turning under 0.5 rad/s). The possible scores are 0, 0.4, 0.8 and 1.0.
@@ -104,7 +104,7 @@ PYTHONPATH=<path to yam-isaac-lab-arena> python -m pytest test_task.py -q
 The crutches, legs, buttons and stand are rigid bodies made of shapes from `bodykit.py`. The main tube is hollow below
 the handgrip: an octagon of eight 1.2 mm wall panels, 22.2 mm across its flats. Its top panel is broken by the nine
 7 mm holes. The leg is a cylinder 0.4 mm smaller than the tube's inside. It slides on a prismatic joint along the
-crutch (a `Slider`), with its travel limited to the row of holes, and the two don't collide. The button is a sphere on a
+crutch (a `Slider`), with its travel limited to the row of holes, and the two don't collide. The leg can't turn in the tube (a real one can once its button is pressed in). The button is a sphere on a
 straight shank and moves in and out of the leg on a second, sprung `Slider` (800 N/m, 4.8 N let out). It collides with
 the main tube and with nothing else. So the lock is the button's shank against the edges of the hole it stands in: the
 leg is free only once the dome's middle is below the tube's inside. That needs more than 2 of the button's 4 mm of

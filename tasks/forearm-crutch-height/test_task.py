@@ -120,12 +120,12 @@ def test_objects_and_joints():
 
 # -- scoring -----------------------------------------------------------------------------------------------------------
 
-def _objects(button_k=None, out=None, roll=0.0, crutch_dz=None, legs_at=None):
+def _objects(button_k=None, out=None, roll=0.0, crutch_dz=None, crutch_dy=None):
     """Hand-built states: each crutch where it started (turned ``roll`` degrees about its axis), its button at hole
     position ``button_k[name]`` standing ``out[name]`` m out of the tube."""
     objs = {}
     for name, (x, k0) in T.CRUTCHES.items():
-        o = T.crutch_origin(name) + [0.0, 0.0, (crutch_dz or {}).get(name, 0.0)]
+        o = T.crutch_origin(name) + [0.0, (crutch_dy or {}).get(name, 0.0), (crutch_dz or {}).get(name, 0.0)]
         a = math.radians(roll) / 2
         q = (0.0, math.sin(a), 0.0, math.cos(a))  # about y, the crutch's axis
         rot = T.rotation(q)
@@ -308,3 +308,8 @@ def test_demo_reaches_every_pose(monkeypatch):
     d = T.demo()
     bad = _reaches("left", d["left"]) + _reaches("right", d["right"])
     assert not bad, "\n".join(bad)
+
+
+def test_slid_along_its_stand():
+    assert T.score(_objects(button_k=SET, crutch_dy={"far": 0.015})) == 1.0
+    assert T.score(_objects(button_k=SET, crutch_dy={"far": 0.030})) == pytest.approx(0.8)
