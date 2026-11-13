@@ -30,15 +30,16 @@ The task file follows the trial after every control step:
   slid off a block).
 - **A corner counts** when a protector is fully on it and let go:
   - the corner within 4 mm of the back of the pocket in both directions;
-  - the frame's front within 3 mm of the pocket floor's line, and the floor pressed down at least 0.8 mm, so the
-    floor is under the frame and the roof over it and the foam grips;
+  - the pocket's floor under the frame's front and its roof over its back, with the foam squeezed onto the frame. In
+    the sim: the frame's front within 3 mm of the floor's line and the sprung floor pressed down at least 0.8 mm. On a
+    real rig: no gap a 1 mm feeler gauge passes between the frame's front and the pocket floor;
   - the protector square and level with the frame (its rotation within 6 degrees of the frame's, turned for that
     corner);
   - each gripper's TCP (fingertip centre) at least 4 cm from the protector's middle.
 
 `score()` gives 0 if the frame was dropped or doesn't end flat on both blocks (tilted more than 3 degrees).
 Otherwise it gives 0.25 for each corner that counts. With all four counting it gives 1.0 once the frame and all four
-protectors are still, and 0.75 before that. `success()` ends the episode once 1.0 has held for 1 s.
+protectors are still (each moving under 1 cm/s and turning under 0.5 rad/s), and 0.75 before that. `success()` ends the episode once 1.0 has held for 1 s.
 
 Any protector can go on any corner, as long as its pocket faces that corner.
 
