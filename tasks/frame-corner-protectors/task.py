@@ -406,6 +406,10 @@ def demo():
         right_fit = right_fit[:-2] + [Waypoint(3.0, right_fit[-3].pos, FINGER_CLOSED, "keep holding")]
     if variant == "two_only":  # only the left side's two
         right_fit = []
+    if variant == "probe_one":  # Brev probe: the far-left protector only, the right arm holding
+        left_fit, right_fit = _fit("far_left"), []
+    if variant == "probe_near":  # Brev probe: the near-left protector only (the reach close to the arm's base)
+        left_fit, right_fit = _fit("near_left"), []
     # phase 1: left fits, right holds; phase 2: right fits, left holds
     t1 = _length(left_fit)
     left = left_fit + [Waypoint(1.0, (FRAME_AT[0], HOLD_Y, HOVER), FINGER_CLOSED, "left: over the frame")]

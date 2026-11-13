@@ -225,7 +225,7 @@ def test_untouched_scene_scores_zero():
 
 # -- the demo ------------------------------------------------------------------------------------------------------------
 
-VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "two_only"]
+VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "two_only", "probe_one", "probe_near"]
 
 
 def _plans(variant, monkeypatch):
