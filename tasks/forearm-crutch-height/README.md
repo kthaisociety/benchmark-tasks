@@ -1,0 +1,126 @@
+# Set a pair of forearm crutches to the same marked hole
+
+Two adult aluminium forearm crutches lie side by side on a fixed wooden stand, tips to the right, handgrips hanging
+straight down, so the back of each crutch faces up. A forearm crutch's length is set at its leg. A thinner tube slides
+inside the main tube and is held by a spring button on it, which stands out through one of a row of nine holes in the
+main tube's back. Pressed flush, the button lets the leg slide. Let go over a hole, it springs out through it and locks
+the leg.
+
+The instruction is: "Set both crutches to the hole ringed in red: each leg's spring button must stand fully out through
+that hole. Then let go of the crutches."
+
+The near crutch starts three holes too long (hole 2) and the far one three holes too short (hole 8). The red hole is
+hole 5 on both. Makers' and loan services' instructions say the same thing: press the spring button, lengthen or
+shorten the leg, and make sure both crutches are in the same hole with every button fully engaged. A button caught on
+the edge of its hole can let the leg slip when the user leans on it.
+
+The hard part is physical. The button only frees the leg once it is pressed nearly flush. On its way to the red hole it
+springs out into every hole it passes, and locks again, unless it is kept pressed while the leg slides. Pulled or pushed
+without pressing it, the leg doesn't move.
+
+## Scene
+
+Positions in cm from the midpoint between the arm bases (x forward, y left, z up from the table). The layout is fixed.
+
+| Object | Description |
+|---|---|
+| Stand (fixed) | Pine. For each crutch, two cradles: a 4 x 2 cm block with a 1 cm post either side of the tube, at y 1 (under the collar) and y 47 (under the tube between the handgrip and the cuff) |
+| Crutches (2, 0.54 kg each) | Adult aluminium forearm crutches without locking collars, lying along y with their axes 13.5 above the table at x 23 (near) and x 35 (far). Main tube 22.2 mm (7/8 in) across, 1.2 mm wall, from a black plastic collar at y 0 up to an open grey plastic cuff (y 55.5 to 61.5, for a 9 cm forearm). A black foam handgrip, 3 cm across and 11.5 long, at y 36, hanging down. Nine 7 mm holes 1 in apart in the tube's back, from hole 1 (the lowest, the longest setting) at y 4 to hole 9 at y 24.3. Two red tape bands round the tube either side of hole 5 (y 14.2) |
+| Legs | A 19 mm (3/4 in) tube, 58 long, inside each main tube, with a black rubber tip 4 across. A domed steel spring button 6.4 mm across sits 3 cm below its top end. Let out, it stands 4 mm out of its hole (4.8 N); pressed into the tube, it pushes back with 9 N |
+| Settings | Handle height (tip to handgrip) is 70 cm at hole 9 to 90.5 at hole 1, 2.54 cm a hole. The near crutch starts in hole 2 (88 cm) and the far one in hole 8 (72.7 cm). Hole 5 is 80.3 cm |
+
+## Scoring
+
+The task file follows the trial after every control step:
+
+- **Dropped:** a crutch's axis went 4 cm below where it lay, or it turned over (rolled more than 60 degrees about its
+  axis). This scores 0.
+- **A crutch is set** when its leg's button stands fully out through the red-banded hole: the button's middle is within
+  1.5 mm of the hole's middle along the tube, and its top stands at least 3 mm out of the tube (4 mm when fully out). A
+  button caught on the hole's edge stands lower and doesn't count, and neither does one pressed in under the wall beside
+  the hole. On a real rig, measure the button's height with a ruler and photograph both red holes.
+- **Let go:** every gripper's TCP (fingertip centre) is at least 4 cm from both crutches' axes, anywhere from the
+  rubber tip to the cuff. A hand still pinching a leg or pressing a button fails this.
+- **On the stand:** each crutch's axis is within 1 cm of the height it lay at, with its handgrip within 20 degrees of
+  straight down.
+
+`score()` gives 0.4 for each crutch that is set. It gives 1.0 when both are set, let go, on the stand and still (every
+crutch and leg moving under 1 cm/s and turning under 0.5 rad/s). The possible scores are 0, 0.4, 0.8 and 1.0.
+`success()` ends the episode once 1.0 has held for 1 s.
+
+## Run a trial
+
+Following the task board's simulation walkthrough (`source /data/IsaacLab-Arena/yam.env`), from this folder:
+
+```bash
+inspect-robots run --embodiment yam_arena --policy dream \
+  -E task=task.py -E object_jitter=0 -E control_hz=20 -E cam_width=640 -E cam_height=352 \
+  --instruction "Set both crutches to the hole ringed in red: each leg's spring button must stand fully out through that hole. Then let go of the crutches." \
+  --scorer task_score --no-prompt --max-steps 2400 --store-frames --log-dir ~/yam-eval/forearm-crutch-dream
+```
+
+`task_score` prints the trial's score: 1.0 on success, otherwise `score()` at the end of the episode. The layout is
+fixed (`object_jitter=0`), so no seed is needed. A trial takes about TBD minutes of wall time on an L40S at 2,400 steps.
+
+## Scripted demo
+
+Run it with `--policy yam_scripted` instead of `--policy dream`. For each crutch in turn (near, then far):
+
+1. the right hand pinches the leg below the main tube;
+2. the left presses the button flush with its closed fingertips;
+3. the right slides the leg along the tube, three holes in for the near crutch and three out for the far one. The left's
+   fingertips glide along with the button, just clear of the tube, so it can't spring out into the holes it passes;
+4. over the red hole the left lifts away and the button springs out through it. Then the right lets go.
+
+Set `CRUTCH_DEBUG=1` to print, every 5 steps, each button's position (as a fractional hole number), how far it stands
+out, how far each crutch has moved and rolled, and whether it is set. `CRUTCH_SAG_L` and `CRUTCH_SAG_R` ("dx,dy,dz",
+m) shift each arm's poses to make up for a loaded arm's sag. `CRUTCH_PRESS_GAP` sets how far above the tube the
+pressing fingertips glide (default 0.5 mm), and `CRUTCH_PRESS_OFF` ("dx,dy") shifts the press off the button's middle.
+
+Shortcuts, with `DEMO_VARIANT` set in the environment:
+
+| `DEMO_VARIANT` | What the arms do | Score |
+|---|---|---|
+| `full` | as above | TBD (expected 1.0) |
+| `nothing` | wait | TBD (expected 0.0) |
+| `near_only` | set the near crutch only | TBD (expected 0.4) |
+| `no_press` | the right pulls and pushes both legs, nobody presses the buttons | TBD (expected 0.0) |
+| `half_way` | the far leg stops 6 mm short of the red hole, its button under the wall | TBD (expected 0.4) |
+| `keep_holding` | set both, but the right keeps hold of the far leg | TBD (expected 0.8) |
+
+## Offline checks
+
+`test_task.py` checks the geometry and the lock arithmetic, the scoring rules on hand-built states, and the demo's
+reach with the robot's inverse kinematics, without Isaac Sim. The lock checks cover the shank filling the hole when the
+button is let out, the button freeing only past half its travel, the clearances, the spring forces, and the handle
+heights against a real crutch's range.
+
+```bash
+PYTHONPATH=<path to yam-isaac-lab-arena> python -m pytest test_task.py -q
+```
+
+## How it is built
+
+The crutches, legs, buttons and stand are rigid bodies made of shapes from `bodykit.py`. The main tube is hollow below
+the handgrip: an octagon of eight 1.2 mm wall panels, 22.2 mm across its flats. Its top panel is broken by the nine
+7 mm holes. The leg is a cylinder 0.4 mm smaller than the tube's inside. It slides on a prismatic joint along the
+crutch (a `Slider`), with its travel limited to the row of holes, and the two don't collide. The button is a sphere on a
+straight shank and moves in and out of the leg on a second, sprung `Slider` (800 N/m, 4.8 N let out). It collides with
+the main tube and with nothing else. So the lock is the button's shank against the edges of the hole it stands in: the
+leg is free only once the dome's middle is below the tube's inside. That needs more than 2 of the button's 4 mm of
+press, and then the hole's edge pushes the dome the rest of the way. Nothing in the task file locks or unlocks the leg.
+The stand is a fixed (kinematic) body.
+
+## Real-world build
+
+Use two adult aluminium forearm crutches whose legs adjust with a single spring button and no locking collar, with
+their adjustment holes in the tube's back (opposite the handgrip) and a handle height range of about 28 to 36 in. Wrap
+red tape round each main tube either side of the fifth hole from the bottom. Make the stand from pine: four cradles (a
+block with a post either side of the tube), screwed to a board, holding the tubes 13.5 cm above the table so the
+handgrips hang free. Setting crutches is safe: the arms press a spring button and slide a 140 g tube.
+
+## Licence
+
+This task is released under the MIT licence. `bodykit.py` comes from
+`tasks/open-an-umbrella-until-its-runner-latches` in this repository. It is unchanged and released under the same
+licence. No third-party models or assets are used. Every object is built from primitive shapes.
