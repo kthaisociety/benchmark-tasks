@@ -48,21 +48,25 @@ def install_scene():
                 phys.CreateEnableCCDAttr(True)
             mat = UsdShade.Material.Define(stage, f"{path}/contact_material")
             physics = UsdPhysics.MaterialAPI.Apply(mat.GetPrim())
-            physics.CreateStaticFrictionAttr(.45)
-            physics.CreateDynamicFrictionAttr(.30)
+            # The lock pin is a ground steel pin in steel bushings; the rest is polymer or aluminium.
+            pin = spec.name == "lock_pin"
+            physics.CreateStaticFrictionAttr(.15 if pin else .45)
+            physics.CreateDynamicFrictionAttr(.10 if pin else .30)
             for part in task.PARTS[spec.name]:
                 path_to_part = f"{path}/{part.name}"
                 if part.vertices:
                     geom = UsdGeom.Mesh.Define(stage, path_to_part)
+                    # A convex prism: one ring of n vertices, then the matching ring.
                     points = [Gf.Vec3f(*xyz) for xyz in part.vertices]
-                    faces = [[3, 2, 1, 0], [4, 5, 6, 7], [0, 1, 5, 4],
-                             [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]]
+                    n = len(part.vertices) // 2
+                    faces = [list(range(n))[::-1], list(range(n, 2 * n))] + [
+                        [i, (i + 1) % n, n + (i + 1) % n, n + i] for i in range(n)]
                     vertices = np.asarray(part.vertices)
                     if np.dot(np.cross(vertices[1] - vertices[0], vertices[2] - vertices[0]),
-                              vertices[4] - vertices[0]) < 0:
+                              vertices[n] - vertices[0]) < 0:
                         faces = [f[::-1] for f in faces]
                     geom.CreatePointsAttr(points)
-                    geom.CreateFaceVertexCountsAttr([4] * 6)
+                    geom.CreateFaceVertexCountsAttr([len(f) for f in faces])
                     geom.CreateFaceVertexIndicesAttr([i for f in faces for i in f])
                     geom.CreateSubdivisionSchemeAttr("none")
                 else:
@@ -103,7 +107,7 @@ def measure(base, name):
 def install(trace_dir=None, *, servo=False):
     from inspect_robots.types import StepResult
     from yam_arena import inspect_embodiment as arena
-    from yam_arena.runtime import tcp_world
+    from yam_arena.runtime import link_poses, tcp_world
 
     cls = arena.YamArenaEmbodiment
     original_ensure, original_reset = cls._ensure_sim, cls.reset
@@ -160,10 +164,13 @@ def install(trace_dir=None, *, servo=False):
             "success": success,
             "installed": self.repair.current,
             "fault_proven": self.repair.fault_proven,
+            "wrong_spare_tried": self.repair.wrong_tried,
+            "pin_home": bool(scoring.pin_home(poses["lock_pin"])),
             "replaced": self.repair.replaced,
             "reading": self.repair.previous,
             "reading_hold_steps": self.repair.count,
             "verified": sorted(self.repair.verified),
+            "finish_hold_steps": self.repair.finish_count,
             "height_above_seat_mm": float((part.pos[2] - task.TOP - task.SEAT) * 1000),
             "hands_clear": hands_clear,
         }
@@ -174,6 +181,8 @@ def install(trace_dir=None, *, servo=False):
                     **info,
                     "t": self._t,
                     "tcp": {k: v.tolist() for k, v in tcp.items()},
+                    "tips": {k: v[:3, 3].tolist() for k, v in link_poses(base.scene["right_robot"]).items()
+                             if k.startswith("tip")},
                     "poses": {k: [p.pos.tolist(), scoring.yaw_error(p.rot, 0),
                                   p.linear, p.angular, bool(p.upright)] for k, p in poses.items()},
                 }), file=stream)

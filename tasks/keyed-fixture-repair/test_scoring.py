@@ -7,6 +7,7 @@ import scoring
 import task
 
 CLEAR = {key: True for key in ("fixture", "cradle", "tray")}
+TRAY = (task.REJECT[0] - .0015, task.REJECT[1])
 
 
 def pose(xy, z, yaw=0., tilt=0., *, speed=0.):
@@ -18,8 +19,9 @@ def pose(xy, z, yaw=0., tilt=0., *, speed=0.):
 def reset():
     return {
         "original_guide": pose(task.FIX, task.FLOOR),
-        "good_spare": pose(task.GOOD, 0),
-        "blocked_spare": pose(task.BAD, 0),
+        "matching_spare": pose(task.MATCH, 0),
+        "wrong_spare": pose(task.WRONG, 0),
+        "lock_pin": pose(task.PIN_HOLE, task.TAB_TOP),
         "test_part": pose(task.CRADLE, .006, pi),
     }
 
@@ -31,42 +33,81 @@ def observe(repair, poses, xy, z, yaw, tilt=0, clear=CLEAR, steps=20):
     return score
 
 
-def exchange(poses, spare):
-    poses["original_guide"] = pose((task.REJECT[0] - .015, task.REJECT[1]), .006)
+def exchange(poses, spare, *, pinned=True):
+    poses["original_guide"] = pose(TRAY, .006)
     poses[spare] = pose(task.FIX, task.FLOOR)
+    poses["lock_pin"] = pose(task.PIN_HOLE, task.TAB_TOP) if pinned else pose(task.PARK, task.PARK_TOP)
+
+
+def test_reset_layout_has_original_locked_in():
+    poses = reset()
+    assert scoring.installed(poses) == "original_guide"
+    assert not any(scoring.entered(poses[name]) for name in ("matching_spare", "wrong_spare"))
+    assert scoring.Repair(20).update(poses, CLEAR) == 0
 
 
 def test_blind_swap_cannot_earn_credit():
     repair, poses = scoring.Repair(20), reset()
-    exchange(poses, "good_spare")
+    exchange(poses, "matching_spare")
     assert observe(repair, poses, task.FIX, task.SEAT, 0) == 0
     assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi) == 0
     assert observe(repair, poses, task.CRADLE, .006, pi) == 0
 
 
-def test_rejects_jams_assistance_and_stops_that_block_both():
+def test_unpinned_or_unslid_guide_is_not_installed():
+    poses = reset()
+    poses["lock_pin"] = pose(task.PARK, task.PARK_TOP)
+    assert scoring.installed(poses) is None
+    poses = reset()
+    poses["lock_pin"] = pose(task.PIN_HOLE, task.TAB_TOP + .005)
+    assert scoring.installed(poses) is None
+    poses = reset()
+    poses["original_guide"] = pose((task.FIX[0] - task.ENTRY, task.FIX[1]), task.FLOOR)
+    assert scoring.installed(poses) is None
+
+
+def test_reading_needs_the_pin_and_trying_the_428_spare_caps_score():
+    repair, poses = scoring.Repair(20), reset()
+    assert observe(repair, poses, task.FIX, task.SEAT, pi) == .25
+    exchange(poses, "matching_spare", pinned=False)
+    assert observe(repair, poses, task.FIX, task.SEAT, 0) == .25
+    # Dropping the 428 spare into the slot, even briefly, is trial and error.
+    poses["wrong_spare"] = pose((task.FIX[0] - task.ENTRY, task.FIX[1]), task.FLOOR)
+    repair.update(poses, CLEAR)
+    poses["wrong_spare"] = pose(task.WRONG, 0)
+    exchange(poses, "matching_spare")
+    assert observe(repair, poses, task.FIX, task.SEAT, 0) == .25
+    assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi) == .25
+    assert observe(repair, poses, task.CRADLE, .006, pi) == .25
+
+
+def test_428_spare_locked_in_earns_nothing_more():
+    repair, poses = scoring.Repair(20), reset()
+    observe(repair, poses, task.FIX, task.SEAT, pi)
+    exchange(poses, "wrong_spare")
+    assert scoring.installed(poses) == "wrong_spare"
+    assert observe(repair, poses, task.FIX, task.SEAT, pi) == .25
+    assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, 0) == .25
+
+
+def test_rejects_jams_assistance_and_off_centre_parts():
     repair, poses = scoring.Repair(20), reset()
     assert observe(repair, poses, task.FIX, task.SEAT, pi, steps=19) == 0
     assert repair.update(poses, CLEAR) == .25
-    exchange(poses, "blocked_spare")
-    assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi) == .5
-    assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, 0) == .5
-    assert repair.verified == set()
-    poses["blocked_spare"] = pose(task.BAD, 0)
-    exchange(poses, "good_spare")
+    exchange(poses, "matching_spare")
     assert observe(repair, poses, task.FIX, task.SEAT, 0) == .5
     assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi, radians(7)) == .5
     assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi,
                    clear={**CLEAR, "fixture": False}) == .5
     assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK + .004, pi) == .5
-    assert observe(repair, poses, (task.FIX[0] + .009, task.FIX[1]), task.FLOOR + task.BLOCK, pi) == .5
+    assert observe(repair, poses, (task.FIX[0] + .009, task.FIX[1]), task.SEAT + task.BLOCK, pi) == .5
 
 
 def test_repair_and_retest_in_either_order_then_return_part():
     for reverse_first in (False, True):
         repair, poses = scoring.Repair(20), reset()
         assert observe(repair, poses, task.FIX, task.SEAT, pi) == .25
-        exchange(poses, "good_spare")
+        exchange(poses, "matching_spare")
         cases = [(task.SEAT, 0), (task.SEAT + task.BLOCK, pi)]
         if reverse_first:
             cases.reverse()
@@ -76,29 +117,33 @@ def test_repair_and_retest_in_either_order_then_return_part():
         assert repair.update(poses, CLEAR) == 1.
 
 
-def test_removing_spare_clears_verification_and_fall_disqualifies():
+def test_pulling_pin_clears_verification_and_fall_disqualifies():
     repair, poses = scoring.Repair(20), reset()
     observe(repair, poses, task.FIX, task.SEAT, pi)
-    exchange(poses, "good_spare")
+    exchange(poses, "matching_spare")
     observe(repair, poses, task.FIX, task.SEAT, 0)
     assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi) == .75
-    poses["good_spare"] = pose(task.GOOD, 0)
+    poses["lock_pin"] = pose(task.PARK, task.PARK_TOP)
     assert repair.update(poses, CLEAR) == .5
-    exchange(poses, "good_spare")
+    exchange(poses, "matching_spare")
     assert observe(repair, poses, task.CRADLE, .006, pi) == .5
-    poses["blocked_spare"] = pose(task.BAD, -.1)
+    poses["wrong_spare"] = pose(task.WRONG, -.1)
     assert repair.update(poses, CLEAR) == 0
-    poses["blocked_spare"] = pose(task.BAD, 0)
+    poses["wrong_spare"] = pose(task.WRONG, 0)
     assert repair.update(poses, CLEAR) == 0
 
 
-def test_small_rock_within_nest_is_not_a_guide_removal():
+def test_settling_within_the_slot_keeps_evidence():
     repair, poses = scoring.Repair(20), reset()
     observe(repair, poses, task.FIX, task.SEAT, pi)
-    exchange(poses, "good_spare")
+    exchange(poses, "matching_spare")
     observe(repair, poses, task.FIX, task.SEAT, 0)
-    poses["good_spare"] = pose(task.FIX, task.FLOOR + .0025, tilt=radians(7))
+    poses["matching_spare"] = pose((task.FIX[0] - .003, task.FIX[1]), task.FLOOR + .0015)
     assert observe(repair, poses, task.CRADLE, .006, pi) == .5
     assert repair.verified == {("aligned", "seated")}
-    poses["good_spare"] = pose(task.FIX, task.FLOOR)
+    poses["matching_spare"] = pose(task.FIX, task.FLOOR)
     assert observe(repair, poses, task.FIX, task.SEAT + task.BLOCK, pi) == .75
+
+
+def test_original_fits_tray_bounds():
+    assert scoring.in_reject(pose(TRAY, .006))

@@ -8,7 +8,8 @@ import numpy as np
 
 import task
 
-ALL_FREE = (*task.GUIDES, "test_part")
+ALL_FREE = (*task.GUIDES, "lock_pin", "test_part")
+ORIGINAL, MATCHING, WRONG = task.GUIDES
 
 
 @dataclass
@@ -36,14 +37,41 @@ def near_xy(pose, target, tolerance):
     return bool(np.max(np.abs(pose.pos[:2] - target)) <= tolerance)
 
 
+def offset(pose):
+    return pose.pos - np.array([*task.FIX, task.TOP + task.FLOOR])
+
+
+def slid_home(guide):
+    """Slid under the lips to within 2.5 mm of the stop, square and flat."""
+    dx, dy, dz = offset(guide)
+    return bool(-.0025 <= dx <= .001 and abs(dy) <= .002 and abs(dz) <= .001
+            and guide.upright and yaw_error(guide.rot, 0) <= 3)
+
+
+def pin_home(pin):
+    """Collar down on the guide tab, shank through the tab into the base."""
+    dx, dy = pin.pos[:2] - np.asarray(task.PIN_HOLE)
+    return bool(abs(dx) <= .003 and abs(dy) <= .002 and abs(pin.pos[2] - task.TOP - task.TAB_TOP) <= .001
+            and pin.rot[2, 2] >= cos(radians(5)))
+
+
 def installed(poses):
-    seated = []
-    for name in task.GUIDES:
-        g = poses[name]
-        if (near_xy(g, task.FIX, .0035) and abs(g.pos[2] - task.TOP - task.FLOOR) <= .001
-                and g.upright and min(yaw_error(g.rot, 0), yaw_error(g.rot, np.pi)) <= 4):
-            seated.append(name)
-    return seated[0] if len(seated) == 1 else None
+    """The single guide that is home and locked by the pin, if any."""
+    home = [name for name in task.GUIDES if slid_home(poses[name])]
+    return home[0] if len(home) == 1 and pin_home(poses["lock_pin"]) else None
+
+
+def retained(guide, pin):
+    """Still in the slot with the pin engaged: small settling is not a removal."""
+    dx, dy, dz = offset(guide)
+    return bool(abs(dx) <= .004 and abs(dy) <= .003 and abs(dz) <= .002
+            and near_xy(pin, task.PIN_HOLE, .0035) and pin.pos[2] - task.TOP - task.TAB_TOP <= .004)
+
+
+def entered(guide):
+    """A guide put into the fixture slot, anywhere from the drop-in position to the stop."""
+    dx, dy, dz = offset(guide)
+    return bool(-task.ENTRY - .004 <= dx <= .002 and abs(dy) <= .003 and abs(dz) <= .002)
 
 
 def test_reading(part, guide, hands_clear):
@@ -82,15 +110,15 @@ def bounds(name, pose):
 
 
 def in_reject(pose):
-    lo, hi = bounds("original_guide", pose)
-    low = np.asarray(task.REJECT) - (.063, .0375)
-    high = np.asarray(task.REJECT) + (.063, .0375)
+    lo, hi = bounds(ORIGINAL, pose)
+    low = np.asarray(task.REJECT) - (.071, .041)
+    high = np.asarray(task.REJECT) + (.071, .041)
     return bool(pose.still and np.all(lo[:2] >= low) and np.all(hi[:2] <= high)
                 and abs(lo[2] - (task.TOP + .006)) <= .0015)
 
 
 def in_cradle(pose):
-    return (pose.upright and pose.still and near_xy(pose, task.CRADLE, .005)
+    return bool(pose.upright and pose.still and near_xy(pose, task.CRADLE, .005)
             and abs(pose.pos[2] - (task.TOP + .006)) <= .0015)
 
 
@@ -99,6 +127,7 @@ class Repair:
     hold_steps: int
     fault_proven: bool = False
     replaced: bool = False
+    wrong_tried: bool = False
     current: str | None = None
     verified: set = field(default_factory=set)
     proof_guide: str | None = None
@@ -111,29 +140,24 @@ class Repair:
         self.invalid |= any(p.pos[2] < task.TOP - .055 for p in poses.values())
         if self.invalid:
             return 0.0
-        part = poses["test_part"]
+        # Choosing by part number: putting the 428 spare in the slot ends progress.
+        self.wrong_tried |= entered(poses[WRONG])
+        part, pin = poses["test_part"], poses["lock_pin"]
         mounted = installed(poses)
-        if self.proof_guide is not None:
-            tested = poses[self.proof_guide]
-            # A guide may rock inside its 12 mm nest during withdrawal.
-            # Clear proof when it leaves the nest, rather than treating every
-            # short violation of the seated-reading tolerance as a removal.
-            retained = (near_xy(tested, task.FIX, .006)
-                        and abs(tested.pos[2] - task.TOP - task.FLOOR) <= .007
-                        and tested.rot[2, 2] >= cos(radians(14))
-                        and min(yaw_error(tested.rot, 0), yaw_error(tested.rot, np.pi)) <= 12)
-            if not retained or mounted not in (None, self.proof_guide):
-                self.verified.clear()
-                self.proof_guide = None
+        if self.proof_guide is not None and (
+                not retained(poses[self.proof_guide], pin) or mounted not in (None, self.proof_guide)):
+            self.verified.clear()
+            self.proof_guide = None
         if mounted != self.current:
             self.current = mounted
             self.previous = None
             self.count = self.finish_count = 0
 
-        quarantined = in_reject(poses["original_guide"])
-        if self.fault_proven and quarantined and mounted in task.GUIDES[1:] and poses[mounted].still:
+        quarantined = in_reject(poses[ORIGINAL])
+        if (self.fault_proven and not self.wrong_tried and quarantined and mounted == MATCHING
+                and poses[MATCHING].still and pin.still):
             self.replaced = True
-        ready_for_verification = self.replaced and quarantined and mounted in task.GUIDES[1:]
+        ready = self.replaced and not self.wrong_tried and quarantined and mounted == MATCHING
         reading = test_reading(part, poses[mounted], clear["fixture"]) if mounted else None
         if reading is None:
             self.count = 0
@@ -142,9 +166,9 @@ class Repair:
         self.previous = reading
 
         if self.count >= self.hold_steps:
-            if mounted == task.GUIDES[0] and reading == ("opposed", "seated"):
+            if mounted == ORIGINAL and reading == ("opposed", "seated"):
                 self.fault_proven = True
-            elif ready_for_verification:
+            elif ready:
                 if reading in {("aligned", "blocked"), ("opposed", "seated")}:
                     self.verified.clear()
                     self.proof_guide = None
@@ -152,8 +176,11 @@ class Repair:
                     self.proof_guide = mounted
                     self.verified.add(reading)
 
-        full_proof = ready_for_verification and len(self.verified) == 2
-        finished = full_proof and in_cradle(part) and all(clear.values()) and poses[mounted].still
+        full_proof = ready and len(self.verified) == 2
+        finished = (full_proof and in_cradle(part) and all(clear.values())
+                    and poses[mounted].still and pin.still)
         self.finish_count = self.finish_count + 1 if finished else 0
+        if self.wrong_tried:
+            return .25 * self.fault_proven
         return .25 * (self.fault_proven + self.replaced + full_proof
                       + (self.finish_count >= self.hold_steps))

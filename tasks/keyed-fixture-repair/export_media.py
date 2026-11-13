@@ -11,7 +11,8 @@ import cv2
 import numpy as np
 
 CAMERAS = ("top_cam", "left_cam", "right_cam")
-ACTION_LIMIT = 1800
+ACTION_LIMIT = 4000
+TAIL_FRAMES = 40       # hold the final frame for 2 s so the end state is visible
 
 
 def read_trial(folder, policy):
@@ -29,18 +30,18 @@ def read_trial(folder, policy):
     if trial["stats"]["total_steps"] > ACTION_LIMIT:
         raise ValueError(f"{folder}: trial exceeded the action limit")
     rows = [json.loads(line) for line in (folder / "proof-1.jsonl").read_text().splitlines()]
-    streams = [sorted(folder.glob(f"frames/**/*_{cam}_*.npy")) for cam in CAMERAS]
+    streams = [sorted(folder.glob(f"frames/**/*[_~]{cam}_*.npy")) for cam in CAMERAS]
     if (len(rows) != trial["stats"]["total_steps"] or rows[-1]["score"] != score
             or any(len(stream) != len(rows) + 1 for stream in streams)):
         raise ValueError(f"{folder}: frame, trace, or score mismatch")
     return trial, streams, [None, *rows]
 
 
-def frame(paths, row):
+def frame(paths, row, note=""):
     top = cv2.resize(np.load(paths[0]), (640, 360))
     wrists = [cv2.resize(np.load(path), (320, 180)) for path in paths[1:]]
     bar = np.full((32, 960, 3), (21, 27, 32), dtype=np.uint8)
-    message = "Guide verification"
+    message = "Guide replacement"
     if row:
         message += f"  |  Score {row['score']:.2f}"
         if row["reading"]:
@@ -48,6 +49,9 @@ def frame(paths, row):
             message += f"  |  {orient}: {result}, {row['height_above_seat_mm']:+.1f} mm above seat"
         if row["verified"]:
             message += f"  |  Replacement checks {len(row['verified'])}/2"
+        if row.get("finish_hold_steps"):
+            message += f"  |  Part in cradle, hands clear {row['finish_hold_steps'] / 20:.2f} s"
+    message += note
     cv2.putText(bar, message, (12, 22), cv2.FONT_HERSHEY_SIMPLEX, .55, (240, 245, 248),
                 1, cv2.LINE_AA)
     return np.vstack((np.hstack((top, np.vstack(wrists))), bar))
@@ -62,6 +66,9 @@ def encode(ffmpeg, streams, rows, path):
         try:
             for paths, row in zip(zip(*streams, strict=True), rows, strict=True):
                 process.stdin.write(frame(paths, row).tobytes())
+            last = frame(paths, row, "  |  final frame, held 2 s").tobytes()
+            for _ in range(TAIL_FRAMES):
+                process.stdin.write(last)
         finally:
             process.stdin.close()
         if process.wait():
@@ -90,8 +97,15 @@ def main():
             continue
         trial, streams, rows = read_trial(folder, policy)
         if policy == "yam_scripted":
-            top = cv2.cvtColor(np.load(streams[0][0]), cv2.COLOR_RGB2BGR)
-            if not cv2.imwrite(str(args.out / "setup.png"), top):
+            # Initial top view; the right wrist camera's initial view (428 spare);
+            # and its view over the fixture at step 430, turned upright, where the
+            # data plate and the 427 stamps are legible.
+            top = cv2.resize(np.load(streams[0][0]), (640, 360))
+            wrist = cv2.resize(np.load(streams[2][0]), (640, 360))
+            close = cv2.rotate(np.load(streams[2][430]), cv2.ROTATE_90_COUNTERCLOCKWISE)
+            close = cv2.resize(close, (203, 360))
+            setup = cv2.cvtColor(np.hstack((top, wrist, close)), cv2.COLOR_RGB2BGR)
+            if not cv2.imwrite(str(args.out / "setup.png"), setup):
                 raise RuntimeError("Unable to save setup image")
         encode(args.ffmpeg, streams, rows, args.out / f"{name}.mp4")
         changes = [row for i, row in enumerate(rows[1:], 1)
