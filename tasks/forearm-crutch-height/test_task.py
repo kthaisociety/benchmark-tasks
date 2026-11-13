@@ -26,19 +26,22 @@ IDENT = (0.0, 0.0, 0.0, 1.0)
 # -- geometry and the lock ---------------------------------------------------------------------------------------------
 
 def test_let_out_button_locks_the_leg():
-    # its straight shank (below the dome's centre) passes right through the main tube's wall
-    assert T.BUTTON_Z > T.R_OUT
-    assert T.BUTTON_Z - T.R_OUT >= 0.0005
+    # its straight shank (below the bevel) passes right through the main tube's wall
+    assert T.BUTTON_Z - T.CHAMFER > T.R_OUT + 0.0005
 
 
 def test_button_must_be_pressed_nearly_flush_to_free_the_leg():
-    assert 0.0018 <= T.UNLOCK_PRESS <= 0.0025  # about 2 of its 4 mm
-    flush = T.BUTTON_Z - T.PROUD  # the dome's centre with the button's top flush with the tube
-    assert flush < T.R_INNER - 0.0015  # pressed flush, the hole's inner edge meets the dome well above its middle
+    assert 0.0028 <= T.UNLOCK_PRESS <= 0.0032  # about 3 of its 4 mm
+    foot = T.BUTTON_Z - T.PROUD - T.CHAMFER  # the bevel's foot with the button's top flush with the tube
+    assert foot < T.R_INNER - 0.0008  # pressed flush, the whole wall faces the 45-degree bevel
+
+
+def test_bevel_leaves_a_flat_top():
+    assert 0.0008 <= T.TOP_R <= 0.0012
 
 
 def test_button_travel_reaches_inside_the_main_tube():
-    inside = T.BUTTON_Z + T.BUTTON_R - T.R_INNER  # press needed for its top to slide under the wall
+    inside = T.BUTTON_Z - T.R_INNER  # press needed for its top to slide under the wall
     assert inside < T.BUTTON_TRAVEL - 0.0005
 
 
@@ -49,7 +52,7 @@ def test_button_fits_its_hole_and_the_leg_fits_the_tube():
 
 def test_spring_force():
     rest = T.BUTTON_K * T.BUTTON_PRE
-    inside = T.BUTTON_K * (T.BUTTON_PRE + T.BUTTON_Z + T.BUTTON_R - T.R_INNER)
+    inside = T.BUTTON_K * (T.BUTTON_PRE + T.BUTTON_Z - T.R_INNER)
     assert 4.0 <= rest <= 6.0
     assert 7.0 <= inside <= 12.0
 
@@ -131,7 +134,7 @@ def _objects(button_k=None, out=None, roll=0.0, crutch_dz=None, crutch_dy=None):
         rot = T.rotation(q)
         k = (button_k or {}).get(name, k0)
         h = (out or {}).get(name, T.PROUD)
-        b_local = np.array([0.0, T.hole_y(1) + (k - 1) * T.PITCH, T.R_OUT + h - T.BUTTON_R])
+        b_local = np.array([0.0, T.hole_y(1) + (k - 1) * T.PITCH, T.R_OUT + h])
         l_local = np.array([0.0, b_local[1], 0.0])
         objs[f"crutch_{name}"] = state_from_pose(T.BODIES[name][0], o, q)
         objs[f"leg_{name}"] = state_from_pose(T.BODIES[name][1], o + rot @ l_local, q)
@@ -227,20 +230,59 @@ def test_demo_builds(variant, monkeypatch):
     assert la < 2400 / 20 - 10  # well within the run limit
 
 
-def test_slides_start_together():
-    for name in T.CRUTCHES:
-        left, right = T.plan_crutch(name)
-        tl = next(sum(w.duration for w in left[:i]) for i, w in enumerate(left) if "glide" in w.label)
-        tr = next(sum(w.duration for w in right[:i]) for i, w in enumerate(right) if "slide the leg" in w.label)
-        assert tl == pytest.approx(tr)
+def _times(wps):
+    out, t = [], 0.0
+    for w in wps:
+        out.append((t, t + w.duration, w))
+        t += w.duration
+    return out
 
 
-def test_slide_ends_over_the_red_hole():
+def test_leg_only_slides_while_the_left_holds_still():
     for name in T.CRUTCHES:
         left, right = T.plan_crutch(name)
-        glide = next(w for w in left if "glide" in w.label)
-        o = T.crutch_origin(name)
-        assert glide.pos[1] - o[1] == pytest.approx(T.hole_y(T.TARGET))
+        moves = [(a, b) for (a, b, w), prev in zip(_times(right)[1:], right) if w.pos != prev.pos
+                 and w.finger == T.FINGER_CLOSED and prev.finger == T.FINGER_CLOSED]
+        assert len(moves) == abs(T.TARGET - T.CRUTCHES[name][1]) + 1
+        for a, b in moves:
+            for t in np.arange(a + 0.01, b, 0.05):
+                assert np.allclose(_pos_at(left, t), _pos_at(left, b - 0.001), atol=1e-9), (name, t)
+
+
+def test_left_never_presses_the_red_hole():
+    for name in T.CRUTCHES:
+        left, _ = T.plan_crutch(name)
+        red = T.press_point(name, T.TARGET)
+        for w in left:
+            if "press on" in w.label:
+                assert abs(w.pos[1] - red[1]) >= T.PITCH / 2 - 1e-9
+
+
+def test_left_presses_every_hole_the_button_passes():
+    for name, (_, k0) in T.CRUTCHES.items():
+        left, _ = T.plan_crutch(name)
+        pressed = sorted(round(1 + (w.pos[1] - T.crutch_origin(name)[1] - T.hole_y(1)) / T.PITCH)
+                         for w in left if "press on hole" in w.label)
+        assert pressed == list(range(min(k0, T.TARGET) + 1, max(k0, T.TARGET)))
+
+
+def test_slide_ends_at_the_red_hole():
+    for name, (_, k0) in T.CRUTCHES.items():
+        left, right = T.plan_crutch(name)
+        last = next(w for w in reversed(right) if w.finger == T.FINGER_CLOSED)
+        want = T.hole_y(T.TARGET) - T.hole_y(k0)
+        assert last.pos[1] - T.grip_point(name, 0.0)[1] == pytest.approx(want + math.copysign(T.OVERSHOOT, want))
+        assert T.OVERSHOOT < T.ALIGN
+
+
+def test_no_press_never_reaches_the_button(monkeypatch):
+    monkeypatch.setenv("DEMO_VARIANT", "no_press")
+    d = T.demo()
+    for w in d["left"]:
+        for name in T.CRUTCHES:
+            o = T.crutch_origin(name)
+            if abs(w.pos[0] - o[0]) < 0.03:
+                assert w.pos[2] - T.TIP >= o[2] + T.BUTTON_Z + 0.004, w.label
 
 
 def test_grip_stays_clear_of_collar_and_cradle():
@@ -313,3 +355,61 @@ def test_demo_reaches_every_pose(monkeypatch):
 def test_slid_along_its_stand():
     assert T.score(_objects(button_k=SET, crutch_dy={"far": 0.015})) == 1.0
     assert T.score(_objects(button_k=SET, crutch_dy={"far": 0.030})) == pytest.approx(0.8)
+
+
+# -- the lock -----------------------------------------------------------------------------------------------------------
+
+H5 = None
+
+
+def test_held_stays_held_however_far_it_is_pulled():
+    assert T.lock_step(5, T.hole_y(5) + 0.004, T.PROUD) == (5, 5, False)
+
+
+def test_pressing_frees_a_held_leg():
+    assert T.lock_step(5, T.hole_y(5), 0.0005) == (None, 5, False)
+
+
+def test_free_between_holes_the_wall_holds_the_button_in():
+    assert T.lock_step(None, T.hole_y(5) + 0.003, -0.0012) == (None, 5, True)
+    assert T.lock_step(None, T.hole_y(5) + T.PITCH / 2, -0.0012)[2]
+
+
+def test_free_over_a_hole_it_springs_out_and_catches():
+    assert T.lock_step(None, T.hole_y(6) - 0.002, -0.0012) == (None, 6, False)  # free to rise
+    assert T.lock_step(None, T.hole_y(6) - 0.002, 0.0015) == (6, 6, False)  # out past 1 mm: held
+
+
+def test_pressed_button_passes_over_a_hole():
+    assert T.lock_step(None, T.hole_y(6), 0.0) == (None, 6, False)
+
+
+def test_catch_window_is_the_flat_top_in_the_hole():
+    assert T.ALIGN == pytest.approx(0.0025)
+
+
+def test_unlock_needs_three_of_four_millimetres():
+    assert T.OUT_LOCKS == pytest.approx(T.PROUD - T.UNLOCK_PRESS)
+    assert 0.0008 <= T.OUT_LOCKS <= 0.0012
+
+
+def test_nearest_hole():
+    assert T.nearest_hole(T.hole_y(5) + 0.012) == 5
+    assert T.nearest_hole(T.hole_y(5) + 0.013) == 6
+    assert T.nearest_hole(-1.0) == 1 and T.nearest_hole(1.0) == T.N_HOLES
+
+
+def test_button_inside_sits_level_with_the_tubes_inside():
+    assert T.BUTTON_Z + T.INSIDE == pytest.approx(T.R_INNER)
+    assert -T.BUTTON_TRAVEL < T.INSIDE < 0.0
+
+
+def test_held_leg_resists_a_strong_pull():
+    assert 20.0 / T.LOCK_K <= 0.0012  # a 20 N pull moves it about 1 mm
+    assert T.LOCK_FORCE >= 200.0
+
+
+def test_first_stretch_stays_under_the_pad():
+    pad_half = 0.027 / 2 * math.sin(T.YAW_PRESS)
+    assert T.ALIGN < T.PAST
+    assert T.PAST + T.BUTTON_R < pad_half

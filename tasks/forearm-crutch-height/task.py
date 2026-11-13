@@ -22,8 +22,8 @@ import numpy as np
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from bodykit import (Body, BoxShape, CylShape, SphereShape, as_numpy, on_reset, on_step, plate,  # noqa: E402
-                     rotation, slider)
+from bodykit import (Body, BoxShape, CylShape, as_numpy, on_reset, on_step, plate,  # noqa: E402
+                     rotation, set_slider_drive, slider)
 from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN, TCP_OFFSET  # noqa: E402
 from yam_arena.demo import Waypoint  # noqa: E402
 from yam_arena.task_file import TABLE_TOP  # noqa: E402
@@ -71,18 +71,22 @@ TIP_R, TIP_L = 0.020, 0.045  # the rubber tip, over the leg's last 1 cm ...
 TIP_PAST = TIP_L - 0.010  # ... so it reaches 3.5 cm past the leg's end
 LEG_MASS = 0.14
 
-# the spring button, in its own frame: origin at its dome's centre
-BUTTON_R = 0.0032  # 6.4 mm (1/4 in) across, a domed head on a straight shank
+# the spring button, in its own frame: origin at the middle of its flat top
+BUTTON_R = 0.0032  # 6.4 mm (1/4 in) across: a straight shank ...
+CHAMFER = 0.0022  # ... whose top edge is bevelled at 45 degrees, 2.2 mm down, leaving a 2 mm flat top
+TOP_R = BUTTON_R - CHAMFER
 PROUD = 0.0040  # let out, its top stands 4 mm out of the main tube
-BUTTON_Z = R_OUT + PROUD - BUTTON_R  # 11.9 mm: the dome's centre above the axis, let out
+BUTTON_Z = R_OUT + PROUD  # 15.1 mm: its top above the axis, let out
 SHANK_FROM = 0.0040  # the shank runs down to 4 mm above the axis (its spring clip is inside the leg)
 BUTTON_TRAVEL = 0.0060
 BUTTON_K, BUTTON_PRE = 800.0, 0.0060  # N/m and preload: 4.8 N let out, 9 N pressed down inside the main tube
 BUTTON_MASS = 0.006
+BUTTON_FRICTION = (0.15, 0.12)  # chromed steel: a thumb (or fingertip) slides over it
 
-# a let-out button's straight shank fills the hole through the whole wall; the leg slides only once the dome's centre
-# is below the main tube's inside, i.e. the button is pressed more than 2 mm of its 4 mm, nearly flush
-UNLOCK_PRESS = BUTTON_Z - R_INNER
+# a let-out button's straight shank fills the hole through the whole wall; the leg slides only once the shank's top
+# (the bevel's foot) is below the main tube's inside, i.e. the button is pressed 3 mm of its 4 mm, nearly flush; then
+# the hole's edge meets the 45-degree bevel and pushes the button the rest of the way
+UNLOCK_PRESS = BUTTON_Z - CHAMFER - R_INNER
 
 
 def hole_y(k: int) -> float:
@@ -103,6 +107,7 @@ CRUTCHES = {  # name -> (world x of its axis, the hole its button starts in)
     "near": (0.230, 2),  # set three holes too long
     "far": (0.350, 8),  # set three holes too short
 }
+POCKET_H = 0.075  # the handgrip pocket's walls stand this high, up to 6 cm below the crutch's axis
 CRADLE_YS = (0.010, 0.470)  # the stand's cradles, along the crutch: one under the collar, one between handgrip and cuff
 
 
@@ -134,8 +139,19 @@ def _top_panels() -> list:
         edges += [hole_y(k) - HOLE_W / 2, hole_y(k) + HOLE_W / 2]
     edges.append(OCT_TO)
     c = np.array([0.0, 0.0, r_mid])
-    return [plate(c + [0.0, edges[i], 0.0], c + [0.0, edges[i + 1], 0.0], width, WALL, (0.0, 0.0, 1.0), ALU)
-            for i in range(0, len(edges), 2)]
+    out = []
+    for i in range(0, len(edges), 2):
+        y0, y1 = edges[i], edges[i + 1]
+        # each hole's edge is rounded: a rod the wall's thickness across, so a button bevel pressed against it is
+        # pushed in (a square box end would push it straight back along the tube and jam it)
+        if i > 0:
+            out.append(CylShape((0.0, y0 + WALL / 2, r_mid), WALL / 2, width, ALU, axis="X"))
+            y0 += WALL / 2
+        if i + 1 < len(edges) - 1:
+            out.append(CylShape((0.0, y1 - WALL / 2, r_mid), WALL / 2, width, ALU, axis="X"))
+            y1 -= WALL / 2
+        out.append(plate(c + [0.0, y0, 0.0], c + [0.0, y1, 0.0], width, WALL, (0.0, 0.0, 1.0), ALU))
+    return out
 
 
 def _red_bands() -> list:
@@ -185,9 +201,20 @@ def leg_shapes() -> list:
 
 
 def button_shapes() -> list:
-    shank = BUTTON_Z - SHANK_FROM
-    return [SphereShape((0.0, 0.0, 0.0), BUTTON_R, BUTTON_C),
-            CylShape((0.0, 0.0, -shank / 2), BUTTON_R, shank, BUTTON_C, axis="Z")]
+    """A straight shank, a 45-degree bevel (eight flat facets, two of them square to the tube's length) and a flat top."""
+    shank = BUTTON_Z - CHAMFER - SHANK_FROM
+    out = [CylShape((0.0, 0.0, -CHAMFER - shank / 2), BUTTON_R, shank, BUTTON_C, axis="Z"),
+           CylShape((0.0, 0.0, -0.0003), TOP_R + 0.0002, 0.0006, BUTTON_C, axis="Z")]
+    t = 0.0006
+    r_mid = (BUTTON_R + TOP_R) / 2
+    for j in range(8):
+        a = j * math.pi / 4
+        h = np.array([math.cos(a), math.sin(a), 0.0])
+        n = (h + np.array([0.0, 0.0, 1.0])) / math.sqrt(2.0)  # the facet's outward normal, 45 degrees up
+        p1 = h * BUTTON_R + [0.0, 0.0, -CHAMFER] - n * t / 2
+        p2 = h * TOP_R - n * t / 2
+        out.append(plate(p1, p2, 2 * r_mid * math.tan(math.pi / 8) + 0.0004, t, n, BUTTON_C))
+    return out
 
 
 def _stand() -> Body:
@@ -201,6 +228,13 @@ def _stand() -> Body:
             shapes.append(BoxShape((x - 0.30, y, base / 2), (0.040, 0.020, base), WOOD))
             for s in (-1.0, 1.0):
                 shapes.append(BoxShape((x - 0.30 + s * (r + 0.0045), y, base + 0.005), (0.006, 0.020, 0.010), WOOD))
+        # a pocket the handgrip hangs in, 2 mm clear all round: it keeps the crutch from turning or sliding along
+        gy, wall, gap = C_Y + Y_GRIP, 0.006, 0.002
+        inner = GRIP_R + gap
+        for s in (-1.0, 1.0):
+            shapes.append(BoxShape((x - 0.30 + s * (inner + wall / 2), gy, POCKET_H / 2), (wall, 2 * (inner + wall), POCKET_H),
+                                   WOOD))
+            shapes.append(BoxShape((x - 0.30, gy + s * (inner + wall / 2), POCKET_H / 2), (2 * inner, wall, POCKET_H), WOOD))
     return Body.build("stand", pos=(0.30, 0.0, TOP), mass=2.0, shapes=shapes, kinematic=True, friction=(0.6, 0.5),
                       color=WOOD)
 
@@ -214,15 +248,64 @@ def _bodies(name: str) -> list[Body]:
     leg = Body.build(f"leg_{name}", pos=tuple(button_at.tolist()), mass=LEG_MASS, shapes=leg_shapes(), color=LEG_C,
                      friction=(0.6, 0.5), ignore=(crutch.name,), contact_offset=0.0008, solver_iterations=32)
     button = Body.build(f"button_{name}", pos=tuple((button_at + [0.0, 0.0, BUTTON_Z]).tolist()), mass=BUTTON_MASS,
-                        shapes=button_shapes(), color=BUTTON_C, friction=(0.4, 0.3), ignore=(leg.name,),
+                        shapes=button_shapes(), color=BUTTON_C, friction=BUTTON_FRICTION, slick=True, ignore=(crutch.name, leg.name),
                         contact_offset=0.0005, solver_iterations=32)
-    # the leg slides along the crutch, from the lowest hole to the highest and a little past
+    # the leg slides along the crutch, from the lowest hole to the highest and a little past; it starts locked in its
+    # hole (see the lock, below)
     slider(f"slide_{name}", crutch.name, leg.name, anchor=tuple(button_at.tolist()), axis="Y",
-           limits=(hole_y(1) - hole_y(k0) - 0.006, hole_y(N_HOLES) - hole_y(k0) + 0.006), damping=2.0)
+           limits=(hole_y(1) - hole_y(k0) - 0.006, hole_y(N_HOLES) - hole_y(k0) + 0.006), stiffness=LOCK_K,
+           damping=LEG_DAMPING, target=0.0, max_force=LOCK_FORCE)
     # the button moves in and out of the leg, sprung outward
     slider(f"spring_{name}", leg.name, button.name, anchor=tuple((button_at + [0.0, 0.0, BUTTON_Z]).tolist()), axis="Z",
            limits=(-BUTTON_TRAVEL, 0.0), stiffness=BUTTON_K, damping=2.0, target=BUTTON_PRE, max_force=100.0)
     return [crutch, leg, button]
+
+
+# -- the lock ------------------------------------------------------------------------------------------------------------
+# The button doesn't collide with the main tube; the task file plays the holes and the wall, after every control step,
+# from where the button is along the tube and how far it stands out (both read from the simulation):
+#  - held in a hole (its shank through it): the leg is held at that hole (its drive pulls it to the hole's middle) until
+#    the button is pressed in to 1 mm out or less (3 mm of its 4); then the leg is free;
+#  - free and not over a hole (its middle more than 2.5 mm from every hole's middle, so its 2 mm flat top is under the
+#    wall): the wall holds the button in (its drive pulls it down inside the tube) and the leg slides freely;
+#  - free and over a hole: the button is free to spring out; once it stands more than 1 mm out its shank is in the hole
+#    and the leg is held there (a pressed button just passes over the hole).
+ALIGN = HOLE_W / 2 - TOP_R  # 2.5 mm: the flat top fits the hole, and the bevel then centres the button
+OUT_LOCKS = PROUD - UNLOCK_PRESS  # 1.0 mm: out further than this, the shank catches the hole's edge
+LOCK_K, LOCK_FORCE = 20000.0, 400.0  # a held leg: a 20 N pull moves it 1 mm
+LEG_DAMPING = 2.0
+WALL_K = 3000.0
+INSIDE = -(BUTTON_Z - R_INNER)  # the button's travel with its top level with the tube's inside
+
+
+def lock_step(held: int | None, y: float, out: float) -> tuple[int | None, int, bool]:
+    """One step of the lock. ``held``: the hole the leg is held at (None: free); ``y``: the button's middle along the
+    tube (m); ``out``: how far it stands out (m). Returns (the hole held at now or None, the hole the leg's drive aims
+    at, whether the wall holds the button in)."""
+    if held is not None:
+        if out > OUT_LOCKS:
+            return held, held, False
+        held = None  # pressed in: the leg is free
+    k = nearest_hole(y)
+    if abs(y - hole_y(k)) > ALIGN:
+        return None, k, True
+    return (k if out > OUT_LOCKS else None), k, False
+
+
+def nearest_hole(y: float) -> int:
+    return int(min(max(round((y - HOLE1_Y) / PITCH) + 1, 1), N_HOLES))
+
+
+_DRIVES: dict = {}
+_HELD: dict = {}
+
+
+def _command(name: str, target: float, stiffness: float) -> None:
+    """Set a slider's drive, skipping repeats of the last command."""
+    key = (round(target, 6), stiffness)
+    if _DRIVES.get(name) != key:
+        set_slider_drive(name, target=target, stiffness=stiffness)
+        _DRIVES[name] = key
 
 
 STAND = _stand()
@@ -251,6 +334,9 @@ _DEBUG = bool(os.environ.get("CRUTCH_DEBUG"))
 
 @on_reset
 def _new_episode() -> None:
+    _DRIVES.clear()
+    _HELD.clear()
+    _HELD.update({n: k for n, (_, k) in CRUTCHES.items()})
     _EP.clear()
     _EP.update(_fresh())
 
@@ -263,7 +349,7 @@ def roll_deg(rot: np.ndarray) -> float:
 def button_reading(c_pos, c_rot, b_pos) -> tuple[float, float]:
     """(the button's middle along the crutch from the main tube's end, how far its top stands out of the tube) (m)."""
     local = c_rot.T @ (np.asarray(b_pos, float) - np.asarray(c_pos, float))
-    return float(local[1]), float(local[2] + BUTTON_R - R_OUT)
+    return float(local[1]), float(local[2] - R_OUT)
 
 
 def is_set(c_pos, c_rot, b_pos) -> bool:
@@ -310,12 +396,21 @@ def _follow(env) -> None:
         c_pos, c_rot = c[:3] - origin, rotation(c[3:7])
         if float(c_pos[2]) < float(crutch_origin(name)[2]) - DROPPED_Z or roll_deg(c_rot) > DROPPED_ROLL:
             _EP["dropped"] = True
+        # the lock
+        b = as_numpy(base.scene[f"button_{name}"].data.root_link_pose_w)[0]
+        y, out = button_reading(c_pos, c_rot, b[:3] - origin)
+        _HELD[name], k, inside = lock_step(_HELD.get(name, CRUTCHES[name][1]), y, out)
+        held = _HELD[name] is not None
+        _command(f"slide_{name}", hole_y(k) - hole_y(CRUTCHES[name][1]), LOCK_K if held else 0.0)
+        _command(f"spring_{name}", INSIDE if inside else BUTTON_PRE, WALL_K if inside else BUTTON_K)
         if _DEBUG and _EP["steps"] % 5 == 0:
-            b = as_numpy(base.scene[f"button_{name}"].data.root_link_pose_w)[0]
-            y, out = button_reading(c_pos, c_rot, b[:3] - origin)
-            lines.append(f"{name}: hole {1 + (y - HOLE1_Y) / PITCH:5.2f} out {out * 1000:5.2f}mm "
+            lg = as_numpy(base.scene[f"leg_{name}"].data.root_link_pose_w)[0]
+            leg_y = float((c_rot.T @ (lg[:3] - origin - c_pos))[1])
+            lines.append(f"{name}: hole {1 + (y - HOLE1_Y) / PITCH:5.2f} leg {1 + (leg_y - HOLE1_Y) / PITCH:5.2f} "
+                         f"out {out * 1000:5.2f}mm "
                          f"crutch {np.round((c_pos - crutch_origin(name)) * 1000, 1).tolist()}mm "
-                         f"roll {roll_deg(c_rot):4.1f} set {is_set(c_pos, c_rot, b[:3] - origin)}")
+                         f"roll {roll_deg(c_rot):4.1f} {'held' if held else 'free'}{' walled' if inside else ''} "
+                         f"set {is_set(c_pos, c_rot, b[:3] - origin)}")
     if lines:
         tc = [np.round(t, 3).tolist() for t in _EP["tcps"]] if _EP["tcps"] is not None else None
         print(f"[crutch] step {_EP['steps']} dropped {_EP['dropped']} tcps {tc} | " + " | ".join(lines),
@@ -360,13 +455,21 @@ def success(objects) -> bool:
 
 
 # -- the scripted demo -------------------------------------------------------------------------------------------------
-# For each crutch in turn the right hand pinches the leg below the main tube, and the left presses the leg's button
-# flush with closed fingertips. The right slides the leg along the tube while the left's fingertips glide along with the
-# button, just clear of the tube, keeping it pressed (otherwise it would spring out into the next hole it passes). Over
-# the red hole the left lifts away and the button springs out through it; then the right lets go.
+# For each crutch in turn the right hand pinches the leg below the main tube, and the left presses the leg's button in
+# with closed fingertips, turned so the finger pad's 27 mm width lies along the tube. The arm is soft (a few hundred N/m
+# at the TCP), so it aims well below the tube to press with about 8 N. The right slides the leg only while the left
+# holds still (a gliding press lags behind the button): first just far enough, the left's fingertips going along, that
+# the button is under the tube's wall; then the left lifts, moves on and presses on the next hole the button will pass,
+# so the button can't spring out there, and the right slides the leg on past it; and so on. For the last stretch the
+# left presses on the tube just beyond the red hole (the button never gets there), the right slides the leg to the red
+# hole and the button springs out through it.
 
 TIP = 0.013  # the pad tips this far below the TCP
-PRESS_GAP = float(os.environ.get("CRUTCH_PRESS_GAP", "0.0005"))  # pad tips this far above the tube while pressing
+PRESS_GAP = float(os.environ.get("CRUTCH_PRESS_GAP", "-0.020"))  # pad tips aimed this far above (below) the tube
+PAST = 0.006  # each slide takes the button this far past a hole: its flat top under the wall, still under the pad
+LEAD = 0.002  # each press on a hole ahead is aimed this far toward the coming button (the arm lands a little past)
+SETTLE = 0.6  # after each slide the right holds its pose this long: the pinch lags the arm by a few mm
+OVERSHOOT = 0.002  # the last slide aims this far past the red hole: the pinch slips a little; the button self-centres
 # the arms miss their commanded poses by a pose-dependent offset; aim the other way. Tune on Brev:
 # CRUTCH_SAG_L / CRUTCH_SAG_R = "dx,dy,dz" (m)
 SAG_L = np.array([float(v) for v in os.environ.get("CRUTCH_SAG_L", "0,0,0").split(",")])
@@ -374,10 +477,10 @@ SAG_R = np.array([float(v) for v in os.environ.get("CRUTCH_SAG_R", "0,0,0").spli
 PRESS_OFF = np.array([float(v) for v in os.environ.get("CRUTCH_PRESS_OFF", "0,0").split(",")] + [0.0])
 GRIP_UP = 0.004  # the right's TCP this far above the leg's axis while pinching it
 YAW = math.pi / 2  # the right's grip: straight down, fingers closing across the leg (along x)
-YAW_PRESS = 0.0  # the left presses with closed fingertips turned square to the tube (the wrist reaches it there)
+YAW_PRESS = math.radians(60.0)  # the left presses with closed fingertips, the finger pad (27 mm wide) 23 mm along the tube
 HOVER_L = 0.030  # the left comes down from just above the button (higher is out of its reach so far inward)
 HOVER = 0.035  # the right comes down from this far above the leg (its pad tips then 1.6 cm over the tube)
-SLIDE_S_PER_HOLE = 1.3
+SLIDE_S_PER_HOLE = 1.2
 # where the right pinches the leg, along the crutch from the main tube's end: far enough out that the fingers stay
 # clear of the collar and the cradle under it however far the leg slides in
 GRIP_LEG_Y = {"near": -0.130, "far": -0.085}
@@ -393,7 +496,7 @@ def _wl(t, pos, finger, label) -> Waypoint:
 
 
 def press_point(name: str, k: float) -> np.ndarray:
-    """The left's TCP pressing the button flush when the button is at hole position k (fractional allowed)."""
+    """The left's TCP pressing on the tube's back at hole position k (fractional allowed): on the button, if it is there."""
     o = crutch_origin(name)
     return o + np.array([0.0, hole_y(1) + (k - 1) * PITCH, R_OUT + PRESS_GAP + TIP]) + PRESS_OFF + SAG_L
 
@@ -408,38 +511,48 @@ def plan_crutch(name: str, stop_short: float = 0.0, press: bool = True, release_
                 ) -> tuple[list[Waypoint], list[Waypoint]]:
     """(left, right) waypoints adjusting one crutch from its starting hole to the red one, both starting from above."""
     k0 = CRUTCHES[name][1]
-    slide = (hole_y(TARGET) - hole_y(k0)) - math.copysign(stop_short, hole_y(TARGET) - hole_y(k0))
-    k1 = k0 + slide / PITCH
-    t_slide = SLIDE_S_PER_HOLE * abs(TARGET - k0)
+    step = 1 if TARGET > k0 else -1  # holes (and the leg, along +y) go this way
     up = np.array([0.0, 0.0, HOVER])
-    g0, g1 = grip_point(name, 0.0), grip_point(name, slide)
-    p0, p1 = press_point(name, k0), press_point(name, k1)
+    clear = np.array([0.0, 0.0, 0.0 if press else 0.010 - PRESS_GAP])  # not pressing: 1 cm above the tube instead
+    rise = np.array([0.0, 0.0, 0.012 - min(PRESS_GAP, 0.0)])  # lifted between presses: 1.2 cm above the tube
+    g0 = grip_point(name, 0.0)
     right = [_w(2.0, g0 + up, FINGER_OPEN, f"{name}: over the leg"),
              _w(1.2, g0, FINGER_OPEN, f"{name}: down round the leg"),
              _w(0.8, g0, FINGER_CLOSED, f"{name}: pinch the leg")]
-    left = [_wl(2.0, p0 + [0.0, 0.0, HOVER_L], FINGER_CLOSED, f"{name}: over the button"),
-            _wl(1.2, p0 + [0.0, 0.0, 0.008], FINGER_CLOSED, f"{name}: down to the button")]
-    if press:
-        left.append(_wl(0.8, p0, FINGER_CLOSED, f"{name}: press it flush"))
-    else:
-        left.append(_wl(0.8, p0 + [0.0, 0.0, 0.008], FINGER_CLOSED, f"{name}: rest over it, not pressing"))
-    # both arms reach these poses together: right after 4.0 s, left after 4.0 s
-    left.append(_wl(0.4, left[-1].pos, FINGER_CLOSED, f"{name}: hold it pressed"))
-    right.append(_w(0.4, g0, FINGER_CLOSED, f"{name}: wait for the press"))
-    if press:
-        left.append(_wl(t_slide, p1, FINGER_CLOSED, f"{name}: glide along with the button"))
-    else:
-        left.append(_wl(t_slide, left[-1].pos, FINGER_CLOSED, f"{name}: stay over it"))
-    right.append(_w(t_slide, g1, FINGER_CLOSED, f"{name}: slide the leg"))
-    lifted = np.array(left[-1].pos) + [0.0, 0.0, 0.03]
-    left += [_wl(0.8, lifted, FINGER_CLOSED, f"{name}: lift off: the button springs out"),
-             _wl(0.8, lifted, FINGER_CLOSED, f"{name}: wait")]
-    right.append(_w(1.2, g1, FINGER_CLOSED, f"{name}: hold while it springs out"))
+    p0 = press_point(name, k0) + clear
+    left = [_wl(2.0, press_point(name, k0) + [0.0, 0.0, HOVER_L], FINGER_CLOSED, f"{name}: over the button"),
+            _wl(1.6, p0, FINGER_CLOSED, f"{name}: press the button in" if press else f"{name}: rest over it")]
+    _pad(left, right)
+
+    def slide_to(offset: float, t: float, label: str) -> None:
+        right.append(_w(t, grip_point(name, offset), FINGER_CLOSED, f"{name}: {label}"))
+        right.append(_w(SETTLE, grip_point(name, offset), FINGER_CLOSED, f"{name}: let the leg catch up"))
+        left.append(_wl(t + SETTLE, left[-1].pos, left[-1].finger, f"{name}: hold still, pressing"))
+
+    def press_at(k: float, label: str) -> None:
+        there = press_point(name, k) + clear
+        left.extend([_wl(0.5, np.array(left[-1].pos) + rise - clear, FINGER_CLOSED, f"{name}: lift"),
+                     _wl(0.6, there + rise - clear, FINGER_CLOSED, f"{name}: over {label}"),
+                     _wl(0.8, there, FINGER_CLOSED, f"{name}: press on {label}")])
+        right.append(_w(1.9, right[-1].pos, FINGER_CLOSED, f"{name}: wait for the press"))
+
+    off = lambda k: hole_y(k) - hole_y(k0)  # noqa: E731  the leg's slide that brings the button to hole k
+    slide_to(step * PAST, 1.2, "slide the button under the wall")  # the pad (23 mm along the tube) still covers it
+    for k in range(k0 + step, TARGET, step):  # every hole between the start and the red one
+        press_at(k - step * LEAD / PITCH, f"hole {k}")
+        slide_to(off(k) + step * PAST, SLIDE_S_PER_HOLE, f"slide the button past hole {k}")
+    press_at(TARGET + step * 0.5, "the tube beyond the red hole")
+    final = off(TARGET) - step * stop_short + (step * OVERSHOOT if not stop_short else 0.0)
+    slide_to(final, SLIDE_S_PER_HOLE * 0.6, "slide the button to the red hole")
+    right.append(_w(1.0, right[-1].pos, FINGER_CLOSED, f"{name}: hold while it springs out"))
+    left.append(_wl(1.0, left[-1].pos, left[-1].finger, f"{name}: hold still, pressing"))
+    g1 = np.array(right[-1].pos)
     if release_right:
         right += [_w(0.4, g1, FINGER_OPEN, f"{name}: let go of the leg"),
                   _w(0.8, g1 + up, FINGER_OPEN, f"{name}: up")]
     else:
         right += [_w(1.2, g1, FINGER_CLOSED, f"{name}: keep holding")]
+    left.append(_wl(0.8, np.array(left[-1].pos) + rise - clear, FINGER_CLOSED, f"{name}: lift off"))
     _pad(left, right)
     return left, right
 

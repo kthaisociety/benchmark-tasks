@@ -24,9 +24,9 @@ Positions in cm from the midpoint between the arm bases (x forward, y left, z up
 
 | Object | Description |
 |---|---|
-| Stand (fixed) | Pine. For each crutch, two cradles: a 4 x 2 cm block with a 1 cm post either side of the tube, at y 1 (under the collar) and y 47 (under the tube between the handgrip and the cuff) |
+| Stand (fixed) | Pine. For each crutch, two cradles: a 4 x 2 cm block with a 1 cm post either side of the tube, at y 1 (under the collar) and y 47 (under the tube between the handgrip and the cuff). An open pocket 3.4 x 3.4 cm and 7.5 tall at y 36 that the handgrip hangs in, 2 mm clear all round, so the crutch can't turn or slide along the stand |
 | Crutches (2, 0.54 kg each) | Adult aluminium forearm crutches without locking collars, lying along y with their axes 13.5 above the table at x 23 (near) and x 35 (far). Main tube 22.2 mm (7/8 in) across, 1.2 mm wall, from a black plastic collar at y 0 up to an open grey plastic cuff (y 55.5 to 61.5, for a 9 cm forearm). A black foam handgrip, 3 cm across and 11.5 long, at y 36, hanging down. Nine 7 mm holes 1 in apart in the tube's back, from hole 1 (the lowest, the longest setting) at y 4 to hole 9 at y 24.3. Two red tape bands round the tube either side of hole 5 (y 14.2) |
-| Legs | A 19 mm (3/4 in) tube, 58 long, inside each main tube, with a black rubber tip 4 across. A domed steel spring button 6.4 mm across sits 3 cm below its top end. Let out, it stands 4 mm out of its hole (4.8 N); pressed into the tube, it pushes back with 9 N |
+| Legs | A 19 mm (3/4 in) tube, 58 long, inside each main tube, with a black rubber tip 4 across. A chromed steel spring button 6.4 mm across sits 3 cm below its top end: a flat top 2 mm across, its edge bevelled at 45 degrees. Let out, it stands 4 mm out of its hole (4.8 N); pressed into the tube, it pushes back with 9 N |
 | Settings | Handle height (tip to handgrip) is 70 cm at hole 9 to 90.5 at hole 1, 2.54 cm a hole. The near crutch starts in hole 2 (88 cm) and the far one in hole 8 (72.7 cm). Hole 5 is 80.3 cm |
 
 ## Scoring
@@ -67,15 +67,22 @@ fixed (`object_jitter=0`), so no seed is needed. A trial takes about TBD minutes
 Run it with `--policy yam_scripted` instead of `--policy dream`. For each crutch in turn (near, then far):
 
 1. the right hand pinches the leg below the main tube;
-2. the left presses the button flush with its closed fingertips;
-3. the right slides the leg along the tube, three holes in for the near crutch and three out for the far one. The left's
-   fingertips glide along with the button, just clear of the tube, so it can't spring out into the holes it passes;
-4. over the red hole the left lifts away and the button springs out through it. Then the right lets go.
+2. the left presses the button in with its closed fingertips. The arm is soft, so it aims 2 cm below the tube to press
+   with about 8 N;
+3. the right slides the leg 1 cm, the left's fingertips going along with the button, until the button is under the
+   wall;
+4. for each hole the button still has to pass, the left lifts and presses down on that hole, and the right slides the
+   leg on past it. The button can't spring out under the fingertips, and the press holds the crutch steady while the
+   leg slides. The right only moves while the left holds still;
+5. for the last stretch the left presses on the tube just beyond the red hole, where the button never gets to. The
+   right slides the leg to the red hole and 2 mm past (its pinch slips a little), and the button springs out through
+   the hole and centres itself. Then the right lets go and the left lifts away.
 
-Set `CRUTCH_DEBUG=1` to print, every 5 steps, each button's position (as a fractional hole number), how far it stands
-out, how far each crutch has moved and rolled, and whether it is set. `CRUTCH_SAG_L` and `CRUTCH_SAG_R` ("dx,dy,dz",
-m) shift each arm's poses to make up for a loaded arm's sag. `CRUTCH_PRESS_GAP` sets how far above the tube the
-pressing fingertips glide (default 0.5 mm), and `CRUTCH_PRESS_OFF` ("dx,dy") shifts the press off the button's middle.
+Set `CRUTCH_DEBUG=1` to print, every 5 steps, each button's position and its leg's (as fractional hole numbers), how
+far the button stands out, how far each crutch has moved and rolled, whether the leg is held or free, whether the
+wall is holding the button in, and whether the crutch is set. `CRUTCH_SAG_L` and `CRUTCH_SAG_R` ("dx,dy,dz", m) shift
+each arm's poses, `CRUTCH_PRESS_GAP` sets where the pressing fingertips aim relative to the tube (default -2 cm), and
+`CRUTCH_PRESS_OFF` ("dx,dy") shifts the press off the button's middle.
 
 Shortcuts, with `DEMO_VARIANT` set in the environment:
 
@@ -102,14 +109,25 @@ PYTHONPATH=<path to yam-isaac-lab-arena> python -m pytest test_task.py -q
 ## How it is built
 
 The crutches, legs, buttons and stand are rigid bodies made of shapes from `bodykit.py`. The main tube is hollow below
-the handgrip: an octagon of eight 1.2 mm wall panels, 22.2 mm across its flats. Its top panel is broken by the nine
-7 mm holes. The leg is a cylinder 0.4 mm smaller than the tube's inside. It slides on a prismatic joint along the
-crutch (a `Slider`), with its travel limited to the row of holes, and the two don't collide. The leg can't turn in the tube (a real one can once its button is pressed in). The button is a sphere on a
-straight shank and moves in and out of the leg on a second, sprung `Slider` (800 N/m, 4.8 N let out). It collides with
-the main tube and with nothing else. So the lock is the button's shank against the edges of the hole it stands in: the
-leg is free only once the dome's middle is below the tube's inside. That needs more than 2 of the button's 4 mm of
-press, and then the hole's edge pushes the dome the rest of the way. Nothing in the task file locks or unlocks the leg.
-The stand is a fixed (kinematic) body.
+the handgrip: an octagon of eight 1.2 mm wall panels, 22.2 mm across its flats, its top panel broken by the nine 7 mm
+holes. The leg is a cylinder 0.4 mm smaller than the tube's inside. It slides on a prismatic joint along the crutch (a
+`Slider`), with its travel limited to the row of holes, and the two don't collide; the leg can't turn. The button
+moves in and out of the leg on a second, sprung `Slider` (800 N/m, 4.8 N let out). The robot presses it physically:
+the gripper's fingertips collide with it.
+
+The button's catch is played by the task file, because a pressed button meeting a hole's edge jams in PhysX however
+the edge and bevel are shaped (tried: a domed head, a bevelled head, square and rounded hole edges). The button
+doesn't collide with the main tube; instead, after every control step, the task file reads where the button is along
+the tube and how far it stands out, and sets the two sliders' drives:
+
+- **Held in a hole:** the leg's drive holds it at that hole (20,000 N/m) until the button is pressed to 1 mm out or
+  less, 3 mm of its 4, the depth at which a real button's shank clears the wall. A pull alone never frees it.
+- **Free, between holes:** with the button's flat top under the wall (more than 2.5 mm from a hole's middle), its
+  drive holds it level with the tube's inside, as the wall does, and the leg slides freely.
+- **Free, over a hole:** the button springs out. Once it stands more than 1 mm out, its shank is in the hole and the
+  leg is held there, centred. A button kept pressed by fingertips just passes over the hole.
+
+The stand is a fixed (kinematic) body. `test_task.py` checks these rules on their own.
 
 ## Real-world build
 
