@@ -246,9 +246,19 @@ def test_wall_and_brackets_stay_out_of_the_tube():
 
 
 def test_mat_is_clear_of_the_dispenser_and_wall():
-    mat_near_y = T.MAT_XY[1] - T.MAT_SIZE[1] / 2
-    assert mat_near_y - (T.AXIS_XY[1] + T.TUBE_OUT) >= 0.04
+    # nearest point of the mat to the tube's axis, then the gap to the tube's footprint
+    nx = min(max(T.AXIS_XY[0], T.MAT_XY[0] - T.MAT_SIZE[0] / 2), T.MAT_XY[0] + T.MAT_SIZE[0] / 2)
+    ny = min(max(T.AXIS_XY[1], T.MAT_XY[1] - T.MAT_SIZE[1] / 2), T.MAT_XY[1] + T.MAT_SIZE[1] / 2)
+    assert math.hypot(nx - T.AXIS_XY[0], ny - T.AXIS_XY[1]) - T.TUBE_OUT >= 0.04
     assert T.MAT_XY[0] + T.MAT_SIZE[0] / 2 < T.WALL_X - 0.005
+
+
+def test_counter_spot_is_off_the_mat_and_clear_of_the_next_cup():
+    x, y = T.COUNTER_SPOT
+    assert abs(y - T.MAT_XY[1]) - T.MAT_SIZE[1] / 2 >= T.R0 + 0.005 or abs(x - T.MAT_XY[0]) - T.MAT_SIZE[0] / 2 >= T.R0
+    # the still finger (toward -y) lets go at least 3 cm from the cup still hanging in the dispenser
+    still_y = y + (T.STILL_PAD - T.R_GRIP) - T.STILL_PAD
+    assert still_y - (T.AXIS_XY[1] + T.RIM_D / 2) >= 0.03
 
 
 def test_dispenser_is_clear_of_the_left_arm_ready_pose():
@@ -422,3 +432,45 @@ def test_mesh_clearances():
     lines = [ln for ln in out.splitlines() if ln.strip().startswith(("OK", "LOW", "HIT"))]
     bad = [ln for ln in lines if not ln.strip().startswith("OK") and "pinched" not in ln]
     assert lines and not bad, out
+
+
+# -- crushing ------------------------------------------------------------------------------------------------------------
+
+
+def test_squeeze_force_reads_the_blocked_finger():
+    from yam_arena.constants import FINGER_OPEN
+
+    contact = -(2 * T.R_GRIP - T.STILL_PAD)
+    # one finger at its open stop (drive saturated, not on the cup), the other stopped by the cup 1.2 mm short
+    assert T.squeeze_force([FINGER_OPEN, contact], (contact + 0.0012) / FINGER_OPEN) == pytest.approx(6.0)
+    # a free finger reaches its target: no squeeze
+    assert T.squeeze_force([-0.02, -0.02], -0.02 / FINGER_OPEN) == pytest.approx(0.0)
+    # told to close fully on the cup: the 50 N cap
+    assert T.squeeze_force([FINGER_OPEN, contact], 0.0) == pytest.approx(50.0)
+
+
+def test_demo_pinches_gently_even_if_the_still_pad_sits_2mm_closer():
+    from yam_arena.constants import FINGER_OPEN
+
+    grip = T.GRIP_FINGER / FINGER_OPEN
+    assert T.squeeze_force([FINGER_OPEN, -(2 * T.R_GRIP - T.STILL_PAD)], grip) == pytest.approx(T.GRIP_SQUEEZE_N)
+    urdf_stop = 0.047  # the URDF's open stop, 2 mm closer than measured on Brev: the cup is met 2 mm sooner
+    assert T.squeeze_force([FINGER_OPEN, -(2 * T.R_GRIP - urdf_stop)], grip) < T.CRUSH_N
+    assert T.GRIP_SQUEEZE_N * 2 <= T.CRUSH_N <= 25.0
+
+
+def test_full_close_on_a_cup_counts_as_crushing():
+    from yam_arena.constants import FINGER_OPEN
+
+    assert T.squeeze_force([FINGER_OPEN, -(2 * T.R_GRIP - T.STILL_PAD)], 0.0) > T.CRUSH_N
+
+
+def test_a_crushed_cup_scores_zero():
+    T._S["crushed"] = True
+    assert T.score(_objects(first=_cup(ON_MAT))) == 0.0
+
+
+def test_held_means_hanging_where_the_bottom_cup_started():
+    assert T.is_held(_after(2))  # the next cup, dropped onto the gasket
+    assert T.is_held(_hanging(3))
+    assert not T.is_held(_cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_BASE_Z - T.HELD_DROP - 0.001)))

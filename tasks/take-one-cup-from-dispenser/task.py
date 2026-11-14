@@ -23,7 +23,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import numpy as np  # noqa: E402
 import yam_arena.demo as _demo  # noqa: E402
 from partkit import _SPECS, _part_state, Slider, on_reset, on_step, part  # noqa: E402
-from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN  # noqa: E402
+from yam_arena.constants import FINGER_JOINTS, FINGER_OPEN, GRIPPER  # noqa: E402
 from yam_arena.demo import Waypoint  # noqa: E402
 from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
 
@@ -210,8 +210,8 @@ DISPENSER = _dispenser()
 GASKET = _bezel()
 CUPS = [_cup(k) for k in range(1, N_CUPS + 1)]
 
-# a black rubber bar mat on the counter, left of the dispenser
-MAT_XY = (0.34, 0.31)
+# a black rubber bar mat on the counter, right of the dispenser
+MAT_XY = (0.34, -0.03)
 MAT_SIZE = (0.16, 0.12, 0.004)
 MAT_TOP = TOP + MAT_SIZE[2]
 MAT = Box("mat", pos=(MAT_XY[0], MAT_XY[1], TOP + MAT_SIZE[2] / 2), size=MAT_SIZE, color=RUBBER)
@@ -227,10 +227,20 @@ ON_SURFACE = 0.006  # the cup's bottom edge within this of the counter or the ma
 LET_GO = 0.040  # each TCP at least this far from the cup: the finger surfaces reach about 2.4 cm from the TCP, so
 #                 no part of a gripper is within about 1.5 cm of it
 OFF_TABLE = 0.05  # below the counter by this: on the floor
+HELD_DROP = 0.005  # a cup still in the dispenser hangs no more than this below where the bottom cup hung at the start
+# Crushing. The sim's cups are rigid, so a crushed cup is scored from the grip force: a gripper squeezing a cup harder
+# than CRUSH_N has dented it (it would be thrown away). For scale, an ordinary paper cup's wall gives about 6 mm under
+# 5 N at two-thirds of its height; near the bottom, where it is pinched here, the bottom disc stiffens it. The YAM's
+# gripper squeezes up to 50 N when told to close fully. The force is read from the fingers' position error times the
+# gripper's stiffness (yam_arena's implicit gripper actuator: 5,000 N/m, capped at 50 N), taking the smaller of the two
+# fingers (in this sim one finger stays at its open stop, its drive saturated against the stop, not the cup).
+CRUSH_N = 20.0
+NEAR_CUP = 0.01  # a gripper counts as holding a cup when its TCP is within this of the cup's outside
 
 
 def _fresh() -> dict:
-    return {"tipped": False, "fell": False, "tcps": [], "steps": 0}
+    return {"tipped": False, "fell": False, "crushed": False, "max_squeeze": 0.0, "squeeze": [], "tcps": [],
+            "steps": 0, "squeeze_error": None}
 
 
 _S = _fresh()
@@ -255,8 +265,9 @@ def is_out(state) -> bool:
 
 
 def is_held(state) -> bool:
-    """Still in the dispenser as loaded: its rim above the gasket's flaps."""
-    return rim_top(state) > GASKET_Z and tilt_deg(state) < UPRIGHT_TOL
+    """Still in the dispenser: hanging upright, no more than HELD_DROP below where the bottom cup hung at the start (a
+    cup dragged partly through the gasket hangs lower; one higher up is nested inside the bottom one)."""
+    return float(state.pos[2]) >= CUP1_BASE_Z - HELD_DROP and tilt_deg(state) < UPRIGHT_TOL and not is_out(state)
 
 
 def cup_distance(state, point) -> float:
@@ -294,7 +305,7 @@ def wholly_on_mat(state) -> bool:
 
 def score(objects) -> float:
     cups = [objects[c.name] for c in CUPS]
-    if _S["tipped"] or _S["fell"]:
+    if _S["tipped"] or _S["fell"] or _S["crushed"]:
         return 0.0
     out = [c for c in cups if is_out(c)]
     if len(out) != 1:
@@ -325,6 +336,28 @@ def _np_vec(x) -> np.ndarray:
     return getattr(x, "torch", x).detach().cpu().numpy().astype(np.float64)
 
 
+def squeeze_force(finger_q, grip: float) -> float:
+    """The force (N) a gripper squeezes with: its finger joints at ``finger_q`` (m) and its normalized grip command
+    ``grip`` (0 closed .. 1 open; the fingers' target is grip x FINGER_OPEN). A finger short of its target pushes with
+    stiffness x shortfall, capped at the effort limit; the smaller of the two is what the held object feels."""
+    target = float(grip) * FINGER_OPEN
+    forces = [min(GRIPPER["effort"], max(0.0, GRIPPER["stiffness"] * (target - float(q)))) for q in finger_q]
+    return min(forces)
+
+
+def squeezes(environment) -> list[float]:
+    """Each arm's squeeze force (N), from its finger joints and its gripper action term's command."""
+    base = environment.unwrapped
+    out = []
+    for side in ("left", "right"):
+        robot = base.scene[f"{side}_robot"]
+        ids = robot.find_joints(list(FINGER_JOINTS), preserve_order=True)[0]
+        q = _np_vec(robot.data.joint_pos)[0, ids]
+        grip = _np_vec(base.action_manager.get_term(f"{side}_gripper").processed_actions)[0, 0]
+        out.append(squeeze_force(q, grip))
+    return out
+
+
 @on_reset
 def _reset(environment=None):
     _S.clear()
@@ -344,12 +377,25 @@ def _follow(environment) -> None:
         _S["tcps"] = grippers(environment)
     except (KeyError, ValueError, AttributeError):
         _S["tcps"] = []
+    try:
+        _S["squeeze"] = squeezes(environment)
+    except Exception as error:  # noqa: BLE001 - report once; GO_LIVE.md says to check for this line
+        _S["squeeze"] = []
+        if _S["squeeze_error"] is None:
+            _S["squeeze_error"] = repr(error)
+            print(f"[cup] WARNING: can't read the grip force, crushing is not scored: {error!r}", flush=True)
+    for force, tcp in zip(_S["squeeze"], _S["tcps"]):
+        if any(cup_distance(st, tcp) <= NEAR_CUP for st in states.values()):
+            _S["max_squeeze"] = max(_S["max_squeeze"], force)
+            if force > CRUSH_N:
+                _S["crushed"] = True
     if _DEBUG and _S["steps"] % 5 == 0:
         gasket = _part_state(environment, _SPECS[GASKET.name])
         flaps = [round(v * 1000, 2) for v in gasket.sliders.values()]
         parts = [f"{n}: base {np.round(s.pos, 4).tolist()} tilt {tilt_deg(s):.1f} rim {rim_top(s):.4f} "
                  f"out {is_out(s)} held {is_held(s)}" for n, s in states.items()]
-        print(f"[cup] step {_S['steps']} tipped {_S['tipped']} fell {_S['fell']} "
+        print(f"[cup] step {_S['steps']} tipped {_S['tipped']} fell {_S['fell']} crushed {_S['crushed']} "
+              f"squeeze(N) {[round(f, 1) for f in _S['squeeze']]} max {_S['max_squeeze']:.1f} "
               f"tcps {[np.round(t, 4).tolist() for t in _S['tcps']]} gasket {np.round(gasket.pos, 4).tolist()} "
               f"flaps(mm) {flaps} | " + " | ".join(parts), flush=True)
 
@@ -420,6 +466,11 @@ GRIP_FORWARD = float(os.environ.get("CUP_GRIP_FORWARD", "0.014"))
 # radius to the +y of the cup's axis.
 STILL_PAD = 0.049
 STILL_CLEAR = 0.006  # the still finger passes this far off the cup (toward -y) on the way in
+# A paper cup is pinched gently: the closing finger's target is just inside the cup's far side, so it squeezes with
+# about GRIP_SQUEEZE_N (well under CRUSH_N; closing fully would squeeze 50 N). Its pad meets the cup 2 r - STILL_PAD from
+# the TCP; the finger joint's value is minus the pad's distance from the TCP.
+GRIP_SQUEEZE_N = float(os.environ.get("CUP_SQUEEZE_N", "6"))
+GRIP_FINGER = -(2 * R_GRIP - STILL_PAD) + GRIP_SQUEEZE_N / GRIPPER["stiffness"]
 PULL = 0.032  # the cup comes down this far: rim through the flaps and 1 cm below the dispenser's bottom edge
 PULL_OVER = 0.008  # ... and the arm aims this much further: it lags against the flaps (~500 N/m down)
 BACK = 0.05  # out from under the dispenser, toward the arms
@@ -442,12 +493,12 @@ def tcp_for_cup(cup_xy, bottom_z) -> tuple[float, float, float]:
 
 
 PARK = {"left": (0.18, 0.34, TOP + 0.16), "right": (0.18, -0.34, TOP + 0.16)}
-COUNTER_SPOT = (0.34, 0.215)  # the 'counter' shortcut stands the cup here: on the counter, its bottom clear of the mat
+COUNTER_SPOT = (0.34, 0.27)  # the 'counter' shortcut stands the cup here: on the counter left of the dispenser, off the mat
 
 
 def _take(place: str = "mat", release: bool = True) -> list[Waypoint]:
-    """Pinch the hanging cup, pull it out, and stand it on the mat (``place='mat'``), on the counter between the
-    dispenser and the mat (``'counter'``) or keep holding it in the air (``'air'``)."""
+    """Pinch the hanging cup, pull it out, and stand it on the mat (``place='mat'``), on the counter left of the
+    dispenser (``'counter'``) or keep holding it in the air (``'air'``)."""
     g = GRIP
     pinch = np.array(tcp_for_cup(AXIS_XY, CUP1_BASE_Z))
     clear = pinch - np.array([0.0, STILL_CLEAR, 0.0])  # the still finger is on the -y side
@@ -459,13 +510,13 @@ def _take(place: str = "mat", release: bool = True) -> list[Waypoint]:
         Waypoint(1.2, tuple(start), FINGER_OPEN, "down to the pinch height", g),
         Waypoint(1.8, tuple(clear), FINGER_OPEN, "fingers either side of the cup", g),
         Waypoint(0.6, tuple(pinch), FINGER_OPEN, "still finger onto the cup", g),
-        Waypoint(0.8, tuple(pinch), FINGER_CLOSED, "pinch", g),
-        Waypoint(2.5, tuple(pulled), FINGER_CLOSED, "pull straight down through the gasket", g),
-        Waypoint(0.6, tuple(pulled), FINGER_CLOSED, "steady", g),
-        Waypoint(1.5, tuple(out), FINGER_CLOSED, "out from under the dispenser", g),
+        Waypoint(0.8, tuple(pinch), GRIP_FINGER, "pinch", g),
+        Waypoint(2.5, tuple(pulled), GRIP_FINGER, "pull straight down through the gasket", g),
+        Waypoint(0.6, tuple(pulled), GRIP_FINGER, "steady", g),
+        Waypoint(1.5, tuple(out), GRIP_FINGER, "out from under the dispenser", g),
     ]
     if place == "air":
-        return wps + [Waypoint(60.0, tuple(out), FINGER_CLOSED, "keep holding it", g)]
+        return wps + [Waypoint(60.0, tuple(out), GRIP_FINGER, "keep holding it", g)]
     spot = MAT_XY if place == "mat" else COUNTER_SPOT
     floor = MAT_TOP if place == "mat" else TOP
     above = np.array(tcp_for_cup(spot, floor + 0.02))
@@ -473,12 +524,12 @@ def _take(place: str = "mat", release: bool = True) -> list[Waypoint]:
     off = down - np.array([0.0, STILL_CLEAR, 0.0])  # the still finger (-y side) off the cup
     back = off - RETREAT * approach_dir()
     wps += [
-        Waypoint(2.2, tuple(above), FINGER_CLOSED, f"over the {place}", g),
-        Waypoint(1.2, tuple(down), FINGER_CLOSED, f"set it down on the {place}", g),
-        Waypoint(0.5, tuple(down), FINGER_CLOSED, "settle", g),
+        Waypoint(2.2, tuple(above), GRIP_FINGER, f"over the {place}", g),
+        Waypoint(1.2, tuple(down), GRIP_FINGER, f"set it down on the {place}", g),
+        Waypoint(0.5, tuple(down), GRIP_FINGER, "settle", g),
     ]
     if not release:
-        return wps + [Waypoint(60.0, tuple(down), FINGER_CLOSED, "keep holding it", g)]
+        return wps + [Waypoint(60.0, tuple(down), GRIP_FINGER, "keep holding it", g)]
     return wps + [
         Waypoint(0.8, tuple(down), FINGER_OPEN, "let go", g),
         Waypoint(0.5, tuple(off), FINGER_OPEN, "still finger off the cup", g),
@@ -493,7 +544,7 @@ def _wait(duration: float, pos, finger=FINGER_OPEN, label="wait") -> list[Waypoi
 
 def demo():
     """DEMO_VARIANT: full (1.0), nothing (0), pull_only (hold it in the air: 0.25), counter (stand it on the counter
-    between the dispenser and the mat: 0.5), keep_holding (on the mat but never let go: 0.25), probe (pinch and pull
+    left of the dispenser, off the mat: 0.5), keep_holding (on the mat but never let go: 0.25), probe (pinch and pull
     only)."""
     variant = os.environ.get("DEMO_VARIANT", "full")
     right = _wait(3.0, PARK["right"])
