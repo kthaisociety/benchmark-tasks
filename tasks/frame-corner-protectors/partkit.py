@@ -52,6 +52,7 @@ class Slider:
     rest: tuple[float, float, float]
     boxes: tuple[BoxSpec, ...]
     travel: float = 0.004
+    spheres: tuple = ()  # (centre, radius, colour) in the part's frame at rest, like the boxes
     rate: float = 2500.0
     damping: float = 20.0
     mass: float = 0.002
@@ -65,6 +66,7 @@ class Part(Box):
 
     boxes: tuple[BoxSpec, ...] = ()
     cylinders: tuple[CylSpec, ...] = ()
+    spheres: tuple = ()  # (centre, radius, colour)
     sliders: tuple[Slider, ...] = ()
     friction: float = 0.8
     meta: dict = field(default_factory=dict, compare=False, hash=False)
@@ -89,15 +91,19 @@ def _box(spec):
     return centre, size, color, (tuple(spec[3]) if len(spec) > 3 else (1.0, 0.0, 0.0, 0.0))
 
 
-def part(name, pos, boxes, mass, yaw=0.0, sliders=(), color=(0.5, 0.5, 0.5), friction=0.8, cylinders=()) -> Part:
+def part(name, pos, boxes, mass, yaw=0.0, sliders=(), color=(0.5, 0.5, 0.5), friction=0.8, cylinders=(),
+         spheres=()) -> Part:
     """Build a Part; ``size`` is filled in from the shapes' extent."""
     half = [np.abs(_quat_matrix(q)) @ (np.array(s) / 2) for _, s, _, q in map(_box, boxes)]
     half += [np.array([r, r, h / 2]) for _, r, h, _ in cylinders]
+    half += [np.array([r, r, r]) for _, r, _ in spheres]
     centres = [np.array(b[0]) for b in boxes] + [np.array(c) for c, _, _, _ in cylinders]
+    centres += [np.array(c) for c, _, _ in spheres]
     lo = np.min([c - h for c, h in zip(centres, half)], axis=0)
     hi = np.max([c + h for c, h in zip(centres, half)], axis=0)
     return Part(name=name, pos=tuple(pos), size=tuple((hi - lo).tolist()), mass=mass, color=color, yaw=yaw,
-                boxes=tuple(boxes), cylinders=tuple(cylinders), sliders=tuple(sliders), friction=friction)
+                boxes=tuple(boxes), cylinders=tuple(cylinders), spheres=tuple(spheres), sliders=tuple(sliders),
+                friction=friction)
 
 
 @dataclass(frozen=True)
@@ -201,14 +207,23 @@ def _spawn_part(prim_path: str, cfg, translation=None, orientation=None, **kwarg
             cyl.AddTranslateOp().Set(Gf.Vec3d(*centre))
             collide(cyl.GetPrim(), color)
 
+    def spheres(path: str, specs, offset=(0.0, 0.0, 0.0), material=phys):
+        for i, (centre, radius, color) in enumerate(specs):
+            sph = UsdGeom.Sphere.Define(stage, f"{path}/sph_{i}")
+            sph.CreateRadiusAttr(radius)
+            sph.AddTranslateOp().Set(Gf.Vec3d(*(np.array(centre) - np.array(offset))))
+            collide(sph.GetPrim(), color, material)
+
     main = f"{prim_path}/body"
     body(main, (0.0, 0.0, 0.0), spec.mass)
     boxes(main, spec.boxes)
     cylinders(main, spec.cylinders)
+    spheres(main, spec.spheres)
     for s in spec.sliders:
         path = f"{prim_path}/{s.name}"
         body(path, s.rest, s.mass)
         boxes(path, s.boxes, offset=s.rest, material=materials.get(s.name, phys))
+        spheres(path, s.spheres, offset=s.rest, material=materials.get(s.name, phys))
         j = UsdPhysics.PrismaticJoint.Define(stage, f"{path}/{s.name}_slide")
         j.CreateAxisAttr("Z")
         j.CreateBody0Rel().SetTargets([Sdf.Path(main)])

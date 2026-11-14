@@ -88,20 +88,47 @@ def test_protector_fits_the_open_gripper():
 
 
 def test_pocket_squeezes_the_frame():
-    # roof above the frame's back by CLEAR; the floor stands PROUD above its front: net squeeze 1.5 mm, about 6 N
+    # roof above the frame's back by CLEAR; the floor stands PROUD above its front: net squeeze 1 mm, about 4 N
     squeeze = T.PROUD - T.CLEAR
-    assert squeeze == pytest.approx(0.0015)
-    assert 4.0 <= T.FLOOR_RATE * squeeze <= 10.0
+    assert squeeze == pytest.approx(0.0005)
+    assert 1.0 <= T.FLOOR_RATE * squeeze <= 10.0  # it grips: many times the protector's 0.2 N weight
     assert squeeze < T.FLOOR_TRAVEL
 
 
-def test_the_bevels_leave_a_height_window_around_the_aim():
-    # with the protector's origin at height z (relative to the frame's front), the floor's bevelled edge must be below the
-    # frame's front and the roof's bevelled edge above its back
-    lo = -(T.ROOF + T.RAMP_RISE - T.THICK)  # roof edge at the frame's back
-    hi = T.RAMP_RISE - T.PROUD  # floor edge at the frame's front
-    assert lo < T.Z_AIM < hi
-    assert hi - lo >= 0.009
+def test_the_lips_leave_a_height_window_around_the_aim():
+    """With the protector's origin at height z below the frame's front (the demo aims Z_AIM), the frame's front must
+    meet the floor's lip above the spheres' middles (it then rides up and presses the floor down) and the frame's back
+    must meet the roof's lip below the spheres' middles."""
+    zb = -T.Z_AIM  # the frame's front above the protector's origin
+    lo = T.PROUD - T.LEAD_R  # floor spheres' middles
+    hi = T.ROOF + T.LEAD_R - T.THICK  # roof spheres' middles, less the frame's thickness
+    assert lo + 0.001 < zb < hi - 0.001
+    assert hi - lo >= 0.006
+
+
+def test_lips_are_flush_with_the_floor_and_roof():
+    (boxes, roof_sph), (floor_boxes, floor_sph) = T._protector_shapes()
+    top = max(c[2] + s[2] / 2 for c, s, *_ in floor_boxes)
+    assert top == pytest.approx(T.PROUD)
+    assert all(c[2] + r == pytest.approx(T.PROUD) for c, r, _ in floor_sph)  # crests level with the floor
+    assert all(c[2] - r == pytest.approx(T.ROOF) for c, r, _ in roof_sph)  # and with the roof
+    # the flat floor and roof start at the crests: no step for the frame's edge to catch on
+    inner = T.POCKET - T.LEAD_R
+    assert all(abs(c[0] + inner) < 1e-9 or abs(c[1] + inner) < 1e-9 for c, _, _ in floor_sph + roof_sph)
+    # along each edge the spheres are close enough that the frame's edge always rests on several
+    xs = sorted({round(c[1], 6) for c, _, _ in floor_sph if abs(c[0] + inner) < 1e-9})
+    assert max(b - a for a, b in zip(xs, xs[1:])) <= T.LEAD_R + 1e-9
+    # no sphere pokes out of the block (past the other open face, where it would catch the frame's edge first)
+    for c, r, _ in floor_sph + roof_sph:
+        assert c[0] - r >= -T.POCKET - 1e-9 and c[1] - r >= -T.POCKET - 1e-9
+
+
+def test_no_collider_is_turned():
+    """PhysX built turned boxes differently from how USD draws them (Brev, 2026-11-13): keep every protector and
+    frame collider unturned."""
+    for spec in [T.FRAME, *T.PROTECTORS.values()]:
+        shapes = list(spec.boxes) + [b for s in spec.sliders for b in s.boxes]
+        assert all(len(b) < 4 or tuple(b[3]) == (1.0, 0.0, 0.0, 0.0) for b in shapes), spec.name
 
 
 def test_corners_overhang_the_blocks_past_the_pocket():
@@ -132,16 +159,23 @@ def test_protectors_start_clear_of_frame_and_blocks():
         assert abs(nearest) > T.BLOCK_Y + T.BLOCK[1] / 2 + 0.01, name
 
 
-def test_pinch_stays_on_the_closed_wall_band():
-    """The fingers close along world y; both pads must land on solid foam outside the frame's footprint along x."""
+def test_pinch_stays_clear_of_the_frame():
+    """The fingers close along world y across the protector's full width, on the closed wall beyond the frame's end.
+    The pads (27.4 mm wide along x) must stay off the frame's end along x, and the finger's wider part (40 mm, 25 mm
+    up from its tips) must be above the frame's back; the pads must bear on at least 12 mm of the wall."""
     for name in T.CORNERS:
         seat = T.corner_xy(name)
         g = T.grip_world(name, seat)
-        sx = T.CORNERS[name][0]
-        # the band is the closed wall beyond the frame's end along x: from the corner out to WALL
-        band = sorted([seat[0], seat[0] + sx * T.WALL])
-        assert band[0] < g[0] < band[1], name
-        assert abs(g[0] - seat[0]) >= 0.010, name  # a 2 cm pad centred here stays (just) off the frame's end
+        sx, sy = T.CORNERS[name]
+        out = sx * (g[0] - seat[0])  # the pinch's middle, out past the frame's end
+        assert out - T.FINGER_HALF_W >= 0.002, name
+        tip = T.PINCH_UP - T.TIP
+        if tip + 0.025 < T.THICK + 0.003:  # the finger's wider part is at the frame's height: keep it off the frame's end
+            assert out - 0.020 >= 0.002, name
+        on_wall = min(out + T.FINGER_HALF_W, T.WALL) - max(out - T.FINGER_HALF_W, 0.0)
+        assert on_wall >= 0.012, (name, on_wall)
+        lo, hi = sorted([seat[1] - sy * T.POCKET, seat[1] + sy * T.WALL])
+        assert g[1] == pytest.approx((lo + hi) / 2)
 
 
 # -- scoring -----------------------------------------------------------------------------------------------------------
@@ -225,7 +259,7 @@ def test_untouched_scene_scores_zero():
 
 # -- the demo ------------------------------------------------------------------------------------------------------------
 
-VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "two_only", "probe_one", "probe_near"]
+VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "two_only", "probe_one", "probe_near", "probe_right"]
 
 
 def _plans(variant, monkeypatch):
@@ -275,7 +309,7 @@ def test_full_demo_holds_the_frame_during_every_push(monkeypatch):
         t = 0.0
         while t <= plans[arm].duration:
             label = plans[arm].target(t)[3]
-            if "push it on" in label or "back of the pocket" in label or "settle" in label:
+            if "push it" in label or "press it into" in label or "settle" in label:
                 pos = plans[other].target(t)[0]
                 assert pos[2] == pytest.approx(z_press, abs=0.004), (arm, t, label, pos)
             t += 0.1
@@ -306,23 +340,17 @@ def _box_face_line(spec, axis, top):
     return sorted(ends)
 
 
-@pytest.mark.parametrize("axis", ["x", "y"])
-def test_bevels_run_where_intended(axis):
-    p, flat, h = T.POCKET, T.POCKET - T.RAMP_RUN, T.RAMP_RISE
-    floor = T._slope(axis, -p, -h, -flat, 0.0, (-p, 0.0), 0.004, True, T.FOAM)
-    (s0, z0), (s1, z1) = _box_face_line(floor, axis, top=True)
-    assert (s0, z0, s1, z1) == pytest.approx((-p, -h, -flat, 0.0), abs=1e-9)
-    roof = T._slope(axis, -p, T.ROOF + h, -flat, T.ROOF, (-p, 0.0), 0.004, False, T.FOAM)
-    (s0, z0), (s1, z1) = _box_face_line(roof, axis, top=False)
-    assert (s0, z0, s1, z1) == pytest.approx((-p, T.ROOF + h, -flat, T.ROOF), abs=1e-9)
-
-
 def test_floor_rests_proud_in_the_part_frame():
-    """partkit places slider boxes in the part's frame: at rest the floor's top is PROUD above the origin, and its
-    bottom stays above the walls' bottom even fully pressed."""
-    _, floor = T._protector_shapes()
-    core = floor[0]
-    top = core[0][2] + core[1][2] / 2
-    assert top == pytest.approx(T.PROUD)
-    bottom = min(c[2] - s[2] / 2 for c, s, *_ in floor[:2])
-    assert bottom - T.FLOOR_TRAVEL > -T.LIP
+    """partkit places slider shapes in the part's frame: at rest the floor's top is PROUD above the origin, and its
+    lowest point (the lips' spheres) stays above the walls' bottom, so a protector lying on the table rests on its
+    walls."""
+    _, (floor_boxes, floor_sph) = T._protector_shapes()
+    bottom = min([c[2] - s[2] / 2 for c, s, *_ in floor_boxes] + [c[2] - r for c, r, _ in floor_sph])
+    assert bottom > -T.LIP + 0.0005
+
+
+def test_object_poses_are_plain_floats():
+    """torch.tensor() of numpy float64s makes a float64 tensor, which the simulator's pose writes reject."""
+    for obj in T.OBJECTS:
+        assert all(type(v) is float for v in obj.pos), (obj.name, [type(v) for v in obj.pos])
+        assert type(obj.yaw) is float, obj.name

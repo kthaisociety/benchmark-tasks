@@ -25,6 +25,7 @@ from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN  # noqa: E402
 from yam_arena.demo import Waypoint  # noqa: E402
 from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
 
+
 SCENE = "station"
 SCORE_OVER = "end"
 SUCCESS_HOLD_S = 1.0
@@ -59,7 +60,8 @@ def _frame():
     rails += [((s * (hx - w / 2), 0.0, t / 2), (w, OUT[1] - 2 * w, t), OAK) for s in (-1, 1)]
     slab = [((0.0, 0.0, sum(SLAB_Z) / 2), (OUT[0] - 2 * w + 0.002, OUT[1] - 2 * w + 0.002, SLAB_Z[1] - SLAB_Z[0]),
              KRAFT)]
-    return part("frame", pos=(FRAME_AT[0], FRAME_AT[1], FB + 0.0005), mass=FRAME_MASS, color=OAK, friction=0.6,
+    diag = os.environ.get("CORNERS_DIAG_NO_FRAME") == "1"  # diagnostics only: the frame put off the table
+    return part("frame", pos=(FRAME_AT[0], FRAME_AT[1] - (0.9 if diag else 0.0), FB + 0.0005), mass=FRAME_MASS, color=OAK, friction=0.6,
                 boxes=rails + slab)
 
 
@@ -70,60 +72,45 @@ FRAME = _frame()
 POCKET = 0.045  # how far the corner goes in, each way
 WALL = 0.025  # closed walls' thickness: the block is POCKET + WALL = 7 cm square
 LIP = 0.010  # foam under and over the pocket
-CLEAR = 0.0005  # the pocket's roof sits this far above the frame's back with the floor pressed down
-PROUD = 0.002  # unpressed, the foam floor stands this far above the frame's front: it squeezes the frame 1.5 mm
-RAMP_RUN, RAMP_RISE = 0.010, 0.006  # the pocket's open edges are bevelled: 6 mm over the outer 10 mm
+CLEAR = 0.0010  # the pocket's roof sits this far above the frame's back with the floor pressed down
+PROUD = 0.0015  # unpressed, the foam floor stands this far above the frame's front: it squeezes the frame 0.5 mm
+LEAD_R = 0.0050  # the open edges' rounded lips: spheres of this radius, crest level with the floor and roof
+LEAD_PITCH = 0.004  # ... spaced this far apart along each edge
+FLOOR_T = 0.006  # the sprung floor's thickness
 ROOF = THICK + CLEAR
-FLOOR_RATE = 4000.0  # N/m: about 6 N of squeeze at 1.5 mm
+FLOOR_RATE = 2500.0  # N/m: about 1.25 N of squeeze at 0.5 mm, six times the protector's weight
 FLOOR_TRAVEL = 0.005
 PROTECTOR_MASS = 0.020  # cross-linked PE foam, about 100 kg/m3
-FOAM_FRICTION = 0.6
-
-
-def _slope(axis: str, s_out: float, z_out: float, s_in: float, z_in: float, span: tuple[float, float],
-           t: float, below: bool, color) -> tuple:
-    """A thin box whose top (below=True) or bottom face runs from (s_out, z_out) to (s_in, z_in) along ``axis``
-    ("x" or "y") and spans ``span`` along the other horizontal axis: a bevel on the pocket's open edge."""
-    ds, dz = s_in - s_out, z_in - z_out
-    length = math.hypot(ds, dz)
-    ang = math.atan2(dz, ds)  # the slope's rise toward the inside
-    us, uz = ds / length, dz / length
-    ns, nz = -uz, us  # its upward normal
-    k = -t / 2 if below else t / 2
-    ms, mz = (s_out + s_in) / 2 + k * ns, (z_out + z_in) / 2 + k * nz
-    mid_other, width = (span[0] + span[1]) / 2, span[1] - span[0]
-    if axis == "x":  # turn about y: local x -> (cos a, 0, sin a) needs a rotation of -a
-        q = (math.cos(-ang / 2), 0.0, math.sin(-ang / 2), 0.0)
-        return ((ms, mid_other, mz), (length, width, t), color, q)
-    q = (math.cos(ang / 2), math.sin(ang / 2), 0.0, 0.0)  # turn about x: local y -> (0, cos a, sin a)
-    return ((mid_other, ms, mz), (width, length, t), color, q)
+FOAM_FRICTION = 0.3
 
 
 def _protector_shapes():
-    p, w, lip, r, h = POCKET, WALL, LIP, RAMP_RUN, RAMP_RISE
+    """The protector's colliders: (boxes, spheres) of its body and (boxes, spheres) of its sprung floor, all in its own
+    frame at rest. The pocket's two open edges have rounded lips: a row of spheres along each edge on the floor and
+    under the roof, so a frame edge meeting them rides in and presses the floor down. (Spheres, not turned boxes:
+    PhysX builds turned boxes differently from how USD draws them, which closed the pocket's mouth on Brev.)"""
+    p, w, lip, r = POCKET, WALL, LIP, LEAD_R
     z0, z1 = -lip, ROOF + lip
+    inner = p - r  # the flat floor and roof reach this far from the back, to the spheres' crests
     walls = [
         ((w / 2, (w - p) / 2, (z0 + z1) / 2), (w, p + w, z1 - z0), FOAM),  # wall on +x, full length
         ((-p / 2, w / 2, (z0 + z1) / 2), (p, w, z1 - z0), FOAM),  # wall on +y
     ]
-    flat = p - r
     roof = [
-        ((-p / 2, -p / 2, ROOF + h + (lip - h) / 2), (p, p, lip - h), FOAM),  # the top skin
-        ((-flat / 2, -flat / 2, ROOF + h / 2), (flat, flat, h), FOAM),  # the roof's flat
-        _slope("x", -p, ROOF + h, -flat, ROOF, (-p, 0.0), 0.004, False, FOAM),  # bevel on the -x opening
-        _slope("y", -p, ROOF + h, -flat, ROOF, (-p, 0.0), 0.004, False, FOAM),  # bevel on the -y opening
+        ((-inner / 2, -inner / 2, ROOF + lip / 2), (inner, inner, lip), FOAM),  # the roof over the flat
+        ((-p + r / 2, -p / 2, ROOF + r + (lip - r) / 2), (r, p, lip - r), FOAM),  # skin over the -x lip
+        ((-p / 2, -p + r / 2, ROOF + r + (lip - r) / 2), (p, r, lip - r), FOAM),  # skin over the -y lip
     ]
-    # the sprung floor, in the slider's frame (rest = PROUD above the origin): its top is the pocket's floor
-    fz0 = -(lip - PROUD) + 0.002  # 2 mm above the walls' bottom, so it never props the block up
-    floor = [
-        ((-flat / 2, -flat / 2, fz0 / 2), (flat, flat, -fz0), FOAM),
-        ((-p / 2, -p / 2, (fz0 + fz0 + 0.002) / 2), (p, p, 0.002), FOAM),  # under the bevels
-        _slope("x", -p, -h, -flat, 0.0, (-p, 0.0), 0.004, True, FOAM),
-        _slope("y", -p, -h, -flat, 0.0, (-p, 0.0), 0.004, True, FOAM),
-    ]
-    # partkit takes a slider's boxes in the part's frame at rest: lift the floor by its rest height
-    floor = [((c[0], c[1], c[2] + PROUD), *rest) for c, *rest in floor]
-    return walls + roof, floor
+    floor_boxes = [((-inner / 2, -inner / 2, PROUD - FLOOR_T / 2), (inner, inner, FLOOR_T), FOAM)]
+    run = p - r  # along each edge the spheres stay inside the block: none sticks out past the other open face
+    n = math.ceil(run / LEAD_PITCH) + 1
+    along = [-p + r + k * run / (n - 1) for k in range(n)]
+    roof_sph, floor_sph = [], []
+    for a in along:
+        for xy in ((-p + r, a), (a, -p + r)):  # the -x edge's row, then the -y edge's
+            roof_sph.append(((xy[0], xy[1], ROOF + r), r, FOAM))
+            floor_sph.append(((xy[0], xy[1], PROUD - r), r, FOAM))
+    return (walls + roof, roof_sph), (floor_boxes, floor_sph)
 
 
 # corner name -> (sign along x, sign along y): the frame's corner at (sx * 15, sy * 20) cm from its middle
@@ -148,11 +135,17 @@ def start_xy(name: str) -> np.ndarray:
 
 
 def _protector(name: str):
-    shapes, floor = _protector_shapes()
-    x, y = start_xy(name)
-    slider = Slider(f"floor_{name}", rest=(0.0, 0.0, PROUD), boxes=tuple(floor), travel=FLOOR_TRAVEL,
-                    rate=FLOOR_RATE, damping=8.0, mass=0.004, friction=FOAM_FRICTION)
-    return part(f"protector_{name}", pos=(x, y, TOP + LIP + 0.0005), boxes=shapes, mass=PROTECTOR_MASS,
+    (shapes, sph), (floor, floor_sph) = _protector_shapes()
+    x, y = (float(v) for v in start_xy(name))
+    z = TOP + LIP + 0.0005
+    diag = dict(kv.split(":") for kv in os.environ.get("CORNERS_DIAG_SEATED", "").split(",") if ":" in kv)
+    if name in diag:  # diagnostics only: spawn this protector on its corner, short of seated by the given y (m)
+        x, y = (float(v) for v in corner_xy(name))
+        y += CORNERS[name][1] * float(diag[name])
+        z = FB - CLEAR
+    slider = Slider(f"floor_{name}", rest=(0.0, 0.0, PROUD), boxes=tuple(floor), spheres=tuple(floor_sph),
+                    travel=FLOOR_TRAVEL, rate=FLOOR_RATE, damping=8.0, mass=0.004, friction=FOAM_FRICTION)
+    return part(f"protector_{name}", pos=(x, y, z), boxes=shapes, spheres=sph, mass=PROTECTOR_MASS,
                 yaw=YAW[name], color=FOAM, friction=FOAM_FRICTION, sliders=(slider,))
 
 
@@ -171,7 +164,7 @@ OVER_TOL = 0.002  # (the corner can't go into the wall: allow for contact)
 Z_TOL = 0.003  # the frame's front within 3 mm of the pocket floor's line
 TURN_TOL = 6.0  # degrees: the protector square to the corner
 TILT_TOL = 6.0  # degrees: level with the frame
-SQUEEZE = 0.0008  # the floor pressed down at least this far: the foam grips the frame
+SQUEEZE = 0.0003  # the floor pressed down at least this far: the foam grips the frame
 LET_GO = 0.04  # each gripper's TCP at least this far from the protector's middle
 DROPPED_TILT = 15.0  # the frame ever tilted more than this, or fell off a block: dropped
 FLAT_TILT = 3.0  # at the end the frame lies flat on both blocks
@@ -248,19 +241,17 @@ def protected(objects) -> list[str]:
 
 
 def grippers(environment) -> list[np.ndarray]:
-    """World positions of both grippers' TCP (between the finger pads, 13 mm above the pad tips)."""
+    """World positions of both grippers' TCP (between the finger pads, 13 mm above the pad tips), from each gripper
+    link's pose, as yam_arena.runtime.tcp_world computes it."""
+    from yam_arena.runtime import tcp_world
+
     base = environment.unwrapped
-    origin = base.scene.env_origins[0]
-    out = []
-    for key in ("left_robot", "right_robot"):
-        art = base.scene[key]
-        names = list(art.body_names)
-        pos = (getattr(art.data.body_pos_w, "torch", art.data.body_pos_w)[0] - origin).detach().cpu().numpy()
-        g = pos[names.index("gripper")].astype(np.float64)
-        mid = (pos[names.index("tip_left")] + pos[names.index("tip_right")]).astype(np.float64) / 2
-        ax = (mid - g) / (np.linalg.norm(mid - g) + 1e-12)
-        out.append(g + ax * 0.134)
-    return out
+    origin = _np_vec(base.scene.env_origins[0])
+    return [tcp_world(base.scene[key]) - origin for key in ("left_robot", "right_robot")]
+
+
+def _np_vec(x) -> np.ndarray:
+    return getattr(x, "torch", x).detach().cpu().numpy().astype(np.float64)
 
 
 @on_reset
@@ -284,11 +275,25 @@ def _follow(environment) -> None:
         for name, spec in PROTECTORS.items():
             prot = _part_state(environment, _SPECS[spec.name])
             local = prot.to_local(corner_world(frame, name))
+            r = prot.rotation()
+            ypr = (math.degrees(math.atan2(r[1, 0], r[0, 0])), math.degrees(math.asin(-max(-1.0, min(1.0, r[2, 0])))),
+                   math.degrees(math.atan2(r[2, 1], r[2, 2])))
             parts.append(f"{name}: corner {np.round(local * 1000, 1).tolist()}mm squeeze {squeeze(prot) * 1000:.2f}mm "
+                         f"pos {np.round(prot.pos, 4).tolist()} ypr {np.round(ypr, 1).tolist()} "
                          f"seated {seated_on(frame, prot, name)}")
+        tips = []
+        try:
+            base = environment.unwrapped
+            origin = base.scene.env_origins[0]
+            art = base.scene["left_robot"]
+            names = list(art.body_names)
+            pos = (getattr(art.data.body_pos_w, "torch", art.data.body_pos_w)[0] - origin).detach().cpu().numpy()
+            tips = [np.round(pos[names.index(k)], 4).tolist() for k in ("tip_left", "tip_right", "gripper")]
+        except (KeyError, ValueError, AttributeError):
+            pass
         print(f"[corners] step {_S['steps']} frame {np.round(frame.pos, 4)} tilt {_tilt_deg(frame):.1f} "
-              f"dropped {_S['dropped']} tcps {[np.round(t, 3).tolist() for t in _S['tcps']]} | " + " | ".join(parts),
-              flush=True)
+              f"dropped {_S['dropped']} tcps {[np.round(t, 3).tolist() for t in _S['tcps']]} left_bodies {tips} | "
+              + " | ".join(parts), flush=True)
 
 
 def score(objects) -> float:
@@ -312,12 +317,31 @@ def success(objects) -> bool:
 # pushed straight on sideways (along y); then the gripper opens and backs away.
 
 TIP = 0.013  # pad tips below the TCP
-PINCH_UP = 0.007  # TCP above the protector's origin while pinching it (pad tips 4 mm above the table at the start)
+FINGER_HALF_W = 0.0137  # each finger pad is 27.4 mm wide (across the pinch); 40 mm wide 3 cm up the finger
+GRIP_YAW = 0.0  # the fingers close along world y, the push's direction, so the pads hold the protector against the
+#               roll a push puts on it (closing along x, it pivoted about that axis between the pads)
+GRIP_SIDE = 0.023  # the pads' middle this far out (in x) past the corner, on the closed wall beyond the frame's end
+# In this sim only one finger closes: the other stays at its open stop, STILL_PAD from the TCP along STILL_DIR (toward
+# -y at GRIP_YAW 0; measured on Brev), and the closing finger shoves the part against it. So a held protector's middle
+# sits STILL_PAD - its half width (35 mm) along STILL_DIR from the TCP, and the pick aims the still finger clear of it.
+STILL_PAD = float(os.environ.get("CORNERS_STILL_PAD", "0.049"))
+STILL_DIR = np.array([math.sin(GRIP_YAW), -math.cos(GRIP_YAW)])
+HALF_BLOCK = (POCKET + WALL) / 2
+GRASP_OFF = tuple((STILL_PAD - HALF_BLOCK) * STILL_DIR)
+PICK_CLEAR = 0.012  # the still finger comes down this far off the block (closer, it catches the top edge and tips
+#                     it); the closing finger then slides the block flat along the table against it
+PINCH_UP = 0.010  # TCP above the protector's origin while pinching it: the pads span about the middle of the pocket, so the
+#                    push acts near the middle of the frame's thickness and doesn't roll the wrist
 HOVER = TOP + 0.10
 APPROACH = 0.050  # start the push this far out from seated, along y
-X_CLEAR = 0.0015  # ... and this far out along x, so the closed wall clears the frame's end ...
+X_CLEAR = 0.004  # ... and this far out along x, so the closed wall clears the frame's end ...
+RELEASE_SHIFT = 0.006
+MID_ON = 0.020  # the first push stops this far short of seated (over the lip, 2.5 cm on) ...
+X_GUIDE = 0.008  # ... then the push home aims this far into the frame's end along x
+Y_OVER = 0.025  # the push aims this far past seated along y: the compliant arm lags behind against the foam, and
+#                  the back of the pocket stops the protector on the corner
 X_PUSH = 0.002  # ... then press this far past seated along x and y at the end of the push
-Z_AIM = -0.00125  # the protector's origin this far below the frame's front: the middle of the bevels' window
+Z_AIM = -0.0003  # the protector's origin this far below the frame's front: the middle of the bevels' window
 PRESS = 0.012  # the holding arm's closed fingertips aimed this far below the back's surface
 HOLD_Y = 0.10  # the holding arm presses on the back this far either side of the middle
 # the loaded arm misses its commanded pose by a pose-dependent offset (x, y, z); the demo aims the other way. Tune on
@@ -325,24 +349,29 @@ HOLD_Y = 0.10  # the holding arm presses on the back this far either side of the
 SAG = tuple(float(v) for v in os.environ.get("CORNERS_SAG", "0,0,0").split(","))
 
 
-def grip_local(name: str) -> np.ndarray:
-    """Where the TCP pinches the protector, in its own frame: across the closed wall whose faces are square to y."""
-    if abs(math.cos(YAW[name])) > 0.5:  # world y along the protector's y: pinch its +x wall
-        return np.array([WALL / 2, (WALL - POCKET) / 2])
-    return np.array([(WALL - POCKET) / 2, WALL / 2])  # world y along its x: pinch its +y wall
-
-
 def grip_world(name: str, origin_xy) -> np.ndarray:
-    return np.asarray(origin_xy, float) + _rot(YAW[name]) @ grip_local(name)
+    """Where the pinch closes on the protector (world xy) when its origin (the back of its pocket) is at ``origin_xy``:
+    across its full width along y, on the closed wall beyond the frame's end, GRIP_SIDE out past the corner."""
+    sx, sy = CORNERS[name]
+    return np.asarray(origin_xy, float) + np.array([sx * GRIP_SIDE, -sy * (POCKET - WALL) / 2])
+
+
+def tcp_for(grip_xy) -> np.ndarray:
+    """The TCP aim that closes the pinch on ``grip_xy``."""
+    return np.asarray(grip_xy, float) - np.array(GRASP_OFF)
 
 
 def _fit(name: str) -> list[Waypoint]:
+    """Pick the protector by its closed end wall, bring it level beside the corner and push it straight on along y
+    until the corner is at the back of the pocket, press it into the corner along x, and let go."""
     sx, sy = CORNERS[name]
     seat = corner_xy(name)
-    g_start = grip_world(name, start_xy(name))
-    g_pre = grip_world(name, seat + np.array([sx * X_CLEAR, sy * APPROACH]))
-    g_in = grip_world(name, seat + np.array([sx * X_CLEAR, -sy * X_PUSH]))
-    g_home = grip_world(name, seat + np.array([-sx * X_PUSH, -sy * X_PUSH]))
+    g_start = grip_world(name, start_xy(name)) - (STILL_PAD - HALF_BLOCK - PICK_CLEAR) * STILL_DIR
+    g_pre = tcp_for(grip_world(name, seat + np.array([sx * X_CLEAR, sy * APPROACH])))
+    g_mid = tcp_for(grip_world(name, seat + np.array([sx * X_CLEAR, sy * MID_ON])))
+    g_in = tcp_for(grip_world(name, seat + np.array([-sx * X_GUIDE, -sy * Y_OVER])))
+    g_home = tcp_for(grip_world(name, seat + np.array([-sx * X_PUSH, -sy * Y_OVER])))
+    g_seat = tcp_for(grip_world(name, seat))
     z_pick = TOP + LIP + 0.0005 + PINCH_UP
     z_fit = FB + Z_AIM + PINCH_UP + SAG[2]
     dx, dy = SAG[0], SAG[1]
@@ -350,19 +379,28 @@ def _fit(name: str) -> list[Waypoint]:
     def at(g, z):
         return (float(g[0] + dx), float(g[1] + dy), float(z))
 
+    y = GRIP_YAW
     return [
-        Waypoint(1.8, (float(g_start[0]), float(g_start[1]), HOVER), FINGER_OPEN, f"{name}: above the protector"),
-        Waypoint(1.4, (float(g_start[0]), float(g_start[1]), z_pick), FINGER_OPEN, f"{name}: down round its wall"),
-        Waypoint(0.8, (float(g_start[0]), float(g_start[1]), z_pick), FINGER_CLOSED, f"{name}: pinch"),
-        Waypoint(1.0, (float(g_start[0]), float(g_start[1]), z_fit + 0.03), FINGER_CLOSED, f"{name}: lift"),
-        Waypoint(1.4, at(g_pre, z_fit + 0.03), FINGER_CLOSED, f"{name}: beside the corner"),
-        Waypoint(1.0, at(g_pre, z_fit), FINGER_CLOSED, f"{name}: down to the frame's height"),
-        Waypoint(0.5, at(g_pre, z_fit), FINGER_CLOSED, f"{name}: steady"),
-        Waypoint(3.0, at(g_in, z_fit), FINGER_CLOSED, f"{name}: push it on sideways"),
-        Waypoint(1.0, at(g_home, z_fit), FINGER_CLOSED, f"{name}: corner into the back of the pocket"),
-        Waypoint(0.6, at(g_home, z_fit), FINGER_CLOSED, f"{name}: settle"),
-        Waypoint(0.6, at(g_home, z_fit), FINGER_OPEN, f"{name}: let go"),
-        Waypoint(0.8, at(g_home, z_fit + 0.05), FINGER_OPEN, f"{name}: up"),
+        Waypoint(1.8, (float(g_start[0]), float(g_start[1]), HOVER), FINGER_OPEN, f"{name}: above the protector", y),
+        Waypoint(1.4, (float(g_start[0]), float(g_start[1]), z_pick), FINGER_OPEN, f"{name}: down round it", y),
+        Waypoint(0.8, (float(g_start[0]), float(g_start[1]), z_pick), FINGER_CLOSED, f"{name}: pinch", y),
+        Waypoint(1.0, (float(g_start[0]), float(g_start[1]), z_fit + 0.03), FINGER_CLOSED, f"{name}: lift", y),
+        Waypoint(1.4, at(g_pre, z_fit + 0.03), FINGER_CLOSED, f"{name}: beside the corner", y),
+        Waypoint(1.0, at(g_pre, z_fit), FINGER_CLOSED, f"{name}: down to the frame's height", y),
+        Waypoint(0.5, at(g_pre, z_fit), FINGER_CLOSED, f"{name}: steady", y),
+        Waypoint(3.0, at(g_mid, z_fit), FINGER_CLOSED, f"{name}: push it on", y),
+        # once on, aim into the frame's end: the closed wall slides along it, and the far arm's outward drift (which
+        # walked the pads off the protector's end on Brev) is held off
+        Waypoint(4.0, at(g_in, z_fit), FINGER_CLOSED, f"{name}: push it home along the frame's end", y),
+        Waypoint(1.0, at(g_home, z_fit), FINGER_CLOSED, f"{name}: press it into the corner", y),
+        Waypoint(0.6, at(g_home, z_fit), FINGER_CLOSED, f"{name}: settle", y),
+        # ease the aim back to seated so the arm stops straining before the fingers open (else it lurches on and the
+        # closing finger, still shut, twists the protector against the corner)
+        Waypoint(0.8, at(g_seat, z_fit), FINGER_CLOSED, f"{name}: ease off", y),
+        Waypoint(0.6, at(g_seat, z_fit), FINGER_OPEN, f"{name}: let go", y),
+        # the still finger stays against the protector's face: move it off the face before lifting, or it drags it
+        Waypoint(0.6, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_fit), FINGER_OPEN, f"{name}: still finger off it", y),
+        Waypoint(0.8, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_fit + 0.035), FINGER_OPEN, f"{name}: up", y),
     ]
 
 
@@ -410,6 +448,8 @@ def demo():
         left_fit, right_fit = _fit("far_left"), []
     if variant == "probe_near":  # Brev probe: the near-left protector only (the reach close to the arm's base)
         left_fit, right_fit = _fit("near_left"), []
+    if variant == "probe_right":  # Brev probe: the right arm's two protectors, the left arm holding
+        left_fit = []
     # phase 1: left fits, right holds; phase 2: right fits, left holds
     t1 = _length(left_fit)
     left = left_fit + [Waypoint(1.0, (FRAME_AT[0], HOLD_Y, HOVER), FINGER_CLOSED, "left: over the frame")]
