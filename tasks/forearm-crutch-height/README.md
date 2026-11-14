@@ -26,7 +26,7 @@ Positions in cm from the midpoint between the arm bases (x forward, y left, z up
 |---|---|
 | Stand (fixed) | Pine. For each crutch, two cradles: a 4 x 2 cm block with a 1 cm post either side of the tube, at y 1 (under the collar) and y 47 (under the tube between the handgrip and the cuff). An open pocket 3.4 x 3.4 cm and 7.5 tall at y 36 that the handgrip hangs in, 2 mm clear all round, so the crutch can't turn or slide along the stand |
 | Crutches (2, 0.54 kg each) | Adult aluminium forearm crutches without locking collars, lying along y with their axes 13.5 above the table at x 23 (near) and x 35 (far). Main tube 22.2 mm (7/8 in) across, 1.2 mm wall, from a black plastic collar at y 0 up to an open grey plastic cuff (y 55.5 to 61.5, for a 9 cm forearm). A black foam handgrip, 3 cm across and 11.5 long, at y 36, hanging down. Nine 7 mm holes 1 in apart in the tube's back, from hole 1 (the lowest, the longest setting) at y 4 to hole 9 at y 24.3. Two red tape bands round the tube either side of hole 5 (y 14.2) |
-| Legs | A 19 mm (3/4 in) tube, 58 long, inside each main tube, with a black rubber tip 4 across. A chromed steel spring button 6.4 mm across sits 3 cm below its top end: a flat top 2 mm across, its edge bevelled at 45 degrees. Let out, it stands 4 mm out of its hole (4.8 N); pressed into the tube, it pushes back with 9 N |
+| Legs | A 19 mm (3/4 in) tube, 58 long, inside each main tube, with a black rubber tip 4 across. A chromed steel spring button 6.4 mm across sits 3 cm below its top end: a flat top 2 mm across, its edge bevelled at 45 degrees. Let out, it stands 4 mm out of its hole (3 N); pressed into the tube, it pushes back with 5 N |
 | Settings | Handle height (tip to handgrip) is 70 cm at hole 9 to 90.5 at hole 1, 2.54 cm a hole. The near crutch starts in hole 2 (88 cm) and the far one in hole 8 (72.7 cm). Hole 5 is 80.3 cm |
 
 ## Scoring
@@ -67,8 +67,9 @@ fixed (`object_jitter=0`), so no seed is needed. A trial takes about TBD minutes
 Run it with `--policy yam_scripted` instead of `--policy dream`. For each crutch in turn (near, then far):
 
 1. the right hand pinches the leg below the main tube;
-2. the left presses the button in with its closed fingertips. The arm is soft, so it aims 2 cm below the tube to press
-   with about 8 N;
+2. the left presses the button in with its closed fingertips, turned so the pads' width lies mostly along the tube. The arm
+   is soft (about 500 N/m down at the fingertips), so it aims 1.3 cm below the tube to press with about 6 N, and 3 mm
+   forward of the button, since the loaded arm sags that much toward its base;
 3. the right slides the leg 1 cm, the left's fingertips going along with the button, until the button is under the
    wall;
 4. for each hole the button still has to pass, the left lifts and presses down on that hole, and the right slides the
@@ -81,7 +82,7 @@ Run it with `--policy yam_scripted` instead of `--policy dream`. For each crutch
 Set `CRUTCH_DEBUG=1` to print, every 5 steps, each button's position and its leg's (as fractional hole numbers), how
 far the button stands out, how far each crutch has moved and rolled, whether the leg is held or free, whether the
 wall is holding the button in, and whether the crutch is set. `CRUTCH_SAG_L` and `CRUTCH_SAG_R` ("dx,dy,dz", m) shift
-each arm's poses, `CRUTCH_PRESS_GAP` sets where the pressing fingertips aim relative to the tube (default -2 cm), and
+each arm's poses, `CRUTCH_PRESS_GAP` sets where the pressing fingertips aim relative to the tube (default -1.3 cm), and
 `CRUTCH_PRESS_OFF` ("dx,dy") shifts the press off the button's middle.
 
 Shortcuts, with `DEMO_VARIANT` set in the environment:
@@ -112,7 +113,7 @@ The crutches, legs, buttons and stand are rigid bodies made of shapes from `body
 the handgrip: an octagon of eight 1.2 mm wall panels, 22.2 mm across its flats, its top panel broken by the nine 7 mm
 holes. The leg is a cylinder 0.4 mm smaller than the tube's inside. It slides on a prismatic joint along the crutch (a
 `Slider`), with its travel limited to the row of holes, and the two don't collide; the leg can't turn. The button
-moves in and out of the leg on a second, sprung `Slider` (800 N/m, 4.8 N let out). The robot presses it physically:
+moves in and out of the leg on a second, sprung `Slider` (500 N/m, 3 N let out). The robot presses it physically:
 the gripper's fingertips collide with it.
 
 The button's catch is played by the task file, because a pressed button meeting a hole's edge jams in PhysX however

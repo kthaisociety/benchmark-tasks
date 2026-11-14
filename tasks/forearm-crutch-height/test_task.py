@@ -53,8 +53,8 @@ def test_button_fits_its_hole_and_the_leg_fits_the_tube():
 def test_spring_force():
     rest = T.BUTTON_K * T.BUTTON_PRE
     inside = T.BUTTON_K * (T.BUTTON_PRE + T.BUTTON_Z - T.R_INNER)
-    assert 4.0 <= rest <= 6.0
-    assert 7.0 <= inside <= 12.0
+    assert 2.5 <= rest <= 4.0  # a light thumb press frees it
+    assert 4.5 <= inside <= 7.0
 
 
 def test_handle_height_matches_a_real_adult_forearm_crutch():
@@ -272,7 +272,7 @@ def test_slide_ends_at_the_red_hole():
         last = next(w for w in reversed(right) if w.finger == T.FINGER_CLOSED)
         want = T.hole_y(T.TARGET) - T.hole_y(k0)
         assert last.pos[1] - T.grip_point(name, 0.0)[1] == pytest.approx(want + math.copysign(T.OVERSHOOT, want))
-        assert T.OVERSHOOT < T.ALIGN
+        assert T.OVERSHOOT < T.PITCH / 2 - T.ALIGN  # the lock catches the button before the next hole
 
 
 def test_no_press_never_reaches_the_button(monkeypatch):
@@ -409,7 +409,5 @@ def test_held_leg_resists_a_strong_pull():
     assert T.LOCK_FORCE >= 200.0
 
 
-def test_first_stretch_stays_under_the_pad():
-    pad_half = 0.027 / 2 * math.sin(T.YAW_PRESS)
-    assert T.ALIGN < T.PAST
-    assert T.PAST + T.BUTTON_R < pad_half
+def test_first_stretch_passes_under_the_wall():
+    assert T.ALIGN < T.PAST < T.PITCH - T.ALIGN - 0.005  # under the wall, short of the next hole

@@ -79,7 +79,7 @@ PROUD = 0.0040  # let out, its top stands 4 mm out of the main tube
 BUTTON_Z = R_OUT + PROUD  # 15.1 mm: its top above the axis, let out
 SHANK_FROM = 0.0040  # the shank runs down to 4 mm above the axis (its spring clip is inside the leg)
 BUTTON_TRAVEL = 0.0060
-BUTTON_K, BUTTON_PRE = 800.0, 0.0060  # N/m and preload: 4.8 N let out, 9 N pressed down inside the main tube
+BUTTON_K, BUTTON_PRE = 500.0, 0.0060  # N/m and preload: 3 N let out, 5 N pressed down inside the main tube
 BUTTON_MASS = 0.006
 BUTTON_FRICTION = (0.15, 0.12)  # chromed steel: a thumb (or fingertip) slides over it
 
@@ -457,7 +457,8 @@ def success(objects) -> bool:
 # -- the scripted demo -------------------------------------------------------------------------------------------------
 # For each crutch in turn the right hand pinches the leg below the main tube, and the left presses the leg's button in
 # with closed fingertips, turned so the finger pad's 27 mm width lies along the tube. The arm is soft (a few hundred N/m
-# at the TCP), so it aims well below the tube to press with about 8 N. The right slides the leg only while the left
+# at the TCP: about 500 N/m down and 200 N/m sideways, and the wrist tilts under load), so it aims below the tube to
+# press with about 6 N, and slides are commanded well past where the leg has to get to. The right slides the leg only while the left
 # holds still (a gliding press lags behind the button): first just far enough, the left's fingertips going along, that
 # the button is under the tube's wall; then the left lifts, moves on and presses on the next hole the button will pass,
 # so the button can't spring out there, and the right slides the leg on past it; and so on. For the last stretch the
@@ -465,19 +466,26 @@ def success(objects) -> bool:
 # hole and the button springs out through it.
 
 TIP = 0.013  # the pad tips this far below the TCP
-PRESS_GAP = float(os.environ.get("CRUTCH_PRESS_GAP", "-0.020"))  # pad tips aimed this far above (below) the tube
-PAST = 0.006  # each slide takes the button this far past a hole: its flat top under the wall, still under the pad
+PRESS_GAP = float(os.environ.get("CRUTCH_PRESS_GAP", "-0.013"))  # pad tips aimed this far above (below) the tube: ~6 N
+PAST = 0.012  # each slide is commanded this far past a hole: the soft arm stops short by a few mm, and the button
+# only has to get its flat top under the wall (2.5 mm) and not reach the next hole
 LEAD = 0.002  # each press on a hole ahead is aimed this far toward the coming button (the arm lands a little past)
 SETTLE = 0.6  # after each slide the right holds its pose this long: the pinch lags the arm by a few mm
-OVERSHOOT = 0.002  # the last slide aims this far past the red hole: the pinch slips a little; the button self-centres
+OVERSHOOT = 0.008  # the last slide aims this far past the red hole: the arm stops short of its command under
+# friction; the button springs out as it passes the hole and the lock centres it
 # the arms miss their commanded poses by a pose-dependent offset; aim the other way. Tune on Brev:
 # CRUTCH_SAG_L / CRUTCH_SAG_R = "dx,dy,dz" (m)
-SAG_L = np.array([float(v) for v in os.environ.get("CRUTCH_SAG_L", "0,0,0").split(",")])
+# the left, pressing with ~6 N, sags about 3 mm toward its base and 1.5 mm in +y (joint compliance): aim the other way
+SAG_L = np.array([float(v) for v in os.environ.get("CRUTCH_SAG_L", "0.003,-0.0015,0").split(",")])
 SAG_R = np.array([float(v) for v in os.environ.get("CRUTCH_SAG_R", "0,0,0").split(",")])
 PRESS_OFF = np.array([float(v) for v in os.environ.get("CRUTCH_PRESS_OFF", "0,0").split(",")] + [0.0])
 GRIP_UP = 0.004  # the right's TCP this far above the leg's axis while pinching it
 YAW = math.pi / 2  # the right's grip: straight down, fingers closing across the leg (along x)
-YAW_PRESS = math.radians(60.0)  # the left presses with closed fingertips, the finger pad (27 mm wide) 23 mm along the tube
+# the left presses with closed fingertips turned so the pads' width lies along the tube: their flat faces are only
+# about 15 mm along the tube by 7 mm across it (the tips taper), and the button must pass under the flat face, not meet
+# a tip's edge, so the width goes along the tube (70 degrees: the wrist can't turn a full 90 at the near crutch) and
+# the arm's x error is compensated (SAG_L)
+YAW_PRESS = math.radians(70.0)
 HOVER_L = 0.030  # the left comes down from just above the button (higher is out of its reach so far inward)
 HOVER = 0.035  # the right comes down from this far above the leg (its pad tips then 1.6 cm over the tube)
 SLIDE_S_PER_HOLE = 1.2
