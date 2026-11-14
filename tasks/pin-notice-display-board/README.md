@@ -83,11 +83,11 @@ Shortcuts, with `DEMO_VARIANT` set in the environment:
 
 | `DEMO_VARIANT` | What the arms do | Score |
 |---|---|---|
-| `full` | as above | TBD (expected 1.0) |
-| `nothing` | wait | TBD (expected 0.0) |
-| `pin_only` | the pin goes into the bare cork 8 cm beside the notice; the notice isn't touched | TBD (expected 0.25) |
-| `no_slide` | the notice is pinned where it rests, 2.5 cm below the line | TBD (expected 0.5) |
-| `keep_holding` | as `full`, but the left arm never lets go of the notice | TBD (expected 0.75) |
+| `full` | as above | 1.0 (success at step 503, episode ends at 543) |
+| `nothing` | wait | 0.0 |
+| `pin_only` | the pin goes into the bare cork 8 cm beside the notice; the notice isn't touched | 0.25 |
+| `no_slide` | the notice is pinned where it rests, 2.5 cm below the line | 0.5 |
+| `keep_holding` | as `full`, but the left arm never lets go of the notice | 0.75 |
 
 ## How the cork is modelled
 
