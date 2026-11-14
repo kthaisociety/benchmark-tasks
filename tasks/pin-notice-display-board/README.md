@@ -7,8 +7,10 @@ the table.
 
 The instruction is: "Pin the notice to the display board with its top edge at the line, then let go."
 
-Teaching assistants and school and office admin staff put up notices on cork display boards (O*NET 25-9042 Teaching
-Assistants, 1.46 million employed: "prepare lesson materials, bulletin board displays"). On a tilted or upright board
+Teaching assistants put up notices on cork display boards (O*NET 25-9042 Teaching Assistants, Except Postsecondary,
+1.46 million employed: "Prepare lesson materials, bulletin board displays, exhibits, equipment, and demonstrations").
+The board here is a tabletop easel rather than a wall board, so the face is within the arms' reach; its slope still
+makes the notice slide, which is what forces the hold. On a tilted or upright board
 the notice slides down as soon as it is let go, so one hand has to hold it where it should go while the other pushes
 a pushpin through it into the cork. The pin has to be pressed square to the board, hard enough to take (about 6 N
 into cork), without shoving the notice out of place, and the robot then has to let go of both. The task tests holding
@@ -20,17 +22,17 @@ Positions in cm from the midpoint between the arm bases (x forward, y left). The
 
 | Object | Description |
 |---|---|
-| Display board (fixed) | Cork face 30 up the face by 32 across, 1.2 thick, tilted 30 degrees from the table; its low edge at x 12, 3 above the table, spanning y -10 to +22. A wooden ledge 1 x 32 x 1.2 along the low edge, 1.2 proud of the face. A 3 x 32 x 3 foot and a 3 x 3 rear strut hold it. Two black ticks, 2 long and 2 mm wide, 1.2 in from each side of the face, mark the line 17.5 up the face from the ledge |
+| Display board (fixed) | Cork face 30 up the face by 32 across, 1.2 thick, tilted 30 degrees from the table; its low edge at x 12, 3 above the table, spanning y -10 to +22. A wooden ledge 1 x 32 x 1.2 along the low edge, 1.2 proud of the face. A pine foot 3 x 32 x 3 and a pine rear strut 3 x 3 hold it. Two black ticks, 2 long and 2 mm wide, 1.2 in from each side of the face, mark the line 17.5 up the face from the ledge |
 | Notice (6 g) | Laminated A6 card, white, 14.8 x 10.5 x 0.1. Lies flat on the face standing on the ledge, centred at y 7 (it spans y 1.75 to 12.25). Its top edge is 15 up the face, 2.5 below the line |
 | Pushpin (5 g) | Red plastic head 11 mm tall and 9 to 11 mm across over an 11 mm collar; 8 mm steel needle. Stands needle-down in the pin cup, its collar resting on the cup's top |
-| Pin cup (fixed) | Grey block 4 x 4 x 2 with a 3 mm hole, at x 25, y -17 |
+| Pin cup (fixed) | Grey plastic block 4 x 4 x 2 with a 3 mm hole, at x 25, y -17 |
 
 ## Scoring
 
 The task file follows the trial after every control step and `score()` gives the state at the end:
 
 - **0.25:** the pushpin stands in the cork (at least 2 mm in, anywhere on the board) and has been let go (every
-  gripper's fingertip centre at least 4 cm from it).
+  gripper's fingertip centre at least 4 cm from it): credit for taking the pin and driving it in.
 - **0.5:** the pin's needle is through the notice at least 3 mm from the notice's edges, its head seated on it
   (within 1.5 mm), and let go, but the notice isn't at the line or hangs crooked.
 - **0.75:** the notice is pinned like that with its top edge within 1 cm of the line and its long edges within
