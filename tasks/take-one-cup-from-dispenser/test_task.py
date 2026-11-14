@@ -430,7 +430,7 @@ def test_mesh_clearances():
     out = subprocess.run([sys.executable, str(HERE / "check_clearance.py"), "full"], capture_output=True, text=True,
                          env=env, timeout=600, check=True).stdout
     lines = [ln for ln in out.splitlines() if ln.strip().startswith(("OK", "LOW", "HIT"))]
-    bad = [ln for ln in lines if not ln.strip().startswith("OK") and "pinched" not in ln]
+    bad = [ln for ln in lines if not ln.strip().startswith("OK")]
     assert lines and not bad, out
 
 

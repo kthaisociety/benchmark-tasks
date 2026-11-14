@@ -108,7 +108,9 @@ while t < arm.duration:
         if label == "pinch" and not (link == "tip_left" and closed):
             # pinched: only the closing pad may touch the cup; the still pad rests on it (allow 1 mm)
             d = cup_clearance(P, T.CUP1_BASE_Z).min()
-            note("cup (pinched, not pads)", d + (0.0005 if link == "tip_right" else 0.0), label, link)
+            # the still finger's pad rests on the cup: up to 1 mm of overlap there is the intended contact
+            key = "still pad on the cup (contact)" if link == "tip_right" else "cup (pinched, other links)"
+            note(key, d + (0.001 if link == "tip_right" else 0.0), label, link)
     t += dt
 print(f"variant {variant}, pitch {math.degrees(T.PITCH):.0f} deg, grip_forward {T.GRIP_FORWARD * 1000:.0f} mm, "
       f"grip_up {T.GRIP_UP * 1000:.0f} mm: "
