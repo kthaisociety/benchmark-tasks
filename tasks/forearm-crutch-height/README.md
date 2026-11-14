@@ -60,7 +60,7 @@ inspect-robots run --embodiment yam_arena --policy dream \
 ```
 
 `task_score` prints the trial's score: 1.0 on success, otherwise `score()` at the end of the episode. The layout is
-fixed (`object_jitter=0`), so no seed is needed. A trial takes about TBD minutes of wall time on an L40S at 2,400 steps.
+fixed (`object_jitter=0`), so no seed is needed. A trial takes about 5 minutes of wall time on an L40S at 2,400 steps (sharing the GPU with two other simulations), less when it ends early on success.
 
 ## Scripted demo
 
@@ -89,12 +89,12 @@ Shortcuts, with `DEMO_VARIANT` set in the environment:
 
 | `DEMO_VARIANT` | What the arms do | Score |
 |---|---|---|
-| `full` | as above | TBD (expected 1.0) |
-| `nothing` | wait | TBD (expected 0.0) |
-| `near_only` | set the near crutch only | TBD (expected 0.4) |
-| `no_press` | the right pulls and pushes both legs, nobody presses the buttons | TBD (expected 0.0) |
-| `half_way` | the far leg stops 6 mm short of the red hole, its button under the wall | TBD (expected 0.4) |
-| `keep_holding` | set both, but the right keeps hold of the far leg | TBD (expected 0.8) |
+| `full` | as above | 1.0 (success at step 770, 38.5 s) |
+| `nothing` | wait | 0.0 |
+| `near_only` | set the near crutch only | 0.4 |
+| `no_press` | the right pulls and pushes both legs, nobody presses the buttons | 0.0 (the legs never move) |
+| `half_way` | the far leg stops 6 mm short of the red hole, its button under the wall | 0.4 |
+| `keep_holding` | set both, but the right keeps hold of the far leg | 0.8 |
 
 ## Offline checks
 
