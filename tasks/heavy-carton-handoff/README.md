@@ -51,7 +51,24 @@ Wrong strategies, scripted with `HEAVY_VARIANT` (heavy carton in slot 0):
 
 ## Real trials
 
-The 2 kg carton is within the arm's rated payload (about 2 kg), so a test lift is a safe load. Set the arm's joint torque (current) limits so that it cannot raise the 2 kg carton to the 14 cm shelf, and check this before the trials: a 0.3 kg carton must reach shelf height and the 2 kg carton must stall below it. An operator keeps a hand on the emergency stop and stops the trial if a carton is lifted more than 15 cm or the arm faults. Pick the heavy carton's slot with a die before each trial (1-2 left, 3-4 middle, 5-6 right).
+The heavy carton is 2 kg, within the arm's rated payload (about 2 kg). In the simulator the arms stall with it at these slots; a real arm may hold position more stiffly and raise it, so real trials limit the elbow's torque. The limit comes from the joint torques logged in the simulator during the demo's test lifts and pushes:
+
+| Phase (demo, slots 0, 1 and 2) | Elbow (joint 3) | Shoulder (joint 2) |
+|---|---|---|
+| 0.3 kg carton raised to 14.7 to 15.0 cm (6 lifts) | 5.8 to 6.0 N m held, 6.3 N m peak | 6.8 to 9.6 N m held, 10.9 N m peak |
+| 2 kg carton test lift, stalls at 10.4 to 12.2 cm (3 lifts) | 9.7 to 9.8 N m held, 10.2 N m peak | 11.6 to 16.2 N m held, 16.8 N m peak |
+| 2 kg carton pushed onto the mat, friction 0.4 as for cardboard on a steel bench (slots 0 and 2) | 6.1 to 6.8 N m median, 7.0 N m peak | |
+
+The simulator's own friction (1.2, rubber-like) makes the push need 8.9 to 10.2 N m at the elbow; at the cardboard-on-steel friction of a real bench (0.4, measured in the same demo with that friction set) it needs at most 7.0 N m. Lifting does not depend on friction.
+
+Only the elbow separates the two loads (the shoulder's light-lift peaks come within 2 N m of the heavy lift), and an elbow limit between 7.0 and 9.6 N m lets the arm shelve the light cartons and push the heavy one but not raise it, so:
+
+1. With the arms unloaded, set the elbow (joint 3) torque limit of both arms to **8 N m**, midway between the light lift's 6.3 N m and the heavy lift's 9.7 N m. Leave the other joints at their defaults. If the controller takes a current limit, convert 8 N m with the elbow motor's torque constant and gear ratio from its datasheet.
+2. With an operator's hand on the emergency stop, put a 0.3 kg carton in each slot in turn and run the test lift to 14 cm: it must reach 14 cm at every slot.
+3. Do the same with the 2 kg carton: it must stall below 14 cm at every slot (in the simulator it stops 2 to 4 cm short). The arm should hold the carton or lower it slowly; stop the arm if it drops faster.
+4. Still at that limit, push the 2 kg carton from each slot onto the handoff mat with the fingers half open, low on its back face: it must reach the mat at every slot.
+5. If a 0.3 kg carton falls short or the push stalls, raise the elbow limit in 0.5 N m steps and repeat steps 2 to 4, never above 9.5 N m (just under the heavy lift's 9.7 N m). If no setting passes steps 2, 3 and 4 together, do not run trials.
+6. During trials the operator stops the arm if a carton rises above 15 cm or the arm faults. Pick the heavy carton's slot with a die before each trial (1-2 left, 3-4 middle, 5-6 right).
 
 ## Runtime and seeds
 
