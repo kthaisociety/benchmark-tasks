@@ -276,6 +276,30 @@ def test_fingers_pressing_the_face_is_not_let_go(monkeypatch):
     assert "near_left" not in T.protected(_objects(prots))
 
 
+def test_block_distance():
+    prot = _seated_protector("far_left")
+    mid = T.protector_middle(prot)
+    assert T.block_distance(prot, mid) == 0.0
+    assert T.block_distance(prot, mid + np.array([0.0, 0.0, 0.10])) == pytest.approx(0.10 - (T.ROOF + T.LIP - T.ROOF / 2), abs=1e-6)
+
+
+def test_measured_press_pose_is_not_let_go():
+    """On Brev the near press held the TCP 24 mm off the seated protector's outer face."""
+    prot = _seated_protector("near_left")
+    face_y = T.corner_xy("near_left")[1] + T.WALL
+    T._S["tcps"] = [np.array([0.185, face_y + 0.024, 0.797]), np.array(T.PARK["right"])]
+    assert not T.released(prot)
+
+
+def test_lifted_away_counts_as_let_go():
+    prots = {n: _seated_protector(n) for n in T.CORNERS}
+    for name in T.CORNERS:
+        wps = T._fit(name)
+        lift = next(w for w in wps if w.label.endswith("lift away"))
+        T._S["tcps"] = [np.array(lift.pos), np.array(T.PARK["right"])]
+        assert T.released(prots[name]), name
+
+
 def test_dropped_frame_scores_zero():
     prots = {n: _seated_protector(n) for n in T.CORNERS}
     T._S["dropped"] = True
@@ -305,6 +329,8 @@ def _plans(variant, monkeypatch):
 
 @pytest.mark.parametrize("variant", VARIANTS)
 def test_demo_fits_the_run_limit(variant, monkeypatch):
+    if variant == "keep_holding":  # keeps pressing until the trial ends, by design
+        return
     plans = _plans(variant, monkeypatch)
     assert max(p.duration for p in plans.values()) < RUN_LIMIT_S - 5.0
 

@@ -40,7 +40,8 @@ The task file follows the trial after every control step:
     real rig: no gap a 1 mm feeler gauge passes between the frame's front and the pocket floor;
   - the protector square and level with the frame (its rotation within 6 degrees of the frame's, turned for that
     corner);
-  - each gripper's TCP (fingertip centre) at least 5 cm from the protector's middle.
+  - let go: no part of either gripper within 1.5 cm of the protector (in the sim: each arm's TCP, the point
+    between its finger pads, at least 4 cm from the protector's block; the finger surfaces reach about 2.4 cm from it).
 
 `score()` gives 0 if the frame was dropped or doesn't end flat on both blocks (tilted more than 3 degrees). On a real
 rig a trial also scores 0 if a right-hand protector was pulled off or moved; in the sim they are part of the frame's
@@ -64,7 +65,7 @@ inspect-robots run --embodiment yam_arena --policy dream \
 ```
 
 `task_score` prints the trial's score: 1.0 on success, otherwise `score()` at the end of the episode. The layout is
-fixed (`object_jitter=0`), so no seed is needed. A trial takes about TBD minutes of wall time on an L40S at 1,800 steps.
+fixed (`object_jitter=0`), so no seed is needed. A full 1,800-step trial takes about 13 minutes of wall time with frames stored; the scripted demo ends on success at step 897 (about 7 minutes).
 
 ## Scripted demo
 
@@ -84,15 +85,16 @@ Set `CORNERS_DEBUG=1` to print the frame and, for each loose protector, where it
 the floor is pressed, every 5 steps. `CORNERS_SAG="dx,dy,dz"` shifts every fitting pose to make up for the loaded
 arm's sag.
 
-Shortcuts, with `DEMO_VARIANT` set in the environment:
+Shortcuts, with `DEMO_VARIANT` set in the environment. `no_hold` shows that the frame doesn't need holding: the
+protectors slide on without shoving it off its blocks, so holding it is the demo's choice, not part of the task.
 
 | `DEMO_VARIANT` | What the arms do | Score |
 |---|---|---|
-| `full` | as above | TBD (expected 1.0) |
-| `nothing` | wait | TBD (expected 0.0) |
-| `one_only` | fit the far protector only | TBD (expected 0.5) |
-| `keep_holding` | fit both, but keep pressing the second | TBD (expected 0.5) |
-| `no_hold` | fit both with nobody holding the frame | TBD |
+| `full` | as above | 1.0 (success at step 897) |
+| `nothing` | wait | 0.0 |
+| `near_only` | fit the near protector only | 0.5 |
+| `keep_holding` | fit both, but keep the fingers pressed on the second to the end | 0.5 |
+| `no_hold` | fit both with nobody holding the frame | 1.0 |
 
 ## Offline checks
 

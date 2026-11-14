@@ -184,7 +184,8 @@ Z_TOL = 0.003  # the frame's front within 3 mm of the pocket floor's line
 TURN_TOL = 6.0  # degrees: the protector square to the corner
 TILT_TOL = 6.0  # degrees: level with the frame
 SQUEEZE = 0.0003  # the floor pressed down at least this far: the foam grips the frame
-LET_GO = 0.05  # each gripper's TCP at least this far from the protector's middle (pressing its face, 43 mm)
+LET_GO = 0.040  # each arm's TCP at least this far from the protector's block: the finger surfaces reach about 24 mm
+#                 from the TCP (measured on Brev, fingers pressing the outer face), so this leaves them about 1.5 cm clear
 DROPPED_TILT = 15.0  # the frame ever tilted more than this, or fell off a block: dropped
 FLAT_TILT = 3.0  # at the end the frame lies flat on both blocks
 OFF_BLOCK = 0.015  # its front this far below the blocks' top: it slid off a block
@@ -237,9 +238,20 @@ def seated_on(frame, prot, name: str) -> bool:
     return _angle_deg(want, prot.rotation()) <= max(TURN_TOL, TILT_TOL) and squeeze(prot) >= SQUEEZE
 
 
+BLOCK_LO = np.array([-POCKET, -POCKET, -LIP])  # the protector's outer block, in its own frame
+BLOCK_HI = np.array([WALL, WALL, ROOF + LIP])
+
+
+def block_distance(prot, point) -> float:
+    """How far ``point`` (world) is from the protector's outer block (0 inside it)."""
+    local = prot.to_local(np.asarray(point, float))
+    return float(np.linalg.norm(np.maximum(0.0, np.maximum(BLOCK_LO - local, local - BLOCK_HI))))
+
+
 def released(prot) -> bool:
-    mid = protector_middle(prot)
-    return bool(_S["tcps"]) and all(np.linalg.norm(np.asarray(t) - mid) >= LET_GO for t in _S["tcps"])
+    """Let go: each arm's TCP at least LET_GO from the protector's block. (A TCP-to-middle distance let fingers still
+    pressing the outer face count as let go on Brev.)"""
+    return bool(_S["tcps"]) and all(block_distance(prot, t) >= LET_GO for t in _S["tcps"])
 
 
 def frame_flat(frame) -> bool:
@@ -260,8 +272,8 @@ def protected(objects) -> list[str]:
 
 
 def grippers(environment) -> list[np.ndarray]:
-    """World positions of both grippers' TCP (between the finger pads, 13 mm above the pad tips), from each gripper
-    link's pose, as yam_arena.runtime.tcp_world computes it."""
+    """World positions of both grippers' TCP (between the finger pads, 13 mm above the pad tips, from each gripper
+    link's pose as yam_arena.runtime.tcp_world computes it)."""
     from yam_arena.runtime import tcp_world
 
     base = environment.unwrapped
@@ -466,9 +478,10 @@ def demo():
         fit = _fit("far_left")
     if variant == "near_only":  # Brev probe: the near corner only
         fit = _fit("near_left")
-    if variant == "keep_holding":  # both fitted, but the second one is never let go
-        fit = fit[:-2] + [Waypoint(3.0, fit[-3].pos, FINGER_CLOSED, "keep pressing", fit[-3].yaw)]
     left = fit + [Waypoint(1.5, PARK["left"], FINGER_OPEN, "park")]
+    if variant == "keep_holding":  # both fitted, but the fingers stay pressed on the second one to the end
+        fit = fit[:-2] + [Waypoint(60.0, fit[-3].pos, FINGER_CLOSED, "keep pressing", fit[-3].yaw)]
+        left = fit
     if variant == "no_hold":  # nobody holds the frame
         return {"left": left, "right": _wait(_length(left), PARK["right"])}
     right = _hold("right", _length(fit) + 0.5) + [Waypoint(1.5, PARK["right"], FINGER_OPEN, "park")]
