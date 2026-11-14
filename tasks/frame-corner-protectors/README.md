@@ -33,7 +33,8 @@ The task file follows the trial after every control step:
 - **Dropped:** the frame tilted more than 15 degrees at any time, or its front went 1.5 cm below the blocks' top (it
   slid off a block).
 - **A bare corner counts** when a protector is fully on it and let go:
-  - the corner within 4 mm of the back of the pocket in both directions;
+  - the corner within 4 mm of the back of the pocket in both directions. On a real rig: each closed wall's outer face
+    2.5 cm past the frame's edge, within 4 mm, measured with a tape measure;
   - the pocket's floor under the frame's front and its roof over its back, with the foam squeezed onto the frame. In
     the sim: the frame's front within 3 mm of the floor's line and the sprung floor pressed down at least 0.3 mm. On a
     real rig: no gap a 1 mm feeler gauge passes between the frame's front and the pocket floor;
@@ -41,9 +42,12 @@ The task file follows the trial after every control step:
     corner);
   - each gripper's TCP (fingertip centre) at least 4 cm from the protector's middle.
 
-`score()` gives 0 if the frame was dropped or doesn't end flat on both blocks (tilted more than 3 degrees).
+`score()` gives 0 if the frame was dropped or doesn't end flat on both blocks (tilted more than 3 degrees). On a real
+rig a trial also scores 0 if a right-hand protector was pulled off or moved; in the sim they are part of the frame's
+rigid body, so they can't come off.
 Otherwise it gives 0.5 for each bare corner that counts. With both counting it gives 1.0 once the frame and both
-protectors are still (each moving under 1 cm/s and turning under 0.5 rad/s), and 0.75 before that. `success()` ends
+protectors are still (each moving under 1 cm/s and turning under 0.5 rad/s; on a real rig, no visible movement for 1 s), and 0.75 before
+that. `success()` ends
 the episode once 1.0 has held for 1 s.
 
 Either loose protector can go on either bare corner, as long as its pocket faces that corner.
