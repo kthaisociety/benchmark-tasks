@@ -15,5 +15,6 @@
   "run_limit": "1,800 steps (90 s at 20 Hz)",
   "reset_notes": "Pull the two fitted left-hand protectors off and lay them back on their marks, pockets facing their corners; leave the right-hand two on; put the frame back centred on the blocks. Nothing is used up.",
   "fidelity": "Rigid bodies (Isaac Sim, PhysX, 20 Hz control). The foam's squeeze is a sprung rigid floor in each loose pocket (2,500 N/m, 2 mm proud: about 1.25 N once on); the rest of the foam is rigid, and rounded lips on the pocket's open edges stand in for foam giving at the opening. The frame is one rigid body: moulding, one slab for the glass, mount and back, and the two fitted protectors. Foam friction 0.3, frame 0.6.",
-  "scores": "Dream-1 run: 0.0; demo: 1.0"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-EWST4M"
 }
