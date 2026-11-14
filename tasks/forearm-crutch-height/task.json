@@ -16,5 +16,6 @@
   "run_limit": "2,400 steps (120 s at 20 Hz)",
   "reset_notes": "Press each button and slide the near crutch's leg back to hole 2 and the far one's to hole 8, buttons fully out; lay both back on the stand, handgrips down. Nothing is used up.",
   "fidelity": "Rigid bodies (Isaac Sim, PhysX, 20 Hz control). Tubes, holes and button are modelled at full size and the button is pressed physically (sprung joint, 500 N/m), but its catch is set by the task file: the leg is held at a hole until the button is pressed 3 of its 4 mm, and between holes the button is held in, as the wall does. The leg slides on a joint and can't turn. The tube above the handgrip is straight (real ones bend about 15 degrees). Masses and button force are estimates.",
-  "scores": "Dream-1 run: TBD; demo: TBD"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-Q8D85J"
 }

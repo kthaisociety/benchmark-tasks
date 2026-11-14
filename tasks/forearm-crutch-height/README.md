@@ -61,7 +61,7 @@ inspect-robots run --embodiment yam_arena --policy dream \
 ```
 
 `task_score` prints the trial's score: 1.0 on success, otherwise `score()` at the end of the episode. The layout is
-fixed (`object_jitter=0`), so no seed is needed. A trial takes about 5 minutes of wall time on an L40S at 2,400 steps (sharing the GPU with two other simulations), less when it ends early on success.
+fixed (`object_jitter=0`), so no seed is needed. A trial takes about 5 to 8 minutes of wall time on an L40S at 2,400 steps (sharing the GPU with two other simulations; 8 with frames stored), less when it ends early on success. The Dream-1 run scored 0.0: it never touched the crutches.
 
 ## Scripted demo
 
