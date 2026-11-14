@@ -1,0 +1,19 @@
+{
+  "title": "Pull one paper cup out of a wall cup dispenser, rim through the gasket, and stand it upright on the mat",
+  "category": "Societal relatability",
+  "keywords": [
+    "cup dispenser",
+    "paper cup",
+    "gasket",
+    "straight pull",
+    "gentle pinch"
+  ],
+  "instruction": "Pull one paper cup out of the wall dispenser and stand it upright on the black mat.",
+  "context": "Taking a paper cup from the dispenser by an office water cooler or coffee station is an everyday reach that people make without thinking. Only the bottom cup hangs out, held by its rolled rim on the dispenser's soft gasket: it has to be pinched gently, drawn straight down so its rim snaps through while the gasket keeps the next cup, and then stood upright.",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left); heights above the counter (the table top). The layout is the same in every trial. (1) A wall: a white painted panel 2 thick, 80 wide (y -25 to 55) and 62 tall, its face at x 44.75. (2) On it, a stainless-steel pull-type cup dispenser for 8-24 oz cups: a vertical tube 11 across outside and 41 long, capped at the top, held 1.2 off the wall by two steel brackets; its axis at x 38, y 14; its bottom edge 15 above the counter. In its bottom end a black silicone gasket in a ring 10.6 across and 1.6 tall rests on a 3 mm lip; the gasket's eight flaps reach in to 8.5 across and give outward and downward when a cup's rim is pulled down through them. (3) Four white 12 oz (355 ml) single-wall paper hot cups, 11 tall, 9 across the rolled rim and 6 across the bottom, 11 g each, nested 1.8 apart, open end up, inside the dispenser: the bottom one hangs by its rim on the gasket's flaps with its bottom 6 above the counter, so about 9 of it sticks out below the dispenser. (4) A black rubber bar mat, 16 (x) by 12 (y) and 4 mm thick, centred at x 34, y 31, flat on the counter.",
+  "scoring": "Judged at the end with a tape measure and a protractor. A cup is out of the dispenser when all of it, rim included, is below the dispenser's bottom edge; it is still in the dispenser when its rim is above the gasket's flaps. 0 if two or more cups are out, if any cup ever tipped more than 60 degrees from upright (dropped or knocked over: it would be thrown away), or if a cup ends on the floor. Otherwise 0.25 when exactly one cup is out. 0.5 when, also, every other cup is still in the dispenser and the cup that is out stands upright (within 10 degrees) with its bottom edge on the counter or the mat (within 6 mm), still (no visible movement for 1 s), with no part of either gripper within 1.5 cm of it. 1.0 when, also, its whole bottom is on the mat (its centre at least 3 cm inside every edge of the mat). The trial ends at the run limit, or when 1.0 has held for 1 s.",
+  "run_limit": "1,200 steps (60 s at 20 Hz)",
+  "reset_notes": "Each trial uses one cup. Take the cap off the dispenser, lift out the cups left in it, and drop a nested stack of four fresh cups in so the bottom one hangs by its rim on the gasket; put the cap back.",
+  "fidelity": "Rigid bodies (Isaac Sim, PhysX, 20 Hz control). The paper cups are rigid shells (24 flat facets, 1.2 mm walls, a hexagonal rolled rim), so they can't be crushed; nested cups sit 1.8 cm apart on four small bumps and don't stick together. The silicone gasket is eight sprung flaps with rounded tips that slide outward and down at 45 degrees (60 N/m each). The dispenser holds four cups instead of a full sleeve. Cup friction 0.6, silicone 0.7.",
+  "scores": "Dream-1 run: TBD; demo: TBD"
+}
