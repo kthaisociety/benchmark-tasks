@@ -1,7 +1,8 @@
 """On the station table a framed picture lies face down on two carpet-covered blocks, ready to be packed for a move:
 an oak frame 30 cm front to back and 40 cm across, 2.5 cm thick, with its glass, mount and hardboard back. The blocks
-run front to back under its two 30 cm sides, so all four corners stick out past them. Beside the frame lie four white
-polyethylene-foam corner protectors, two on each side, each one beside a corner and already turned to face it.
+run front to back under its two 30 cm sides, so all four corners stick out past them. Its two right-hand corners
+already have white polyethylene-foam corner protectors on them; the other two protectors lie on the table beside the
+two bare left-hand corners, each already turned to face its corner.
 
 A protector is a foam block 7 cm square and 4.5 cm tall with an L-shaped pocket cut into two adjacent sides: 4.5 cm
 deep each way and as tall as the frame is thick. Its foam squeezes the frame, so it has to be pushed onto the corner,
@@ -31,7 +32,7 @@ SCORE_OVER = "end"
 SUCCESS_HOLD_S = 1.0
 TOP = TABLE_TOP[SCENE]
 
-INSTRUCTION = "Fit the four foam corner protectors onto the corners of the picture frame, then let go of them."
+INSTRUCTION = "Fit the two loose foam corner protectors onto the picture frame's two bare corners, then let go of them."
 
 OAK = (0.62, 0.45, 0.27)
 KRAFT = (0.55, 0.42, 0.30)
@@ -53,19 +54,14 @@ FB = TOP + BLOCK[2]  # the frame's front (its underside) rests on the blocks at 
 HALF = (OUT[0] / 2, OUT[1] / 2)
 
 
-def _frame():
+def _frame_boxes():
     hx, hy = HALF
     w, t = MOULD_W, THICK
     rails = [((0.0, s * (hy - w / 2), t / 2), (OUT[0], w, t), OAK) for s in (-1, 1)]
     rails += [((s * (hx - w / 2), 0.0, t / 2), (w, OUT[1] - 2 * w, t), OAK) for s in (-1, 1)]
     slab = [((0.0, 0.0, sum(SLAB_Z) / 2), (OUT[0] - 2 * w + 0.002, OUT[1] - 2 * w + 0.002, SLAB_Z[1] - SLAB_Z[0]),
              KRAFT)]
-    diag = os.environ.get("CORNERS_DIAG_NO_FRAME") == "1"  # diagnostics only: the frame put off the table
-    return part("frame", pos=(FRAME_AT[0], FRAME_AT[1] - (0.9 if diag else 0.0), FB + 0.0005), mass=FRAME_MASS, color=OAK, friction=0.6,
-                boxes=rails + slab)
-
-
-FRAME = _frame()
+    return rails + slab
 
 # -- a foam corner protector, in its own frame: the origin is where the frame's corner sits, on the frame's front plane;
 # the pocket opens toward -x and -y and the two closed walls are on +x and +y -----------------------------------------
@@ -114,7 +110,9 @@ def _protector_shapes():
 
 
 # corner name -> (sign along x, sign along y): the frame's corner at (sx * 15, sy * 20) cm from its middle
-CORNERS = {"far_left": (1, 1), "near_left": (-1, 1), "far_right": (1, -1), "near_right": (-1, -1)}
+ALL_CORNERS = {"far_left": (1, 1), "near_left": (-1, 1), "far_right": (1, -1), "near_right": (-1, -1)}
+CORNERS = {n: ALL_CORNERS[n] for n in ("far_left", "near_left")}  # bare at the start: the task fits these two
+FITTED = ("far_right", "near_right")  # already have a protector on at the start (part of the frame's rigid body)
 # the protector's yaw that turns its pocket (open toward its -x, -y) onto that corner
 YAW = {"far_left": 0.0, "near_left": math.pi / 2, "far_right": -math.pi / 2, "near_right": math.pi}
 START_OUT = 0.100  # each protector starts on the table this far out sideways (y) from its seated place
@@ -126,7 +124,7 @@ def _rot(yaw: float) -> np.ndarray:
 
 
 def corner_xy(name: str) -> np.ndarray:
-    sx, sy = CORNERS[name]
+    sx, sy = ALL_CORNERS[name]
     return np.array([FRAME_AT[0] + sx * HALF[0], FRAME_AT[1] + sy * HALF[1]])
 
 
@@ -138,11 +136,6 @@ def _protector(name: str):
     (shapes, sph), (floor, floor_sph) = _protector_shapes()
     x, y = (float(v) for v in start_xy(name))
     z = TOP + LIP + 0.0005
-    diag = dict(kv.split(":") for kv in os.environ.get("CORNERS_DIAG_SEATED", "").split(",") if ":" in kv)
-    if name in diag:  # diagnostics only: spawn this protector on its corner, short of seated by the given y (m)
-        x, y = (float(v) for v in corner_xy(name))
-        y += CORNERS[name][1] * float(diag[name])
-        z = FB - CLEAR
     slider = Slider(f"floor_{name}", rest=(0.0, 0.0, PROUD), boxes=tuple(floor), spheres=tuple(floor_sph),
                     travel=FLOOR_TRAVEL, rate=FLOOR_RATE, damping=8.0, mass=0.004, friction=FOAM_FRICTION)
     return part(f"protector_{name}", pos=(x, y, z), boxes=shapes, spheres=sph, mass=PROTECTOR_MASS,
@@ -150,6 +143,32 @@ def _protector(name: str):
 
 
 PROTECTORS = {n: _protector(n) for n in CORNERS}
+
+
+def _fitted_boxes(name: str) -> list:
+    """A protector already pushed home on corner ``name``, as boxes in the frame's own frame (it moves with the frame):
+    the two closed walls, the roof and the floor pressed flat against the frame's front. Turned by multiples of 90
+    degrees, so every box stays unturned (sizes swapped where needed)."""
+    p, w, lip = POCKET, WALL, LIP
+    z0, z1 = -lip, ROOF + lip
+    local = [
+        ((w / 2, (w - p) / 2, (z0 + z1) / 2), (w, p + w, z1 - z0)),  # wall on +x
+        ((-p / 2, w / 2, (z0 + z1) / 2), (p, w, z1 - z0)),  # wall on +y
+        ((-p / 2, -p / 2, ROOF + lip / 2), (p, p, lip)),  # roof
+        ((-p / 2, -p / 2, -lip / 2), (p, p, lip)),  # floor, pressed flat
+    ]
+    sx, sy = ALL_CORNERS[name]
+    c, s = round(math.cos(YAW[name])), round(math.sin(YAW[name]))
+    out = []
+    for (cx, cy, cz), (lx, ly, lz) in local:
+        centre = (sx * HALF[0] + c * cx - s * cy, sy * HALF[1] + s * cx + c * cy, cz)
+        size = (lx, ly, lz) if c != 0 else (ly, lx, lz)
+        out.append((centre, size, FOAM))
+    return out
+
+
+FRAME = part("frame", pos=(FRAME_AT[0], FRAME_AT[1], FB + 0.0005), mass=FRAME_MASS + len(FITTED) * PROTECTOR_MASS,
+             color=OAK, friction=0.6, boxes=_frame_boxes() + [b for n in FITTED for b in _fitted_boxes(n)])
 
 OBJECTS = [
     *[Box(f"block_{side}", pos=(BLOCK_X, s * BLOCK_Y, TOP + BLOCK[2] / 2), size=BLOCK, color=CARPET)
@@ -195,7 +214,7 @@ def _rz(yaw: float) -> np.ndarray:
 
 
 def corner_world(frame, name: str) -> np.ndarray:
-    sx, sy = CORNERS[name]
+    sx, sy = ALL_CORNERS[name]
     return frame.to_world((sx * HALF[0], sy * HALF[1], 0.0))
 
 
@@ -281,18 +300,8 @@ def _follow(environment) -> None:
             parts.append(f"{name}: corner {np.round(local * 1000, 1).tolist()}mm squeeze {squeeze(prot) * 1000:.2f}mm "
                          f"pos {np.round(prot.pos, 4).tolist()} ypr {np.round(ypr, 1).tolist()} "
                          f"seated {seated_on(frame, prot, name)}")
-        tips = []
-        try:
-            base = environment.unwrapped
-            origin = base.scene.env_origins[0]
-            art = base.scene["left_robot"]
-            names = list(art.body_names)
-            pos = (getattr(art.data.body_pos_w, "torch", art.data.body_pos_w)[0] - origin).detach().cpu().numpy()
-            tips = [np.round(pos[names.index(k)], 4).tolist() for k in ("tip_left", "tip_right", "gripper")]
-        except (KeyError, ValueError, AttributeError):
-            pass
         print(f"[corners] step {_S['steps']} frame {np.round(frame.pos, 4)} tilt {_tilt_deg(frame):.1f} "
-              f"dropped {_S['dropped']} tcps {[np.round(t, 3).tolist() for t in _S['tcps']]} left_bodies {tips} | "
+              f"dropped {_S['dropped']} tcps {[np.round(t, 3).tolist() for t in _S['tcps']]} | "
               + " | ".join(parts), flush=True)
 
 
@@ -301,8 +310,8 @@ def score(objects) -> float:
     if _S["dropped"] or not frame_flat(frame):
         return 0.0
     n = len(protected(objects))
-    if n < 4:
-        return 0.25 * n
+    if n < len(CORNERS):
+        return 0.5 * n
     still = frame.resting() and all(objects[s.name].resting() for s in PROTECTORS.values())
     return 1.0 if still else 0.75
 
@@ -324,7 +333,7 @@ GRIP_SIDE = 0.023  # the pads' middle this far out (in x) past the corner, on th
 # In this sim only one finger closes: the other stays at its open stop, STILL_PAD from the TCP along STILL_DIR (toward
 # -y at GRIP_YAW 0; measured on Brev), and the closing finger shoves the part against it. So a held protector's middle
 # sits STILL_PAD - its half width (35 mm) along STILL_DIR from the TCP, and the pick aims the still finger clear of it.
-STILL_PAD = float(os.environ.get("CORNERS_STILL_PAD", "0.049"))
+STILL_PAD = 0.049
 STILL_DIR = np.array([math.sin(GRIP_YAW), -math.cos(GRIP_YAW)])
 HALF_BLOCK = (POCKET + WALL) / 2
 GRASP_OFF = tuple((STILL_PAD - HALF_BLOCK) * STILL_DIR)
@@ -336,6 +345,7 @@ HOVER = TOP + 0.10
 APPROACH = 0.050  # start the push this far out from seated, along y
 X_CLEAR = 0.004  # ... and this far out along x, so the closed wall clears the frame's end ...
 RELEASE_SHIFT = 0.006
+LIFT_CLEAR = 0.010  # after letting go, lift until the pad tips are this far above the protector's top
 MID_ON = 0.020  # the first push stops this far short of seated (over the lip, 2.5 cm on) ...
 X_GUIDE = 0.008  # ... then the push home aims this far into the frame's end along x
 Y_OVER = 0.025  # the push aims this far past seated along y: the compliant arm lags behind against the foam, and
@@ -374,6 +384,7 @@ def _fit(name: str) -> list[Waypoint]:
     g_seat = tcp_for(grip_world(name, seat))
     z_pick = TOP + LIP + 0.0005 + PINCH_UP
     z_fit = FB + Z_AIM + PINCH_UP + SAG[2]
+    z_clear = FB - CLEAR + ROOF + LIP + TIP + LIFT_CLEAR  # pad tips LIFT_CLEAR above the seated protector's top
     dx, dy = SAG[0], SAG[1]
 
     def at(g, z):
@@ -400,7 +411,9 @@ def _fit(name: str) -> list[Waypoint]:
         Waypoint(0.6, at(g_seat, z_fit), FINGER_OPEN, f"{name}: let go", y),
         # the still finger stays against the protector's face: move it off the face before lifting, or it drags it
         Waypoint(0.6, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_fit), FINGER_OPEN, f"{name}: still finger off it", y),
-        Waypoint(0.8, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_fit + 0.035), FINGER_OPEN, f"{name}: up", y),
+        # straight up until the pad tips are well clear of the protector's top before moving sideways (lifting only
+        # 35 mm left the tips 3.5 mm below its top, and the next move dragged it back off the corner on Brev)
+        Waypoint(1.2, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_clear), FINGER_OPEN, f"{name}: up", y),
     ]
 
 
@@ -431,33 +444,18 @@ PARK = {"left": (0.18, 0.34, TOP + 0.16), "right": (0.18, -0.34, TOP + 0.16)}
 
 
 def demo():
+    """The left arm fits the two loose protectors (far, then near) while the right arm holds the frame down on its
+    back beside the middle."""
     variant = os.environ.get("DEMO_VARIANT", "full")
     if variant == "nothing":
         return {"left": _wait(3.0, PARK["left"]), "right": _wait(3.0, PARK["right"])}
-    left_fit = _fit("far_left") + _fit("near_left")
-    right_fit = _fit("far_right") + _fit("near_right")
-    if variant == "no_hold":  # each arm fits its own side's protectors, nobody holds the frame
-        return {"left": left_fit + [Waypoint(1.5, PARK["left"], FINGER_OPEN, "park")],
-                "right": _wait(_length(left_fit), PARK["right"]) + right_fit
-                + [Waypoint(1.5, PARK["right"], FINGER_OPEN, "park")]}
-    if variant == "keep_holding":  # all four fitted, but the last one is never let go
-        right_fit = right_fit[:-2] + [Waypoint(3.0, right_fit[-3].pos, FINGER_CLOSED, "keep holding")]
-    if variant == "two_only":  # only the left side's two
-        right_fit = []
-    if variant == "probe_one":  # Brev probe: the far-left protector only, the right arm holding
-        left_fit, right_fit = _fit("far_left"), []
-    if variant == "probe_near":  # Brev probe: the near-left protector only (the reach close to the arm's base)
-        left_fit, right_fit = _fit("near_left"), []
-    if variant == "probe_right":  # Brev probe: the right arm's two protectors, the left arm holding
-        left_fit = []
-    # phase 1: left fits, right holds; phase 2: right fits, left holds
-    t1 = _length(left_fit)
-    left = left_fit + [Waypoint(1.0, (FRAME_AT[0], HOLD_Y, HOVER), FINGER_CLOSED, "left: over the frame")]
-    right = _hold("right", t1 + 1.0)
-    if right_fit:
-        left += _hold("left", _length(right_fit) + 2.0)[1:] + [Waypoint(1.5, PARK["left"], FINGER_OPEN, "park")]
-        right += right_fit + [Waypoint(1.5, PARK["right"], FINGER_OPEN, "park")]
-    else:
-        left += [Waypoint(1.5, PARK["left"], FINGER_OPEN, "park")]
-        right += [Waypoint(1.5, PARK["right"], FINGER_OPEN, "park")]
+    fit = _fit("far_left") + _fit("near_left")
+    if variant == "one_only":  # the far corner only
+        fit = _fit("far_left")
+    if variant == "keep_holding":  # both fitted, but the second one is never let go
+        fit = fit[:-3] + [Waypoint(3.0, fit[-4].pos, FINGER_CLOSED, "keep holding", GRIP_YAW)]
+    left = fit + [Waypoint(1.5, PARK["left"], FINGER_OPEN, "park")]
+    if variant == "no_hold":  # nobody holds the frame
+        return {"left": left, "right": _wait(_length(left), PARK["right"])}
+    right = _hold("right", _length(fit) + 0.5) + [Waypoint(1.5, PARK["right"], FINGER_OPEN, "park")]
     return {"left": left, "right": right}

@@ -22,7 +22,7 @@ from yam_arena import ik, station, task_file  # noqa: E402
 from yam_arena.constants import FINGER_OPEN, READY  # noqa: E402
 from yam_arena.demo import ArmPlan, grip_rotation  # noqa: E402
 
-RUN_LIMIT_S = 2400 / 20
+RUN_LIMIT_S = 1800 / 20
 GRIPPER_SPAN = 0.094  # pads 94 mm apart fully open
 
 
@@ -123,6 +123,31 @@ def test_lips_are_flush_with_the_floor_and_roof():
         assert c[0] - r >= -T.POCKET - 1e-9 and c[1] - r >= -T.POCKET - 1e-9
 
 
+def test_fitted_protectors_sit_on_the_right_corners():
+    """The two pre-fitted protectors are boxes on the frame's body: each wraps its corner (walls outside it, floor and
+    roof over its front and back), and none overlaps a block."""
+    for name in T.FITTED:
+        boxes = T._fitted_boxes(name)
+        corner = np.array([T.ALL_CORNERS[name][0] * T.HALF[0], T.ALL_CORNERS[name][1] * T.HALF[1]])
+        lo = np.min([np.array(c) - np.array(sz) / 2 for c, sz, _ in boxes], axis=0)
+        hi = np.max([np.array(c) + np.array(sz) / 2 for c, sz, _ in boxes], axis=0)
+        sx, sy = T.ALL_CORNERS[name]
+        # the footprint runs WALL past the corner outward and POCKET inward, both ways
+        assert sorted([corner[0] - sx * T.POCKET, corner[0] + sx * T.WALL]) == pytest.approx([lo[0], hi[0]])
+        assert sorted([corner[1] - sy * T.POCKET, corner[1] + sy * T.WALL]) == pytest.approx([lo[1], hi[1]])
+        assert lo[2] == pytest.approx(-T.LIP) and hi[2] == pytest.approx(T.ROOF + T.LIP)
+        # nothing inside the frame's moulding at the corner: the pocket's floor and roof are outside its front and back
+        for c, sz, _ in boxes:
+            if abs(c[2] - T.THICK / 2) > 0.01:
+                assert c[2] + sz[2] / 2 <= 1e-9 or c[2] - sz[2] / 2 >= T.THICK - 1e-9
+    assert T.FRAME.mass == pytest.approx(T.FRAME_MASS + 2 * T.PROTECTOR_MASS)
+
+
+def test_only_the_bare_corners_get_loose_protectors():
+    assert set(T.CORNERS) == {"far_left", "near_left"} and set(T.PROTECTORS) == set(T.CORNERS)
+    assert not set(T.CORNERS) & set(T.FITTED)
+
+
 def test_no_collider_is_turned():
     """PhysX built turned boxes differently from how USD draws them (Brev, 2026-11-13): keep every protector and
     frame collider unturned."""
@@ -132,9 +157,9 @@ def test_no_collider_is_turned():
 
 
 def test_corners_overhang_the_blocks_past_the_pocket():
-    for name in T.CORNERS:
+    for name in T.ALL_CORNERS:
         cx, cy = T.corner_xy(name)
-        sx, sy = T.CORNERS[name]
+        sx, sy = T.ALL_CORNERS[name]
         # the seated protector's footprint, world
         lo_x, hi_x = sorted([cx - sx * T.POCKET, cx + sx * T.WALL])
         lo_y, hi_y = sorted([cy - sy * T.POCKET, cy + sy * T.WALL])
@@ -180,7 +205,7 @@ def test_pinch_stays_clear_of_the_frame():
 
 # -- scoring -----------------------------------------------------------------------------------------------------------
 
-def test_all_four_seated_and_let_go_scores_full():
+def test_both_seated_and_let_go_scores_full():
     prots = {n: _seated_protector(n) for n in T.CORNERS}
     objs = _objects(prots)
     assert set(T.protected(objs)) == set(T.CORNERS)
@@ -188,10 +213,11 @@ def test_all_four_seated_and_let_go_scores_full():
 
 
 def test_partial_credit_counts_corners():
-    for k in range(4):
+    for k in range(2):
         names = list(T.CORNERS)[:k]
         objs = _objects({n: _seated_protector(n) for n in names})
-        assert T.score(objs) == pytest.approx(0.25 * k)
+        assert T.score(objs) == pytest.approx(0.5 * k)
+    assert T.score(_objects({"near_left": _seated_protector("near_left")})) == 0.5
 
 
 def test_moving_parts_cap_full_score():
@@ -216,8 +242,8 @@ def test_not_pushed_home_is_not_seated(shift):
 
 def test_unsqueezed_floor_is_not_seated():
     frame = _frame_state()
-    prot = _seated_protector("near_right", frame, squeeze=0.0)
-    assert not T.seated_on(frame, prot, "near_right")
+    prot = _seated_protector("near_left", frame, squeeze=0.0)
+    assert not T.seated_on(frame, prot, "near_left")
 
 
 def test_turned_protector_is_not_seated():
@@ -235,10 +261,10 @@ def test_wrong_protector_orientation_does_not_count_on_another_corner():
 
 def test_still_held_does_not_count():
     prots = {n: _seated_protector(n) for n in T.CORNERS}
-    T._S["tcps"] = [T.protector_middle(prots["far_right"]) + np.array([0.0, 0.0, 0.02]), np.array(T.PARK["left"])]
+    T._S["tcps"] = [T.protector_middle(prots["far_left"]) + np.array([0.0, 0.0, 0.02]), np.array(T.PARK["right"])]
     objs = _objects(prots)
-    assert "far_right" not in T.protected(objs)
-    assert T.score(objs) == 0.75
+    assert "far_left" not in T.protected(objs)
+    assert T.score(objs) == 0.5
 
 
 def test_dropped_frame_scores_zero():
@@ -259,7 +285,7 @@ def test_untouched_scene_scores_zero():
 
 # -- the demo ------------------------------------------------------------------------------------------------------------
 
-VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "two_only", "probe_one", "probe_near", "probe_right"]
+VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "one_only"]
 
 
 def _plans(variant, monkeypatch):
@@ -302,10 +328,10 @@ def test_arms_keep_apart(variant, monkeypatch):
 
 
 def test_full_demo_holds_the_frame_during_every_push(monkeypatch):
-    """Whenever one arm is pushing a protector on, the other arm's fingertips are pressed on the frame's back."""
+    """Whenever the left arm is pushing a protector on, the right arm's fingertips are pressed on the frame's back."""
     plans = _plans("full", monkeypatch)
     z_press = T.FB + T.SLAB_Z[1] + T.TIP - T.PRESS
-    for arm, other in (("left", "right"), ("right", "left")):
+    for arm, other in (("left", "right"),):
         t = 0.0
         while t <= plans[arm].duration:
             label = plans[arm].target(t)[3]
@@ -313,6 +339,18 @@ def test_full_demo_holds_the_frame_during_every_push(monkeypatch):
                 pos = plans[other].target(t)[0]
                 assert pos[2] == pytest.approx(z_press, abs=0.004), (arm, t, label, pos)
             t += 0.1
+
+
+def test_release_lifts_clear_before_moving_on(monkeypatch):
+    """After letting go, the gripper rises straight up until the pad tips are above the protector's top before it moves
+    sideways (on Brev a 35 mm lift dragged the far protector back off its corner)."""
+    top = T.FB - T.CLEAR + T.ROOF + T.LIP
+    for name in T.CORNERS:
+        wps = T._fit(name)
+        i = next(k for k, w in enumerate(wps) if w.label.endswith(": up"))
+        before, up = wps[i - 1], wps[i]
+        assert up.pos[:2] == pytest.approx(before.pos[:2])
+        assert up.pos[2] - T.TIP >= top + 0.010
 
 
 def test_grip_rotation_is_straight_down():
