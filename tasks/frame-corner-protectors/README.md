@@ -37,14 +37,15 @@ The task file follows the trial after every control step:
     2.5 cm past the frame's edge, within 4 mm, measured with a tape measure;
   - the pocket's floor under the frame's front and its roof over its back, with the foam squeezed onto the frame. In
     the sim: the frame's front within 3 mm of the floor's line and the sprung floor pressed down at least 0.3 mm. On a
-    real rig: no gap a 1 mm feeler gauge passes between the frame's front and the pocket floor;
+    real rig: no gap a 1 mm feeler gauge, slid in at the pocket's open mouth, passes between the frame's front and
+    the pocket floor;
   - the protector square and level with the frame (its rotation within 6 degrees of the frame's, turned for that
     corner);
   - let go: no part of either gripper within 1.5 cm of the protector (in the sim: each arm's TCP, the point
     between its finger pads, at least 4 cm from the protector's block; the finger surfaces reach about 2.4 cm from it).
 
 `score()` gives 0 if the frame was dropped or doesn't end flat on both blocks (tilted more than 3 degrees). On a real
-rig a trial also scores 0 if a right-hand protector was pulled off or moved; in the sim they are part of the frame's
+rig a trial also scores 0 if a right-hand protector was pulled off or moved more than 5 mm along either edge; in the sim they are part of the frame's
 rigid body, so they can't come off.
 Otherwise it gives 0.5 for each bare corner that counts. With both counting it gives 1.0 once the frame and both
 protectors are still (each moving under 1 cm/s and turning under 0.5 rad/s; on a real rig, no visible movement for 1 s), and 0.75 before
