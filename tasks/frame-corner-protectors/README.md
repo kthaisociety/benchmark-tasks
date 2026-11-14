@@ -22,7 +22,7 @@ Positions in cm from the midpoint between the arm bases (x forward, y left). The
 |---|---|
 | Padded blocks (2, fixed) | Pine 2x4 offcuts covered in grey carpet: 16 long (x), 8.9 wide, 3.8 tall, centred at x 30, y ±18.5 |
 | Picture frame (1.1 kg) | Face down on the blocks. Oak moulding 3 wide and 2.5 thick; 30 (x) by 40 (y), centred at x 30, y 0. Glass, mount and hardboard back fill the opening. Corners at x 15 and 45, y ±20, each sticking out 7 past the blocks' ends |
-| Corner protectors (4, 20 g each) | White cross-linked polyethylene foam: a block 7 x 7 and 4.5 tall, with an L-shaped pocket in two adjacent sides, 4.5 deep each way and 2.6 tall, 1 cm of foam above and below. The open edges are rounded (5 mm radius). The pocket's floor stands 1.5 mm proud until pressed (about 1.25 N once on the frame). Two are already pushed fully onto the right-hand corners (y -20). The other two lie on the table beside the bare left-hand corners, pocket facing their corner, the back of the pocket at the corner's x and at y +30 |
+| Corner protectors (4, 20 g each) | White cross-linked polyethylene foam: a block 7 x 7 and 4.5 tall, with an L-shaped pocket in two adjacent sides, 4.5 deep each way and 2.65 tall, 1 cm of foam above and below. The open edges are rounded (5 mm radius). The pocket's floor stands 2 mm proud until pressed (about 1.25 N once on the frame). Two are already pushed fully onto the right-hand corners (y -20). The other two lie on the table beside the bare left-hand corners, pocket facing their corner, the back of the pocket at the corner's x and at y +30 |
 
 In the sim the two fitted protectors are part of the frame's rigid body; the two loose ones each have a sprung floor.
 
@@ -40,7 +40,7 @@ The task file follows the trial after every control step:
     real rig: no gap a 1 mm feeler gauge passes between the frame's front and the pocket floor;
   - the protector square and level with the frame (its rotation within 6 degrees of the frame's, turned for that
     corner);
-  - each gripper's TCP (fingertip centre) at least 4 cm from the protector's middle.
+  - each gripper's TCP (fingertip centre) at least 5 cm from the protector's middle.
 
 `score()` gives 0 if the frame was dropped or doesn't end flat on both blocks (tilted more than 3 degrees). On a real
 rig a trial also scores 0 if a right-hand protector was pulled off or moved; in the sim they are part of the frame's
@@ -75,9 +75,10 @@ arm:
 1. pinches it across its closed wall (the fingers close along y on solid foam, clear of the pocket);
 2. lifts it and brings it beside its corner at the frame's height, 5 cm out along y and 4 mm out along x so the closed
    wall clears the frame's end;
-3. pushes it on along y, then home along the frame's end until the corner reaches the back of the pocket, and presses
-   it 2 mm into the corner;
-4. eases off, lets go, moves its fingers off the protector's face and lifts straight up clear of it.
+3. pushes it about 2 cm onto the corner along y, over the lip, where the foam's squeeze holds it;
+4. eases off, lets go, moves its fingers off the protector and lifts clear of it;
+5. closes its fingers, turns its wrist so they lie along x, and presses both fingers flat on the protector's closed
+   outer face, aiming 1 cm past seated, so the back of the pocket stops it on the corner; then backs off and lifts.
 
 Set `CORNERS_DEBUG=1` to print the frame and, for each loose protector, where its corner sits in the pocket and how far
 the floor is pressed, every 5 steps. `CORNERS_SAG="dx,dy,dz"` shifts every fitting pose to make up for the loaded
@@ -90,7 +91,7 @@ Shortcuts, with `DEMO_VARIANT` set in the environment:
 | `full` | as above | TBD (expected 1.0) |
 | `nothing` | wait | TBD (expected 0.0) |
 | `one_only` | fit the far protector only | TBD (expected 0.5) |
-| `keep_holding` | fit both, but keep hold of the second | TBD (expected 0.5) |
+| `keep_holding` | fit both, but keep pressing the second | TBD (expected 0.5) |
 | `no_hold` | fit both with nobody holding the frame | TBD |
 
 ## Offline checks

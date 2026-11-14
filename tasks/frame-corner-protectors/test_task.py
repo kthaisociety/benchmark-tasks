@@ -267,6 +267,15 @@ def test_still_held_does_not_count():
     assert T.score(objs) == 0.5
 
 
+def test_fingers_pressing_the_face_is_not_let_go(monkeypatch):
+    """The demo's press pose (closed fingers on the outer face) must not count as let go."""
+    prots = {n: _seated_protector(n) for n in T.CORNERS}
+    wps = T._fit("near_left")
+    press = next(w for w in wps if w.label.endswith("push it home with the fingers"))
+    T._S["tcps"] = [np.array(press.pos), np.array(T.PARK["right"])]
+    assert "near_left" not in T.protected(_objects(prots))
+
+
 def test_dropped_frame_scores_zero():
     prots = {n: _seated_protector(n) for n in T.CORNERS}
     T._S["dropped"] = True
@@ -285,7 +294,7 @@ def test_untouched_scene_scores_zero():
 
 # -- the demo ------------------------------------------------------------------------------------------------------------
 
-VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "one_only"]
+VARIANTS = ["full", "nothing", "no_hold", "keep_holding", "one_only", "near_only"]
 
 
 def _plans(variant, monkeypatch):

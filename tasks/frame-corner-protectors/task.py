@@ -68,8 +68,8 @@ def _frame_boxes():
 POCKET = 0.045  # how far the corner goes in, each way
 WALL = 0.025  # closed walls' thickness: the block is POCKET + WALL = 7 cm square
 LIP = 0.010  # foam under and over the pocket
-CLEAR = 0.0010  # the pocket's roof sits this far above the frame's back with the floor pressed down
-PROUD = 0.0015  # unpressed, the foam floor stands this far above the frame's front: it squeezes the frame 0.5 mm
+CLEAR = 0.0015  # the pocket's roof sits this far above the frame's back with the floor pressed down
+PROUD = 0.0020  # unpressed, the foam floor stands this far above the frame's front: it squeezes the frame 0.5 mm
 LEAD_R = 0.0050  # the open edges' rounded lips: spheres of this radius, crest level with the floor and roof
 LEAD_PITCH = 0.004  # ... spaced this far apart along each edge
 FLOOR_T = 0.006  # the sprung floor's thickness
@@ -184,7 +184,7 @@ Z_TOL = 0.003  # the frame's front within 3 mm of the pocket floor's line
 TURN_TOL = 6.0  # degrees: the protector square to the corner
 TILT_TOL = 6.0  # degrees: level with the frame
 SQUEEZE = 0.0003  # the floor pressed down at least this far: the foam grips the frame
-LET_GO = 0.04  # each gripper's TCP at least this far from the protector's middle
+LET_GO = 0.05  # each gripper's TCP at least this far from the protector's middle (pressing its face, 43 mm)
 DROPPED_TILT = 15.0  # the frame ever tilted more than this, or fell off a block: dropped
 FLAT_TILT = 3.0  # at the end the frame lies flat on both blocks
 OFF_BLOCK = 0.015  # its front this far below the blocks' top: it slid off a block
@@ -346,11 +346,14 @@ APPROACH = 0.050  # start the push this far out from seated, along y
 X_CLEAR = 0.004  # ... and this far out along x, so the closed wall clears the frame's end ...
 RELEASE_SHIFT = 0.006
 LIFT_CLEAR = 0.010  # after letting go, lift until the pad tips are this far above the protector's top
-MID_ON = 0.020  # the first push stops this far short of seated (over the lip, 2.5 cm on) ...
-X_GUIDE = 0.008  # ... then the push home aims this far into the frame's end along x
-Y_OVER = 0.025  # the push aims this far past seated along y: the compliant arm lags behind against the foam, and
-#                  the back of the pocket stops the protector on the corner
-X_PUSH = 0.002  # ... then press this far past seated along x and y at the end of the push
+PRESS_IN = 0.030  # the closed finger presses the outer face this far in from the corner (the still finger 49 mm out)
+PRESS_START = 0.060  # the fingers come down this far beyond the seated face (clear of a protector still well out)
+PRESS_OVER = 0.010  # ... and the press aims this far past seated: the back of the pocket stops it on the corner
+PRESS_BACK = 0.030
+PRESS_X = 0.010  # the press also aims this far inward along x, so the fingers' friction slides the protector
+#                  into the corner along the frame's end (on Brev it stayed 4.6 mm out, from the approach's clearance)
+MID_ON = 0.0  # the first push aims at seated: the arm lags well behind against the foam and stops partway on
+X_IN = 0.004  # ... and this far into the frame's end along x (the far arm drifts outward under the push)
 Z_AIM = -0.0003  # the protector's origin this far below the frame's front: the middle of the bevels' window
 PRESS = 0.012  # the holding arm's closed fingertips aimed this far below the back's surface
 HOLD_Y = 0.10  # the holding arm presses on the back this far either side of the middle
@@ -372,16 +375,16 @@ def tcp_for(grip_xy) -> np.ndarray:
 
 
 def _fit(name: str) -> list[Waypoint]:
-    """Pick the protector by its closed end wall, bring it level beside the corner and push it straight on along y
-    until the corner is at the back of the pocket, press it into the corner along x, and let go."""
+    """Pick the protector by its closed end wall, bring it level beside the corner and push it partway on (over the
+    lip, where the squeeze holds it), let go, then press it home with both closed fingers flat on its closed outer
+    face. (Pinching it all the way home failed on Brev: under the push the arm drifts along x and the pads, which
+    can only hold the 25 mm end wall, slid off it. Beyond the outer face there is no frame, so the fingers can press
+    across the face's middle, and the back of the pocket stops the protector on the corner.)"""
     sx, sy = CORNERS[name]
     seat = corner_xy(name)
     g_start = grip_world(name, start_xy(name)) - (STILL_PAD - HALF_BLOCK - PICK_CLEAR) * STILL_DIR
     g_pre = tcp_for(grip_world(name, seat + np.array([sx * X_CLEAR, sy * APPROACH])))
-    g_mid = tcp_for(grip_world(name, seat + np.array([sx * X_CLEAR, sy * MID_ON])))
-    g_in = tcp_for(grip_world(name, seat + np.array([-sx * X_GUIDE, -sy * Y_OVER])))
-    g_home = tcp_for(grip_world(name, seat + np.array([-sx * X_PUSH, -sy * Y_OVER])))
-    g_seat = tcp_for(grip_world(name, seat))
+    g_mid = tcp_for(grip_world(name, seat + np.array([-sx * X_IN, sy * MID_ON])))  # into the frame's end: the wall slides along it
     z_pick = TOP + LIP + 0.0005 + PINCH_UP
     z_fit = FB + Z_AIM + PINCH_UP + SAG[2]
     z_clear = FB - CLEAR + ROOF + LIP + TIP + LIFT_CLEAR  # pad tips LIFT_CLEAR above the seated protector's top
@@ -390,6 +393,15 @@ def _fit(name: str) -> list[Waypoint]:
     def at(g, z):
         return (float(g[0] + dx), float(g[1] + dy), float(z))
 
+    # the press: wrist turned so the fingers close along x, the still finger outward; the closed finger (at the TCP)
+    # and the still finger both bear on the outer face, straddling its middle
+    press_yaw = sx * math.pi / 2
+    px = seat[0] - sx * PRESS_IN  # the closed finger's x; the still finger is STILL_PAD further out
+    face = seat[1] + sy * WALL  # the outer face's y once seated
+    p_start = np.array([px, face + sy * (FINGER_HALF_W + PRESS_START)])
+    p_home = np.array([px - sx * PRESS_X, face + sy * (FINGER_HALF_W - PRESS_OVER)])  # and inward: drags it into the corner
+    p_back = np.array([px - sx * PRESS_X, face + sy * (FINGER_HALF_W + PRESS_BACK)])
+    g_off = g_mid + RELEASE_SHIFT * STILL_DIR
     y = GRIP_YAW
     return [
         Waypoint(1.8, (float(g_start[0]), float(g_start[1]), HOVER), FINGER_OPEN, f"{name}: above the protector", y),
@@ -400,20 +412,20 @@ def _fit(name: str) -> list[Waypoint]:
         Waypoint(1.0, at(g_pre, z_fit), FINGER_CLOSED, f"{name}: down to the frame's height", y),
         Waypoint(0.5, at(g_pre, z_fit), FINGER_CLOSED, f"{name}: steady", y),
         Waypoint(3.0, at(g_mid, z_fit), FINGER_CLOSED, f"{name}: push it on", y),
-        # once on, aim into the frame's end: the closed wall slides along it, and the far arm's outward drift (which
-        # walked the pads off the protector's end on Brev) is held off
-        Waypoint(4.0, at(g_in, z_fit), FINGER_CLOSED, f"{name}: push it home along the frame's end", y),
-        Waypoint(1.0, at(g_home, z_fit), FINGER_CLOSED, f"{name}: press it into the corner", y),
-        Waypoint(0.6, at(g_home, z_fit), FINGER_CLOSED, f"{name}: settle", y),
-        # ease the aim back to seated so the arm stops straining before the fingers open (else it lurches on and the
-        # closing finger, still shut, twists the protector against the corner)
-        Waypoint(0.8, at(g_seat, z_fit), FINGER_CLOSED, f"{name}: ease off", y),
-        Waypoint(0.6, at(g_seat, z_fit), FINGER_OPEN, f"{name}: let go", y),
-        # the still finger stays against the protector's face: move it off the face before lifting, or it drags it
-        Waypoint(0.6, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_fit), FINGER_OPEN, f"{name}: still finger off it", y),
-        # straight up until the pad tips are well clear of the protector's top before moving sideways (lifting only
-        # 35 mm left the tips 3.5 mm below its top, and the next move dragged it back off the corner on Brev)
-        Waypoint(1.2, at(g_seat + RELEASE_SHIFT * STILL_DIR, z_clear), FINGER_OPEN, f"{name}: up", y),
+        Waypoint(0.5, at(g_mid, z_fit), FINGER_CLOSED, f"{name}: settle on the lip", y),
+        # open where the push stopped: easing the arm back first released its sideways deflection, which twisted the
+        # protector on Brev, and pulled it back off the lip
+        Waypoint(0.8, at(g_mid, z_fit), FINGER_OPEN, f"{name}: let go", y),
+        Waypoint(0.6, at(g_off, z_fit), FINGER_OPEN, f"{name}: still finger off it", y),
+        Waypoint(1.2, at(g_off, z_clear), FINGER_OPEN, f"{name}: up", y),
+        Waypoint(0.6, at(g_off, z_clear), FINGER_CLOSED, f"{name}: close the fingers", y),
+        Waypoint(1.2, at(p_start, z_clear), FINGER_CLOSED, f"{name}: turn the wrist, behind its outer face",
+                 press_yaw),
+        Waypoint(0.8, at(p_start, z_fit), FINGER_CLOSED, f"{name}: down beside the face", press_yaw),
+        Waypoint(3.5, at(p_home, z_fit), FINGER_CLOSED, f"{name}: push it home with the fingers", press_yaw),
+        Waypoint(0.6, at(p_home, z_fit), FINGER_CLOSED, f"{name}: settle", press_yaw),
+        Waypoint(0.8, at(p_back, z_fit), FINGER_CLOSED, f"{name}: back off", press_yaw),
+        Waypoint(1.0, at(p_back, HOVER), FINGER_OPEN, f"{name}: lift away", press_yaw),
     ]
 
 
@@ -452,8 +464,10 @@ def demo():
     fit = _fit("far_left") + _fit("near_left")
     if variant == "one_only":  # the far corner only
         fit = _fit("far_left")
+    if variant == "near_only":  # Brev probe: the near corner only
+        fit = _fit("near_left")
     if variant == "keep_holding":  # both fitted, but the second one is never let go
-        fit = fit[:-3] + [Waypoint(3.0, fit[-4].pos, FINGER_CLOSED, "keep holding", GRIP_YAW)]
+        fit = fit[:-2] + [Waypoint(3.0, fit[-3].pos, FINGER_CLOSED, "keep pressing", fit[-3].yaw)]
     left = fit + [Waypoint(1.5, PARK["left"], FINGER_OPEN, "park")]
     if variant == "no_hold":  # nobody holds the frame
         return {"left": left, "right": _wait(_length(left), PARK["right"])}
