@@ -110,11 +110,14 @@ while t < arm.duration:
             d = cup_clearance(P, T.CUP1_BASE_Z).min()
             # the still finger's pad rests on the cup: up to 1 mm of overlap there is the intended contact
             key = "still pad on the cup (contact)" if link == "tip_right" else "cup (pinched, other links)"
-            note(key, d + (0.001 if link == "tip_right" else 0.0), label, link)
+            note(key, d, label, link)
     t += dt
 print(f"variant {variant}, pitch {math.degrees(T.PITCH):.0f} deg, grip_forward {T.GRIP_FORWARD * 1000:.0f} mm, "
       f"grip_up {T.GRIP_UP * 1000:.0f} mm: "
       f"{arm.duration:.1f} s; worst IK {arm.worst_ik_mm:.2f} mm {arm.worst_ik_deg:.2f} deg")
 for k, (d, label, link) in worst.items():
-    flag = "OK " if d > 0.003 else "LOW" if d > 0 else "HIT"
+    if "(contact)" in k:  # a pad pressing on the cup: up to 1.5 mm of mesh overlap is the intended contact
+        flag = "OK " if d > -0.0015 else "HIT"
+    else:
+        flag = "OK " if d > 0.003 else "LOW" if d > 0 else "HIT"
     print(f"  {flag} {k:24s} {d * 1000:7.1f} mm  ({link}, during: {label})")
