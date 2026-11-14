@@ -16,5 +16,5 @@
   "run_limit": "2,400 steps (120 s at 20 Hz)",
   "reset_notes": "Pull the pushpin out and stand it needle-down in the cup; take the notice off and stand it on the ledge on its mark. Each trial leaves a pinhole in the cork and the notice; swap the notice after about ten trials.",
   "fidelity": "Rigid bodies (Isaac Sim/PhysX, 240 Hz physics, 20 Hz control). The cork is a resistance model: the needle sits on a slider in the pin's head with 6 N of friction, so a push over 6 N drives the pin in, and a pin left in the cork is held fixed by it (pulling it out again isn't modelled). The needle through the notice is a pivot: the notice turns about the pin but can't slide off it. The notice is a rigid laminated card. Friction: cork 0.3, pads on the card 1.0. The 6 N is an estimate.",
-  "scores": "Dream-1 run: TBD; demo: TBD"
+  "scores": "Dream-1 run: 0.0; demo: 1.0"
 }

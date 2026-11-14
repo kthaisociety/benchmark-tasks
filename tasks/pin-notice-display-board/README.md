@@ -57,8 +57,9 @@ inspect-robots run --embodiment yam_arena --policy dream \
 ```
 
 `task_score` prints the trial's score: 1.0 on success, otherwise `score()` at the end of the episode. The layout is
-fixed (`object_jitter=0`), so no seed is needed. A trial takes about TBD minutes of wall time on an L40S at 2,400
-steps; the scripted demo ends on success after about 27 s of simulated time.
+fixed (`object_jitter=0`), so no seed is needed. A full 2,400-step Dream-1 trial took about 10 minutes of wall time
+on an L40S with frames stored (including the model server's queue); the scripted demo ends on success after about
+27 s of simulated time and took about 3 minutes.
 
 ## Scripted demo
 
