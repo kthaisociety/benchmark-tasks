@@ -27,6 +27,7 @@ TOMATO, BEANS = (0.80, 0.15, 0.12), (0.25, 0.55, 0.25)
 GAP_MIN, GAP_MAX = D, D + 0.015  # centre spacing of two cans that both carry the can above
 CENTRED = 0.015  # an upper can's centre from the midpoint of its two supports
 SEATED = 0.01  # an upper can's base from the tops of its supports
+STRAIGHT = 0.01  # the bottom row's middle can centre from the line through the outer two
 UPRIGHT, TIPPED = 10.0, 45.0
 
 CANS = [Cylinder(f"can_{i}", pos=(*xy, FLOOR + H / 2), radius=D / 2, height=H, mass=0.3, color=TOMATO)
@@ -78,21 +79,29 @@ def _on_single(upper, cans):
                and abs(upper.low[2] - c.high[2]) < SEATED for c in cans)
 
 
+def _off_line(a, mid, b):
+    """Distance of ``mid``'s centre from the line through ``a``'s and ``b``'s centres (horizontal)."""
+    ab, am = b.pos[:2] - a.pos[:2], mid.pos[:2] - a.pos[:2]
+    return abs(ab[0] * am[1] - ab[1] * am[0]) / max(float(np.linalg.norm(ab)), 1e-9)
+
+
 def _bottom_row(cans):
-    """Three cans standing on the mat in a line, each next to the next: (left, middle, right) or None."""
+    """Three cans standing on the mat in a straight line, each next to the next: (left, middle, right) or None."""
     on_mat = [c for c in cans if _standing(c) and _on_mat(c)]
     for trio in combinations(on_mat, 3):
         for mid in trio:
             a, b = (c for c in trio if c is not mid)
-            if _pair_carries(a, mid) and _pair_carries(mid, b) and np.linalg.norm(a.pos[:2] - b.pos[:2]) > 2 * D - 0.01:
+            if (_pair_carries(a, mid) and _pair_carries(mid, b) and np.linalg.norm(a.pos[:2] - b.pos[:2]) > 2 * D - 0.01
+                    and _off_line(a, mid, b) <= STRAIGHT):
                 return a, mid, b
     return None
 
 
 def score(objects):
     """0 if any can ends tipped over (more than 45 degrees) or stands centred on a single can. Otherwise 0.25 for a
-    bottom row of three cans on the mat; 0.5 when two more cans each bridge a different pair of neighbours in it;
-    1.0 when a sixth bridges those two. Scored at the end of the trial."""
+    straight bottom row of three cans on the mat (the middle centre within 1 cm of the line through the outer two);
+    0.5 when two more cans each bridge a different pair of neighbours in it; 1.0 when a sixth bridges those two.
+    Scored at the end of the trial."""
     cans = [objects[c.name] for c in CANS]
     if any(_tilt_deg(c) > TIPPED for c in cans) or any(_on_single(c, cans) for c in cans):
         return 0.0

@@ -4,7 +4,7 @@ A task file for the `yam_arena` embodiment ([yam-isaac-lab-arena](https://github
 
 Six cans go from the delivery tray onto the display mat as a 3-2-1 pyramid. Each upper can rests across two below it, so the bottom row has to sit close enough to support both, and each can has to be set down upright and centred without knocking the tiers already built.
 
-`score()` checks the support relationships, not only heights. The bottom row is three upright cans on the mat, in a line, each next to the next. A can in the second tier counts only when it bridges a neighbouring pair of that row: its centre within 1.5 cm of the midpoint between the two, its base within 1 cm of both their tops, and the two 6.6 to 8.3 cm apart. The top can must bridge the two second-tier cans in the same way. A can resting on any other object adds nothing. The trial scores 0 if any can is tipped more than 45 degrees or stands centred on a single can, as in a tower.
+`score()` checks the support relationships, not only heights. The bottom row is three upright cans on the mat in a straight line (the middle can's centre within 1 cm of the line through the outer two), each next to the next. A can in the second tier counts only when it bridges a neighbouring pair of that row: its centre within 1.5 cm of the midpoint between the two, its base within 1 cm of both their tops, and the two 6.6 to 8.3 cm apart. The top can must bridge the two second-tier cans in the same way. A can resting on any other object adds nothing. The trial scores 0 if any can is tipped more than 45 degrees or stands centred on a single can, as in a tower.
 
 ## Run a trial
 
@@ -38,6 +38,10 @@ The run prints `task_score` at the end. The task defines no `success()`, so the 
 | Full pyramid, top can tilted 20 degrees, held 3 cm up, or still moving | 0.5 |
 | Bottom row spread 10 cm apart, pyramid built on it | 0 |
 | Bottom row in an L instead of a line | 0 |
+| Bottom row bent to 106 degrees, cans 8.3 cm apart | 0 |
+| Bottom row bent to 150 degrees, pyramid built on it | 0 |
+| Middle bottom can 0.8 cm off the line, pyramid built on it | 1.0 |
+| Middle bottom can 1.3 cm off the line | 0 |
 | Three cans in a row on the delivery tray | 0 |
 | Any can tipped over 50 degrees | 0 |
 | Nothing done | 0 |
