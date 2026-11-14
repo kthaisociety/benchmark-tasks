@@ -278,18 +278,36 @@ WALL_K = 3000.0
 INSIDE = -(BUTTON_Z - R_INNER)  # the button's travel with its top level with the tube's inside
 
 
-def lock_step(held: int | None, y: float, out: float) -> tuple[int | None, int, bool]:
+def lock_step(held: int | None, y: float, out: float, prev_y: float | None = None) -> tuple[int | None, int, bool]:
     """One step of the lock. ``held``: the hole the leg is held at (None: free); ``y``: the button's middle along the
-    tube (m); ``out``: how far it stands out (m). Returns (the hole held at now or None, the hole the leg's drive aims
-    at, whether the wall holds the button in)."""
+    tube (m); ``out``: how far it stands out (m); ``prev_y``: where the button was at the last step (m), if known.
+    Returns (the hole held at now or None, the hole the leg's drive aims at, whether the wall holds the button in)."""
     if held is not None:
         if out > OUT_LOCKS:
             return held, held, False
         held = None  # pressed in: the leg is free
     k = nearest_hole(y)
     if abs(y - hole_y(k)) > ALIGN:
+        crossed = skipped_hole(prev_y, y)
+        if crossed is not None:
+            # the leg flew over a hole between two control steps (faster than about 10 cm/s): the button sprang out
+            # there and caught, as it would have at physics rate. Hold the leg at that hole and let the button out; if a
+            # fingertip is over the hole the button can't rise, and the next step frees the leg again.
+            return crossed, crossed, False
         return None, k, True
     return (k if out > OUT_LOCKS else None), k, False
+
+
+def skipped_hole(prev_y: float | None, y: float) -> int | None:
+    """The hole whose middle lies strictly between two successive button positions, if either side is beyond ALIGN of
+    it (so the hole was never seen within its window); else None."""
+    if prev_y is None:
+        return None
+    lo, hi = min(prev_y, y), max(prev_y, y)
+    for k in range(1, N_HOLES + 1):
+        if lo < hole_y(k) < hi and abs(prev_y - hole_y(k)) > ALIGN:
+            return k
+    return None
 
 
 def nearest_hole(y: float) -> int:
@@ -298,6 +316,7 @@ def nearest_hole(y: float) -> int:
 
 _DRIVES: dict = {}
 _HELD: dict = {}
+_PREV_Y: dict = {}
 
 
 def _command(name: str, target: float, stiffness: float) -> None:
@@ -337,6 +356,7 @@ def _new_episode() -> None:
     _DRIVES.clear()
     _HELD.clear()
     _HELD.update({n: k for n, (_, k) in CRUTCHES.items()})
+    _PREV_Y.clear()
     _EP.clear()
     _EP.update(_fresh())
 
@@ -399,7 +419,8 @@ def _follow(env) -> None:
         # the lock
         b = as_numpy(base.scene[f"button_{name}"].data.root_link_pose_w)[0]
         y, out = button_reading(c_pos, c_rot, b[:3] - origin)
-        _HELD[name], k, inside = lock_step(_HELD.get(name, CRUTCHES[name][1]), y, out)
+        _HELD[name], k, inside = lock_step(_HELD.get(name, CRUTCHES[name][1]), y, out, _PREV_Y.get(name))
+        _PREV_Y[name] = y
         held = _HELD[name] is not None
         _command(f"slide_{name}", hole_y(k) - hole_y(CRUTCHES[name][1]), LOCK_K if held else 0.0)
         _command(f"spring_{name}", INSIDE if inside else BUTTON_PRE, WALL_K if inside else BUTTON_K)

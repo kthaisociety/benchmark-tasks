@@ -411,3 +411,25 @@ def test_held_leg_resists_a_strong_pull():
 
 def test_first_stretch_passes_under_the_wall():
     assert T.ALIGN < T.PAST < T.PITCH - T.ALIGN - 0.005  # under the wall, short of the next hole
+
+
+def test_a_hole_flown_over_between_steps_catches():
+    # free, walled, the leg jumps 3 cm in one step across hole 6: the button springs out at hole 6 and the leg is held
+    assert T.skipped_hole(T.hole_y(6) - 0.012, T.hole_y(6) + 0.018) == 6
+    assert T.lock_step(None, T.hole_y(6) + 0.018, -0.0012, prev_y=T.hole_y(6) - 0.012) == (6, 6, False)
+
+
+def test_a_slow_slide_never_skips_a_hole():
+    # 1.3 mm per step: every hole is seen inside its window, so the crossing rule never fires
+    y = T.hole_y(7) - 0.010
+    while y < T.hole_y(7) + 0.010:
+        assert T.skipped_hole(y, y + 0.0013) is None
+        y += 0.0013
+    assert T.skipped_hole(None, T.hole_y(7)) is None
+
+
+def test_a_crossed_hole_under_a_fingertip_frees_again():
+    held, k, inside = T.lock_step(None, T.hole_y(6) + 0.018, -0.0012, prev_y=T.hole_y(6) - 0.012)
+    assert held == 6
+    # the drive centred the leg on hole 6 and the pad kept the button at 0.5 mm out: free again next step
+    assert T.lock_step(held, T.hole_y(6), 0.0005) == (None, 6, False)

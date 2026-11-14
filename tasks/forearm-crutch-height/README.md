@@ -45,7 +45,8 @@ The task file follows the trial after every control step:
   straight down, and the crutch has slid no more than 2 cm along the stand.
 
 `score()` gives 0.4 for each crutch that is set. It gives 1.0 when both are set, let go, on the stand and still (every
-crutch and leg moving under 1 cm/s and turning under 0.5 rad/s). The possible scores are 0, 0.4, 0.8 and 1.0.
+crutch and leg moving under 1 cm/s and turning under 0.5 rad/s). The possible scores are 0, 0.4, 0.8 and 1.0. A leg freed and moved but not locked
+in the red hole scores nothing: until the button is out through a hole the crutch has no setting at all.
 `success()` ends the episode once 1.0 has held for 1 s.
 
 ## Run a trial
@@ -127,6 +128,9 @@ the tube and how far it stands out, and sets the two sliders' drives:
   drive holds it level with the tube's inside, as the wall does, and the leg slides freely.
 - **Free, over a hole:** the button springs out. Once it stands more than 1 mm out, its shank is in the hole and the
   leg is held there, centred. A button kept pressed by fingertips just passes over the hole.
+- **A hole skipped between steps:** if the leg moved so fast (over about 10 cm/s) that a hole's middle passed between
+  two control steps without ever being inside its window, the button is taken to have sprung out there: the leg is
+  held at that hole and the button let out. Fingertips over the hole stop it rising, and the next step frees the leg.
 
 The stand is a fixed (kinematic) body. `test_task.py` checks these rules on their own.
 
@@ -140,6 +144,5 @@ handgrips hang free. Setting crutches is safe: the arms press a spring button an
 
 ## Licence
 
-This task is released under the MIT licence. `bodykit.py` comes from
-`tasks/open-an-umbrella-until-its-runner-latches` in this repository. It is unchanged and released under the same
-licence. No third-party models or assets are used. Every object is built from primitive shapes.
+This task is released under the MIT licence. `bodykit.py` is shared with another task in this repository, unchanged
+and under the same licence. No third-party models or assets are used. Every object is built from primitive shapes.
