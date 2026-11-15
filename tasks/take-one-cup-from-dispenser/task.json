@@ -15,5 +15,6 @@
   "run_limit": "1,200 steps (60 s at 20 Hz)",
   "reset_notes": "Each trial uses one cup. Take the cap off the dispenser, lift out the cups left in it, and drop a nested stack of four fresh cups in so the bottom one hangs by its rim on the gasket; put the cap back.",
   "fidelity": "Rigid bodies (Isaac Sim, PhysX, 20 Hz). The paper cups are rigid shells (24 facets, 1.2 mm walls, a hexagonal rolled rim) that can't dent, so crushing is scored from grip force (finger position error x 5,000 N/m; over 12 N counts). Nested cups sit 1.8 cm apart on four small bumps and don't stick. The gasket is eight sprung flaps (60 N/m each) sliding outward and down at 45 degrees. Four cups instead of a full sleeve. Friction: cup 0.6, silicone 0.7.",
-  "scores": "Dream-1 run: 0.0; demo: 1.0"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-PAXX4L"
 }
