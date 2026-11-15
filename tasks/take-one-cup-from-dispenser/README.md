@@ -22,10 +22,10 @@ The layout is fixed.
 
 | Object | Description |
 |---|---|
-| Wall (fixed) | White painted panel, 2 thick, 80 wide (y -25 to 55), 62 tall, its face at x 44.75 |
-| Cup dispenser (fixed) | Stainless-steel pull-type dispenser for 8-24 oz cups (for example a San Jamar C3450SS): a vertical tube 11 across outside and 41 long, capped at the top, held 1.2 off the wall by two steel brackets. Its axis is at x 38, y 14, and its bottom edge is 15 above the counter. Its bottom end has a 3 mm lip inside |
-| Gasket | Black silicone, in a ring 10.6 across and 1.6 tall resting on the lip inside the tube's bottom end. Its eight flaps reach in to 8.5 across, 2.5 mm inside a cup's rim, and give outward and downward when a rim is pulled down through them, which takes a pull of about TBD N |
-| Paper cups (4, 11 g each) | White 12 oz (355 ml) single-wall paper hot cups: 11 tall, 9 across the rolled rim (a 3.2 mm roll), 6 across the bottom. Nested 1.8 apart, open end up, inside the dispenser. The bottom one hangs by its rim on the gasket's flaps with its bottom 6 above the counter, so about 9 of it sticks out below the dispenser |
+| Wall (fixed) | White painted panel, 2 thick, 80 wide (y -25 to 55), 72 tall, its face at x 44.75 |
+| Cup dispenser (fixed) | Stainless-steel pull-type dispenser for 8-24 oz cups (for example a San Jamar C3450SS): a vertical tube 11 across outside and 41 long, capped at the top, held 1.2 off the wall by two steel brackets. Its axis is at x 38, y 14, and its bottom edge is 24.5 above the counter (a cup height and more, so a cup pulled down can slide off the next one above the counter). Its bottom end has a 3 mm lip inside |
+| Gasket | Black silicone, in a ring 10.6 across and 1.6 tall resting on the lip inside the tube's bottom end. Its eight flaps reach in to 8.5 across, 2.5 mm inside a cup's rim, and give outward and downward when a rim is pulled down through them, which takes a pull of about 2 N (measured in the sim) |
+| Paper cups (4, 11 g each) | Brown kraft 12 oz (355 ml) single-wall paper hot cups: 11 tall, 9 across the rolled rim (a 3.2 mm roll), 6 across the bottom. Nested 1.8 apart, open end up, inside the dispenser. The bottom one hangs by its rim on the gasket's flaps with its bottom 15 above the counter, so about 9 of it sticks out below the dispenser |
 | Bar mat (fixed) | Black rubber, 16 (x) by 12 (y), 4 mm thick, centred at x 34, y -3 (right of the dispenser) |
 
 In the sim the gasket is its own part, resting on the lip: a ring with eight sprung flaps, each a rounded tip on a
@@ -36,9 +36,11 @@ hexagonal rolled rim and four small stacking bumps inside near the bottom, on wh
 
 The task file follows the trial after every control step:
 
-- **Out of the dispenser:** all of a cup, rim included, is below the dispenser's bottom edge.
+- **Out of the dispenser:** all of a cup, rim included, is below the dispenser's bottom edge, and it has come off the
+  next cup: their axes more than a rim's radius apart, or no overlap in height (a cup pulled only partway is still round
+  the next cup's bottom).
 - **Still in the dispenser:** a cup hangs upright (within 10 degrees) no more than 5 mm lower than the bottom cup hung
-  at the start (its bottom 6 cm above the counter). The next cup drops onto the gasket at exactly that height; a cup
+  at the start (its bottom 15 cm above the counter). The next cup drops onto the gasket at exactly that height; a cup
   dragged partly through the gasket hangs lower. On a real rig this is measured at the outlet with a tape measure.
 - **Crushed:** a gripper squeezed a cup hard enough to dent or crease it. On a real rig, from the video: the wall
   visibly pushed in. The sim's cups are rigid, so it reads the grip force instead: each gripper's squeeze is its
@@ -52,7 +54,7 @@ The task file follows the trial after every control step:
 
 `score()` gives:
 
-- 0 if two or more cups are out, if a cup was crushed, tipped or fell, or if no cup is out;
+- 0 if no cup is out, if two or more cups are below the dispenser, or if a cup was crushed, tipped or fell;
 - 0.25 when exactly one cup is out;
 - 0.5 when, also, every other cup is still in the dispenser and the cup that is out stands upright (within 10
   degrees) with its bottom edge on the counter or the mat (within 6 mm), still (moving under 1 cm/s and turning under
@@ -86,13 +88,13 @@ Run it with `--policy yam_scripted` instead of `--policy dream`. The left arm do
 1. With its approach tipped 62 degrees forward (straight down, the gripper would be inside the dispenser), the left
    arm comes in at the hanging cup's height with its fingers either side of it, and pinches the cup 1.9 cm above its
    bottom, near the pad tips (the fingers' roots join across the gap 4.4 cm behind the TCP, so a deeper pinch would
-   put the cup's side into them). It closes only to just inside the cup's far side, a squeeze of about 6 N, not
-   fully (50 N would crush it).
-2. It pulls the cup 3.2 cm straight down (aiming 0.8 cm further, because the arm gives against the flaps): the rim
-   pushes the flaps aside and snaps through, the next cup drops 1.8 cm onto the flaps, and the whole cup is now
-   below the dispenser.
-3. It moves the cup out from under the dispenser, over the mat, sets it down and lets go, moves its still finger
-   off the cup, backs away along its approach and parks.
+   put the cup's side into them). Both fingers close, centring the cup between them, but only to just inside its
+   sides: a squeeze of about 6 N, not fully (50 N would crush it).
+2. It pulls the cup 11.6 cm straight down (aiming 0.6 cm further, because the arm gives against the flaps): after
+   about 9 mm the rim pushes the flaps aside and snaps through (about 2 N), the next cup drops 1.8 cm onto the flaps
+   and is caught by its rim, and the pulled cup slides on down off it until its rim is below the next cup's bottom.
+3. It moves the cup out from under the dispenser, over the mat, sets it down and lets go, backs away along its
+   approach and parks.
 
 The grip (pitch, pinch height and how far behind the cup's axis the TCP sits) was chosen with `check_clearance.py`,
 which poses the YAM's meshes along the demo with the robot's inverse kinematics: the closest approaches are 5.8 mm to
@@ -117,8 +119,8 @@ Shortcuts, with `DEMO_VARIANT` set in the environment:
 
 `test_task.py` checks the geometry (the gasket holds a rim but lets a pulled one through, the flaps stay inside the
 tube, nested cups clear each other, the pull brings the whole cup out above the counter), the scoring rules on
-hand-built states (including the squeeze force: the demo's 6 N pinch stays under 20 N even if the still finger sits
-2 mm closer than measured, and a full close counts as crushing), the demo's reach with the robot's inverse kinematics, and runs `check_clearance.py`, without Isaac
+hand-built states (including the squeeze force: the demo's 6 N pinch stays under 20 N even if the cup is half a
+millimetre wider than modelled, and a full close counts as crushing), the demo's reach with the robot's inverse kinematics, and runs `check_clearance.py`, without Isaac
 Sim:
 
 ```bash
@@ -130,7 +132,7 @@ PYTHONPATH=<path to yam-isaac-lab-arena> python check_clearance.py full
 
 Mount a stainless-steel pull-type cup dispenser for 8-24 oz cups (16 in tube, with its silicone gasket; for example a
 San Jamar C3450SS) on a wall
-panel or a board clamped upright at the back of the table, its bottom edge 15 cm above the table and its axis 38 cm
+panel or a board clamped upright at the back of the table, its bottom edge 24.5 cm above the table and its axis 38 cm
 out and 14 cm left of the arms' midpoint. Load it from the top with a nested stack of four 12 oz single-wall paper
 hot cups (90 mm rim, 60 mm base, 110 mm tall), so the bottom one hangs by its rim on the gasket. Lay a 16 x 12 cm
 rubber bar mat on the table, centred 34 cm out and 3 cm right of the arms' midpoint. Film the trial. Score the end

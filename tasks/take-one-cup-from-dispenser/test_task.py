@@ -43,12 +43,12 @@ def _cup(pos, tilt=0.0, vel=0.0):
 
 
 def _hanging(k):
-    return _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_BASE_Z + (k - 1) * T.NEST_PITCH))
+    return _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_HANG_Z + (k - 1) * T.NEST_PITCH))
 
 
 def _after(k):
     """Cup k once the bottom cup is gone: everything one pitch lower."""
-    return _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_BASE_Z + (k - 2) * T.NEST_PITCH))
+    return _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_HANG_Z + (k - 2) * T.NEST_PITCH))
 
 
 def _objects(first=None, rest=None):
@@ -114,17 +114,18 @@ def test_rim_stands_proud_of_the_wall():
 def test_cup_fits_the_open_gripper_where_it_is_pinched():
     width = 2 * T.R_GRIP / math.cos(math.pi / T.WALL_SEGS)  # across the facets' corners
     assert width < GRIPPER_SPAN - 0.02
-    # the still finger meets the cup's -y facet when the TCP is STILL_PAD - r_grip to its +y
-    tcp = T.tcp_for_cup(T.AXIS_XY, T.CUP1_BASE_Z)
-    assert tcp[1] - T.STILL_PAD == pytest.approx(T.AXIS_XY[1] - T.R_GRIP, abs=1e-9)
+    # both fingers close and centre the cup: the TCP aims at its axis, and the open pads clear its sides by 1 cm or more
+    tcp = T.tcp_for_cup(T.AXIS_XY, T.CUP1_HANG_Z)
+    assert tcp[1] == pytest.approx(T.AXIS_XY[1], abs=1e-9)
+    assert GRIPPER_SPAN / 2 - T.R_GRIP >= 0.01
 
 
 def test_pinch_is_on_the_cup_and_near_the_pad_tips():
     a = T.approach_dir()
-    tcp = np.array(T.tcp_for_cup(T.AXIS_XY, T.CUP1_BASE_Z))
+    tcp = np.array(T.tcp_for_cup(T.AXIS_XY, T.CUP1_HANG_Z))
     contact = tcp + T.GRIP_FORWARD * a  # where the pads meet the cup's sides
     assert contact[0] == pytest.approx(T.AXIS_XY[0])
-    assert contact[2] - T.CUP1_BASE_Z == pytest.approx(T.GRIP_UP)
+    assert contact[2] - T.CUP1_HANG_Z == pytest.approx(T.GRIP_UP)
     assert 0.005 <= T.GRIP_FORWARD <= 0.013 + 0.003  # the pads reach 13 mm past the TCP
 
 
@@ -217,15 +218,30 @@ def test_bottom_cup_hangs_by_its_rim_on_the_flaps():
 
 
 def test_bottom_cup_hangs_well_out_and_above_the_counter():
-    exposed = T.DISPENSER_BOTTOM - T.CUP1_BASE_Z
+    exposed = T.DISPENSER_BOTTOM - T.CUP1_HANG_Z
     assert exposed >= 0.085
-    assert T.CUP1_BASE_Z - T.TOP >= 0.05
+    assert T.CUP1_HANG_Z - T.TOP >= 0.05
 
 
-def test_pull_brings_the_whole_cup_out_above_the_counter():
-    rim_after = T.CUP1_BASE_Z - T.PULL + T.CUP_H
-    assert T.DISPENSER_BOTTOM - rim_after >= 0.008
-    assert T.CUP1_BASE_Z - T.PULL - T.PULL_OVER - T.TOP >= 0.015
+def test_pull_brings_the_whole_cup_off_the_next_one_above_the_counter():
+    rim_after = T.CUP1_HANG_Z - T.PULL + T.CUP_H
+    assert T.DISPENSER_BOTTOM - rim_after >= 0.05
+    # the next cup ends up hanging where the first one hung: the pulled cup's rim has to get below its bottom
+    assert T.CUP1_HANG_Z - rim_after >= 0.005
+    assert T.CUP1_HANG_Z - (rim_after - T.PULL_OVER) >= 0.01  # once the arm catches up past the flaps
+    assert T.CUP1_HANG_Z - T.PULL - T.PULL_OVER - T.TOP >= 0.015
+
+
+def test_dispenser_is_mounted_a_cup_height_and_more_above_the_counter():
+    assert T.CUP1_HANG_Z - T.TOP >= T.CUP_H + 0.03
+
+
+def test_cup_pulled_only_partway_is_not_out_and_scores_zero():
+    partway = _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_HANG_Z - 0.05))  # below the dispenser, still round the next cup
+    nxt = _after(2)
+    assert T.below_dispenser(partway) and T.nested(partway, nxt)
+    assert not T.is_out(partway, [nxt])
+    assert T.score(_objects(first=partway)) == 0.0
 
 
 def test_next_cup_lands_after_the_rim_has_passed():
@@ -235,7 +251,7 @@ def test_next_cup_lands_after_the_rim_has_passed():
 
 
 def test_stack_fits_in_the_tube():
-    top = T.CUP1_BASE_Z + (T.N_CUPS - 1) * T.NEST_PITCH + T.CUP_H
+    top = T.CUP1_HANG_Z + (T.N_CUPS - 1) * T.NEST_PITCH + T.CUP_H
     assert top < T.OUTLET_Z + T.TUBE_L - 0.05
 
 
@@ -256,9 +272,10 @@ def test_mat_is_clear_of_the_dispenser_and_wall():
 def test_counter_spot_is_off_the_mat_and_clear_of_the_next_cup():
     x, y = T.COUNTER_SPOT
     assert abs(y - T.MAT_XY[1]) - T.MAT_SIZE[1] / 2 >= T.R0 + 0.005 or abs(x - T.MAT_XY[0]) - T.MAT_SIZE[0] / 2 >= T.R0
-    # the still finger (toward -y) lets go at least 3 cm from the cup still hanging in the dispenser
-    still_y = y + (T.STILL_PAD - T.R_GRIP) - T.STILL_PAD
-    assert still_y - (T.AXIS_XY[1] + T.RIM_D / 2) >= 0.03
+    # the open fingers let go at least 3 cm from the cup still hanging in the dispenser
+    tcp_y = T.tcp_for_cup((x, y), T.TOP)[1]
+    near_pad_y = tcp_y - GRIPPER_SPAN / 2  # the open finger on the dispenser's side
+    assert abs(near_pad_y - T.AXIS_XY[1]) - T.RIM_D / 2 >= 0.03
 
 
 def test_dispenser_is_clear_of_the_left_arm_ready_pose():
@@ -310,7 +327,7 @@ def test_cup_still_held_by_the_gripper_scores_quarter():
 
 
 def test_backing_away_is_not_yet_let_go_but_parking_is():
-    tcp = np.array(T.tcp_for_cup(T.MAT_XY, T.MAT_TOP)) - np.array([0, T.STILL_CLEAR, 0]) - T.RETREAT * T.approach_dir()
+    tcp = np.array(T.tcp_for_cup(T.MAT_XY, T.MAT_TOP)) - T.RETREAT * T.approach_dir()
     T._S["tcps"] = [tcp, FAR[1]]
     assert not T.released(_cup(ON_MAT))  # 6 cm back along the approach, the fingers are still within 1.5 cm
     T._S["tcps"] = [np.array(T.PARK["left"]), FAR[1]]
@@ -334,7 +351,7 @@ def test_two_cups_out_scores_zero():
 
 
 def test_next_cup_dragged_into_the_gasket_caps_at_quarter():
-    jammed = _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_BASE_Z - 0.012))  # rim between the flaps and the bottom edge
+    jammed = _cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_HANG_Z - 0.012))  # rim between the flaps and the bottom edge
     assert not T.is_out(jammed) and not T.is_held(jammed)
     objs = _objects(first=_cup(ON_MAT), rest={2: jammed})
     assert T.score(objs) == 0.25
@@ -419,7 +436,7 @@ def test_demo_sets_the_cup_wholly_on_the_mat():
     wps = {w.label: w for w in T._take("mat")}
     tcp = np.array(wps["set it down on the mat"].pos)
     a = T.approach_dir()
-    axis = tcp + T.GRIP_FORWARD * a - np.array([0.0, T.STILL_PAD - T.R_GRIP, 0.0])
+    axis = tcp + T.GRIP_FORWARD * a
     cup = _cup((axis[0], axis[1], T.MAT_TOP))
     assert T.wholly_on_mat(cup)
 
@@ -437,32 +454,34 @@ def test_mesh_clearances():
 # -- crushing ------------------------------------------------------------------------------------------------------------
 
 
-def test_squeeze_force_reads_the_blocked_finger():
+def test_squeeze_force_reads_the_blocked_fingers():
     from yam_arena.constants import FINGER_OPEN
 
-    contact = -(2 * T.R_GRIP - T.STILL_PAD)
-    # one finger at its open stop (drive saturated, not on the cup), the other stopped by the cup 1.2 mm short
+    contact = -T.R_GRIP  # each pad stopped on the cup's side
+    # both fingers stopped by the cup 1.2 mm short of their target
+    assert T.squeeze_force([contact, contact], (contact + 0.0012) / FINGER_OPEN) == pytest.approx(6.0)
+    # a finger held back by something else (its drive saturated) doesn't count: the smaller one is the squeeze
     assert T.squeeze_force([FINGER_OPEN, contact], (contact + 0.0012) / FINGER_OPEN) == pytest.approx(6.0)
-    # a free finger reaches its target: no squeeze
+    # free fingers reach their target: no squeeze
     assert T.squeeze_force([-0.02, -0.02], -0.02 / FINGER_OPEN) == pytest.approx(0.0)
     # told to close fully on the cup: the 50 N cap
-    assert T.squeeze_force([FINGER_OPEN, contact], 0.0) == pytest.approx(50.0)
+    assert T.squeeze_force([contact, contact], 0.0) == pytest.approx(50.0)
 
 
-def test_demo_pinches_gently_even_if_the_still_pad_sits_2mm_closer():
+def test_demo_pinches_gently_even_if_the_cup_is_half_a_millimetre_wider():
+    # the pads stop where their upper edge meets the widening cup (33.6 mm measured on Brev, R_CONTACT 33.7)
+    assert T.R_CONTACT == pytest.approx(0.0336, abs=0.0005)
     from yam_arena.constants import FINGER_OPEN
 
     grip = T.GRIP_FINGER / FINGER_OPEN
-    assert T.squeeze_force([FINGER_OPEN, -(2 * T.R_GRIP - T.STILL_PAD)], grip) == pytest.approx(T.GRIP_SQUEEZE_N)
-    urdf_stop = 0.047  # the URDF's open stop, 2 mm closer than measured on Brev: the cup is met 2 mm sooner
-    assert T.squeeze_force([FINGER_OPEN, -(2 * T.R_GRIP - urdf_stop)], grip) < T.CRUSH_N
+    assert T.squeeze_force([-T.R_CONTACT, -T.R_CONTACT], grip) == pytest.approx(T.GRIP_SQUEEZE_N)
+    wider = -(T.R_CONTACT + 0.0005)  # a facet corner or a half-millimetre error: the pads stop sooner
+    assert T.squeeze_force([wider, wider], grip) < T.CRUSH_N
     assert T.GRIP_SQUEEZE_N * 2 <= T.CRUSH_N <= 25.0
 
 
 def test_full_close_on_a_cup_counts_as_crushing():
-    from yam_arena.constants import FINGER_OPEN
-
-    assert T.squeeze_force([FINGER_OPEN, -(2 * T.R_GRIP - T.STILL_PAD)], 0.0) > T.CRUSH_N
+    assert T.squeeze_force([-T.R_GRIP, -T.R_GRIP], 0.0) > T.CRUSH_N
 
 
 def test_a_crushed_cup_scores_zero():
@@ -473,4 +492,4 @@ def test_a_crushed_cup_scores_zero():
 def test_held_means_hanging_where_the_bottom_cup_started():
     assert T.is_held(_after(2))  # the next cup, dropped onto the gasket
     assert T.is_held(_hanging(3))
-    assert not T.is_held(_cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_BASE_Z - T.HELD_DROP - 0.001)))
+    assert not T.is_held(_cup((T.AXIS_XY[0], T.AXIS_XY[1], T.CUP1_HANG_Z - T.HELD_DROP - 0.001)))

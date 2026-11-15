@@ -1,6 +1,6 @@
 """On the station table, a counter set against a white wall: a stainless-steel pull-type cup dispenser hangs on the wall
 in front of the left arm, its tube vertical and its outlet 15 cm above the counter. It holds a short stack of nested
-white 12 oz paper hot cups, upside up (open end up). The bottom cup hangs out of the outlet: its rolled rim rests on
+brown kraft 12 oz paper hot cups, upside up (open end up). The bottom cup hangs out of the outlet: its rolled rim rests on
 the dispenser's black silicone gasket, whose eight soft flaps hold it by the rim, and the rest of the cup (about 9 cm of
 it) sticks out below the dispenser. The other cups sit nested inside it, up in the tube. A cup comes out when it is
 pulled straight down hard enough for its rim to push the flaps aside; the flaps then spring back and catch the next
@@ -34,7 +34,7 @@ TOP = TABLE_TOP[SCENE]
 
 INSTRUCTION = "Pull one paper cup out of the wall dispenser and stand it upright on the black mat."
 
-PAPER = (0.95, 0.94, 0.90)
+PAPER = (0.62, 0.46, 0.30)  # unbleached kraft: stands out against the steel tube and the white wall
 STEEL = (0.74, 0.75, 0.77)
 SILICONE = (0.10, 0.10, 0.11)
 WALL_WHITE = (0.90, 0.90, 0.88)
@@ -101,7 +101,10 @@ def _cup_shapes():
 
 # -- the dispenser: a stainless tube hung on the wall, its gasket bezel resting on a lip at the tube's bottom ----------
 AXIS_XY = (0.38, 0.14)  # the tube's axis on the counter (world x, y): clear of the left arm's ready pose (0.32, 0.305)
-OUTLET_Z = TOP + 0.1533  # the gasket bezel's bottom face (the lip's top), 15.3 cm above the counter
+# The gasket bezel's bottom face (the lip's top), 24.5 cm above the counter. A pull-down dispenser is mounted a full
+# cup height plus a little above the counter: the bottom cup only comes free once it has slid down off the next cup,
+# which by then hangs where it hung (seen on Brev with the outlet at 15 cm: the pulled cup was still round the next).
+OUTLET_Z = TOP + 0.2452
 TUBE_IN = 0.0535  # tube inside radius
 TUBE_T = 0.0015
 TUBE_OUT = TUBE_IN + TUBE_T
@@ -111,7 +114,7 @@ LIP_T = 0.003
 TUBE_SEGS = 24
 BRACKET_GAP = 0.012  # tube to wall
 WALL_X = AXIS_XY[0] + TUBE_OUT + BRACKET_GAP  # the wall's face (world x)
-WALL_SIZE = (0.02, 0.80, 0.62)
+WALL_SIZE = (0.02, 0.80, 0.72)
 WALL_Y = 0.15  # the wall's middle (world y)
 
 
@@ -192,7 +195,9 @@ def _bezel():
 # where the bottom cup hangs: its rim's roll resting on the flap tips (centres 4.6 mm apart, the roll 2.1 mm further in)
 _REST_DR = FLAP_RC - BEAD_RC
 _REST_DZ = math.sqrt((FLAP_TIP_R + BEAD_R) ** 2 - _REST_DR ** 2)
-CUP1_BASE_Z = OUTLET_Z + FLAP_Z + _REST_DZ - BEAD_ZC  # world z of the bottom cup's bottom edge
+CUP1_BASE_Z = OUTLET_Z + FLAP_Z + _REST_DZ - BEAD_ZC  # world z of the bottom cup's bottom edge (spawn)
+REST_SINK = 0.0019  # measured on Brev (2026-11-15): under the stack's weight the flaps give 1.4 mm and the cup settles 1.9 mm
+CUP1_HANG_Z = CUP1_BASE_Z - REST_SINK  # where the bottom cup's bottom edge hangs at rest (world z)
 
 
 def cup_name(k: int) -> str:
@@ -233,7 +238,7 @@ HELD_DROP = 0.005  # a cup still in the dispenser hangs no more than this below 
 # 5 N at two-thirds of its height; near the bottom, where it is pinched here, the bottom disc stiffens it. The YAM's
 # gripper squeezes up to 50 N when told to close fully. The force is read from the fingers' position error times the
 # gripper's stiffness (yam_arena's implicit gripper actuator: 5,000 N/m, capped at 50 N), taking the smaller of the two
-# fingers (in this sim one finger stays at its open stop, its drive saturated against the stop, not the cup).
+# fingers (both press on a held cup; a finger held back by anything else would read high on its own).
 CRUSH_N = 20.0
 NEAR_CUP = 0.01  # a gripper counts as holding a cup when its TCP is within this of the cup's outside
 
@@ -257,17 +262,32 @@ def rim_top(state) -> float:
     return float(state.to_world((0.0, 0.0, CUP_H))[2])
 
 
-def is_out(state) -> bool:
-    """Out of the dispenser: the whole cup, rim included, below the dispenser's bottom edge."""
+def below_dispenser(state) -> bool:
+    """The whole cup, rim included, below the dispenser's bottom edge."""
     top = max(float(state.to_world((dx, dy, CUP_H))[2]) for dx, dy in ((0, 0), (RIM_D / 2, 0), (-RIM_D / 2, 0),
                                                                           (0, RIM_D / 2), (0, -RIM_D / 2)))
     return top < DISPENSER_BOTTOM
 
 
+def nested(a, b) -> bool:
+    """Cups ``a`` and ``b`` still one inside the other: their axes within a rim's radius of each other and their spans
+    (bottom to rim) overlapping in height."""
+    if math.hypot(float(a.pos[0] - b.pos[0]), float(a.pos[1] - b.pos[1])) > RIM_D / 2:
+        return False
+    return float(a.pos[2]) < rim_top(b) and float(b.pos[2]) < rim_top(a)
+
+
+def is_out(state, others=()) -> bool:
+    """Out of the dispenser: the whole cup below the dispenser's bottom edge and clear of every other cup (a cup pulled
+    only partway still has the next cup's bottom nested in it)."""
+    return below_dispenser(state) and not any(nested(state, o) for o in others)
+
+
 def is_held(state) -> bool:
     """Still in the dispenser: hanging upright, no more than HELD_DROP below where the bottom cup hung at the start (a
     cup dragged partly through the gasket hangs lower; one higher up is nested inside the bottom one)."""
-    return float(state.pos[2]) >= CUP1_BASE_Z - HELD_DROP and tilt_deg(state) < UPRIGHT_TOL and not is_out(state)
+    return (float(state.pos[2]) >= CUP1_HANG_Z - HELD_DROP and tilt_deg(state) < UPRIGHT_TOL
+            and not below_dispenser(state))
 
 
 def cup_distance(state, point) -> float:
@@ -307,10 +327,12 @@ def score(objects) -> float:
     cups = [objects[c.name] for c in CUPS]
     if _S["tipped"] or _S["fell"] or _S["crushed"]:
         return 0.0
-    out = [c for c in cups if is_out(c)]
-    if len(out) != 1:
+    below = [c for c in cups if below_dispenser(c)]
+    if len(below) != 1:  # none pulled, or two or more pulled out
         return 0.0
-    cup = out[0]
+    cup = below[0]
+    if not is_out(cup, [c for c in cups if c is not cup]):  # pulled only partway: still round the next cup
+        return 0.0
     others_held = all(is_held(c) for c in cups if c is not cup)
     if not others_held:
         return 0.25
@@ -393,7 +415,8 @@ def _follow(environment) -> None:
         gasket = _part_state(environment, _SPECS[GASKET.name])
         flaps = [round(v * 1000, 2) for v in gasket.sliders.values()]
         parts = [f"{n}: base {np.round(s.pos, 4).tolist()} tilt {tilt_deg(s):.1f} rim {rim_top(s):.4f} "
-                 f"out {is_out(s)} held {is_held(s)}" for n, s in states.items()]
+                 f"out {is_out(s, [o for m, o in states.items() if m != n])} held {is_held(s)}"
+                 for n, s in states.items()]
         print(f"[cup] step {_S['steps']} tipped {_S['tipped']} fell {_S['fell']} crushed {_S['crushed']} "
               f"squeeze(N) {[round(f, 1) for f in _S['squeeze']]} max {_S['max_squeeze']:.1f} "
               f"tcps {[np.round(t, 4).tolist() for t in _S['tcps']]} gasket {np.round(gasket.pos, 4).tolist()} "
@@ -458,21 +481,25 @@ PITCH = math.radians(float(os.environ.get("CUP_PITCH_DEG", "62")))
 GRIP = Tilt(0.0, PITCH)
 GRIP_UP = float(os.environ.get("CUP_GRIP_UP", "0.019"))  # pinch this far above the cup's bottom edge
 R_GRIP = wall_radius(GRIP_UP)
+# The tilted pads (27.4 mm wide) span 12 mm up and down the cup's side from the pinch, and the cup widens upward, so they
+# stop on it at the radius their upper edge meets (seen on Brev: 33.6 mm, not 32.3).
+PAD_HALF_W = 0.0137
+R_CONTACT = wall_radius(GRIP_UP + PAD_HALF_W * math.sin(PITCH))
 # The fingers' roots join across the gap 44 mm behind the TCP, so a tilted pinch on an upright cup takes the cup near the
 # pad tips: the TCP sits this far behind the cup's axis along the approach, keeping the cup's near side out of the gap.
 GRIP_FORWARD = float(os.environ.get("CUP_GRIP_FORWARD", "0.014"))
-# In this sim only one finger closes: the other stays at its open stop, STILL_PAD from the TCP toward -y (measured on
-# Brev, frame-corner-protectors). The closing finger presses the cup against it, so the TCP aims STILL_PAD - the cup's
-# radius to the +y of the cup's axis.
-STILL_PAD = 0.049
-STILL_CLEAR = 0.006  # the still finger passes this far off the cup (toward -y) on the way in
-# A paper cup is pinched gently: the closing finger's target is just inside the cup's far side, so it squeezes with
-# about GRIP_SQUEEZE_N (well under CRUSH_N; closing fully would squeeze 50 N). Its pad meets the cup 2 r - STILL_PAD from
-# the TCP; the finger joint's value is minus the pad's distance from the TCP.
+# Both fingers close and centre the cup between them (seen on Brev, 2026-11-15: pinched off-centre, the hanging cup
+# was pulled across to the TCP and squeezed at the 50 N cap). So the TCP aims at the cup's axis, and a paper cup is
+# pinched gently: the fingers' target is just inside the cup's sides, so each pad stops on the cup R_GRIP from the TCP
+# and pushes with about GRIP_SQUEEZE_N (well under CRUSH_N; closing fully would squeeze 50 N). A finger joint's value is
+# minus its pad's distance from the TCP (0 closed, -47 mm open).
 GRIP_SQUEEZE_N = float(os.environ.get("CUP_SQUEEZE_N", "6"))
-GRIP_FINGER = -(2 * R_GRIP - STILL_PAD) + GRIP_SQUEEZE_N / GRIPPER["stiffness"]
-PULL = 0.032  # the cup comes down this far: rim through the flaps and 1 cm below the dispenser's bottom edge
-PULL_OVER = 0.008  # ... and the arm aims this much further: it lags against the flaps (~500 N/m down)
+GRIP_FINGER = -R_CONTACT + GRIP_SQUEEZE_N / GRIPPER["stiffness"]
+# The cup comes down a cup height plus a little: its rim through the flaps (after about 9 mm, at about 2 N), the next
+# cup dropping a pitch onto the flaps with it, then sliding on down off the next cup until its rim is below that cup's
+# bottom. The arm aims PULL_OVER further: it lags against the flaps (~500 N/m down) until the rim lets go.
+PULL = CUP_H + 0.006
+PULL_OVER = 0.006
 BACK = 0.05  # out from under the dispenser, toward the arms
 SET_OVER = 0.002  # the set-down aims the cup's bottom this far into the mat, so it seats
 RETREAT = 0.06
@@ -489,7 +516,7 @@ def tcp_for_cup(cup_xy, bottom_z) -> tuple[float, float, float]:
     a = approach_dir()
     x = cup_xy[0] - GRIP_FORWARD * a[0]
     z = bottom_z + GRIP_UP - GRIP_FORWARD * a[2]
-    return (float(x + SAG[0]), float(cup_xy[1] + STILL_PAD - R_GRIP + SAG[1]), float(z + SAG[2]))
+    return (float(x + SAG[0]), float(cup_xy[1] + SAG[1]), float(z + SAG[2]))
 
 
 PARK = {"left": (0.18, 0.34, TOP + 0.16), "right": (0.18, -0.34, TOP + 0.16)}
@@ -500,18 +527,17 @@ def _take(place: str = "mat", release: bool = True) -> list[Waypoint]:
     """Pinch the hanging cup, pull it out, and stand it on the mat (``place='mat'``), on the counter left of the
     dispenser (``'counter'``) or keep holding it in the air (``'air'``)."""
     g = GRIP
-    pinch = np.array(tcp_for_cup(AXIS_XY, CUP1_BASE_Z))
-    clear = pinch - np.array([0.0, STILL_CLEAR, 0.0])  # the still finger is on the -y side
-    start = clear + np.array([-0.08, 0.0, 0.0])
+    pinch = np.array(tcp_for_cup(AXIS_XY, CUP1_HANG_Z))
+    start = pinch + np.array([-0.08, 0.0, 0.0])
     pulled = pinch + np.array([0.0, 0.0, -(PULL + PULL_OVER)])
     out = pulled + np.array([-BACK, 0.0, 0.0])
     wps = [
         Waypoint(2.0, tuple(start + np.array([0, 0, 0.03])), FINGER_OPEN, "in front of the cup, tilted", g),
         Waypoint(1.2, tuple(start), FINGER_OPEN, "down to the pinch height", g),
-        Waypoint(1.8, tuple(clear), FINGER_OPEN, "fingers either side of the cup", g),
-        Waypoint(0.6, tuple(pinch), FINGER_OPEN, "still finger onto the cup", g),
+        Waypoint(1.8, tuple(pinch), FINGER_OPEN, "fingers either side of the cup", g),
+        Waypoint(0.6, tuple(pinch), FINGER_OPEN, "steady before the pinch", g),
         Waypoint(0.8, tuple(pinch), GRIP_FINGER, "pinch", g),
-        Waypoint(2.5, tuple(pulled), GRIP_FINGER, "pull straight down through the gasket", g),
+        Waypoint(4.0, tuple(pulled), GRIP_FINGER, "pull straight down through the gasket", g),
         Waypoint(0.6, tuple(pulled), GRIP_FINGER, "steady", g),
         Waypoint(1.5, tuple(out), GRIP_FINGER, "out from under the dispenser", g),
     ]
@@ -521,8 +547,7 @@ def _take(place: str = "mat", release: bool = True) -> list[Waypoint]:
     floor = MAT_TOP if place == "mat" else TOP
     above = np.array(tcp_for_cup(spot, floor + 0.02))
     down = np.array(tcp_for_cup(spot, floor - SET_OVER))
-    off = down - np.array([0.0, STILL_CLEAR, 0.0])  # the still finger (-y side) off the cup
-    back = off - RETREAT * approach_dir()
+    back = down - RETREAT * approach_dir()
     wps += [
         Waypoint(2.2, tuple(above), GRIP_FINGER, f"over the {place}", g),
         Waypoint(1.2, tuple(down), GRIP_FINGER, f"set it down on the {place}", g),
@@ -532,7 +557,7 @@ def _take(place: str = "mat", release: bool = True) -> list[Waypoint]:
         return wps + [Waypoint(60.0, tuple(down), GRIP_FINGER, "keep holding it", g)]
     return wps + [
         Waypoint(0.8, tuple(down), FINGER_OPEN, "let go", g),
-        Waypoint(0.5, tuple(off), FINGER_OPEN, "still finger off the cup", g),
+        Waypoint(0.5, tuple(down), FINGER_OPEN, "fingers open", g),
         Waypoint(1.2, tuple(back), FINGER_OPEN, "back away", g),
         Waypoint(1.5, PARK["left"], FINGER_OPEN, "park"),
     ]

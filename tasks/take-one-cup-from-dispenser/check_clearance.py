@@ -75,11 +75,11 @@ def cup_clearance(p, base_z):
     return np.where(dz > 0, np.hypot(np.maximum(dr, 0), dz), dr)
 
 
-HANGING = ("in front of the cup, tilted", "down to the pinch height", "fingers either side of the cup",
-           "still finger onto the cup", "pinch")
-# gripper x is world -y at yaw 0, so tip_right (gripper +x) is the finger toward -y: in the sim it stays at its open
-# stop; tip_left closes until its pad meets the cup, 2 * r_grip - STILL_PAD from the TCP
-CLOSED_ON_CUP = -(2 * T.R_GRIP - T.STILL_PAD)
+HANGING = ("in front of the cup, tilted", "down to the pinch height", "fingers either side of the cup")
+# Both fingers close (seen on Brev): open, each pad sits 47 mm from the TCP; closed on the cup, each stops on its side,
+# R_GRIP from the TCP.
+OPEN = FINGER_OPEN
+CLOSED_ON_CUP = -T.R_CONTACT  # where the tilted pads' upper edge meets the cup
 worst = {}
 
 
@@ -92,9 +92,8 @@ t, dt = 0.0, 0.05
 while t < arm.duration:
     a7, label = arm.action7(t)
     q = {n: float(v) for n, v in zip(ARM_JOINTS, a7[:6])}
-    closed = a7[6] < 0.5
-    q["joint8"] = -T.STILL_PAD  # the still finger's pad where it was measured on Brev (49 mm; the URDF's stop is 47)
-    q["joint7"] = CLOSED_ON_CUP if closed else FINGER_OPEN
+    # the commanded opening, but a pad stops on the cup's side once it is between them (after the pinch)
+    q["joint7"] = q["joint8"] = min(float(a7[6]) * FINGER_OPEN, CLOSED_ON_CUP)
     fk = forward_kinematics(URDF, q)
     for link, v in meshes.items():
         T4 = fk[link]
@@ -103,14 +102,12 @@ while t < arm.duration:
         note("wall", (T.WALL_X - P[:, 0]).min(), label, link)
         over_mat = (np.abs(P[:, 0] - T.MAT_XY[0]) <= T.MAT_SIZE[0] / 2) & (np.abs(P[:, 1] - T.MAT_XY[1]) <= T.MAT_SIZE[1] / 2)
         note("counter", (P[:, 2] - np.where(over_mat, T.MAT_TOP, T.TOP)).min(), label, link)
-        if label in HANGING[:3]:
-            note("cup (approach)", cup_clearance(P, T.CUP1_BASE_Z).min(), label, link)
-        if label == "pinch" and not (link == "tip_left" and closed):
-            # pinched: only the closing pad may touch the cup; the still pad rests on it (allow 1 mm)
-            d = cup_clearance(P, T.CUP1_BASE_Z).min()
-            # the still finger's pad rests on the cup: up to 1 mm of overlap there is the intended contact
-            key = "still pad on the cup (contact)" if link == "tip_right" else "cup (pinched, other links)"
-            note(key, d, label, link)
+        if label in HANGING:
+            note("cup (approach)", cup_clearance(P, T.CUP1_HANG_Z).min(), label, link)
+        if label == "pinch":
+            # both pads press on the cup: up to 1.5 mm of mesh overlap at a finger is the intended contact
+            key = "pads on the cup (contact)" if link in ("tip_left", "tip_right") else "cup (pinched, other links)"
+            note(key, cup_clearance(P, T.CUP1_HANG_Z).min(), label, link)
     t += dt
 print(f"variant {variant}, pitch {math.degrees(T.PITCH):.0f} deg, grip_forward {T.GRIP_FORWARD * 1000:.0f} mm, "
       f"grip_up {T.GRIP_UP * 1000:.0f} mm: "
