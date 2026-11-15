@@ -22,10 +22,11 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import numpy as np  # noqa: E402
-from partkit import _SPECS, _part_state, on_reset, on_step, part, write_pose  # noqa: E402
+from partkit import _SPECS, _np, _part_state, on_reset, on_step, part, write_pose  # noqa: E402
 from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN  # noqa: E402
 from yam_arena.demo import Waypoint  # noqa: E402
 from yam_arena.task_file import TABLE_TOP, Box, Cylinder  # noqa: E402
+from yam_arena.urdf import quat_xyzw_to_matrix  # noqa: E402
 
 SCENE = "station"
 SCORE_OVER = "end"
@@ -61,6 +62,8 @@ CAP_MASS = 0.003
 
 # -- the opener: back plate on a post, and a jaw (upper prong over a slot whose lower edge is the catch lip) -----------
 ENGAGE = (0.40, -0.20)  # bottle axis with the cap's rear in the slot, the skirt against the slot's back
+# Measured out from the back plate's front face (FACE_X, x 44.55 cm), the jaw's parts reach: catch lip 32 mm, slot's
+# back wall 31 mm, upper prong 39 mm (its tip at x 40.65 cm).
 LIFT = 0.035  # bottle base above the table while the cap is in the slot
 SLOT_BACK = ENGAGE[0] + CAP_R + 0.0001  # the slot's back wall: 0.1 mm behind the skirt at ENGAGE
 LIP_REACH = 0.0010  # the catch lip sticks out of the slot's back wall this far, under the skirt
@@ -71,7 +74,7 @@ SLOT_TOP = LIP_TOP + SLOT_H
 PRONG_REACH = 0.0080  # the upper prong reaches 8 mm past the slot's back over the cap's top
 PRONG_T, LIP_T = 0.003, 0.004
 JAW_W = 0.018  # the jaw's width (y)
-FACE_X = ENGAGE[0] + 0.0455  # the back plate's front face: the jaw sticks out 31.5 mm in front of it
+FACE_X = ENGAGE[0] + 0.0455  # the back plate's front face, x 44.55 cm: the prong sticks out 39 mm in front of it
 PLATE_T, PLATE_W = 0.005, 0.060
 PLATE_Z0, PLATE_Z1 = LIP_TOP - LIP_T - 0.045, SLOT_TOP + PRONG_T + 0.010
 POST_T, POST_W = 0.025, 0.045
@@ -90,25 +93,37 @@ CATCH_GAP = (-0.0005, 0.0025)  # skirt's lower edge this far above the lip's top
 POP_LIFT = 0.0015  # the skirt's caught edge bent up this far off the bead: the crimp lets go
 SPRING_OFF = (0.010, 0.0055)  # the popped cap springs this far forward and up: its skirt clears the bead
 REGLUE = 0.0005  # away from the lip the crimp holds: any shift of the cap off the finish is undone
-LET_GO = 0.06  # each gripper's TCP at least this far from the bottle's grip point
+LET_GO = 0.010  # let go: every part of both arms (fingers, gripper, wrist, arm) at least this far from the bottle
+# Each moving link of a YAM arm and how finely its collision hulls (the convex hulls the simulator collides with) are
+# sampled. Every point of a hull's surface is within 0.6 x that spacing of a sample, so a link only counts as clear
+# when its nearest sample is that much further than LET_GO: the check never passes an arm closer than 1 cm.
+ARM_LINKS = {"link1": 0.006, "link2": 0.006, "link3": 0.006, "link4": 0.006, "link5": 0.003, "gripper": 0.003,
+             "tip_left": 0.003, "tip_right": 0.003}
+ARMS = ("left_robot", "right_robot")
 
 
 def _cyl(z0, z1, r, color):
     return ((0.0, 0.0, (z0 + z1) / 2), r, z1 - z0, color)
 
 
+# the bottle's glass from its base up, (z0, z1, radius, colour): what it is built from and what the let-go check
+# measures against (the core box inside the body is left out, it never reaches the surface)
+BOTTLE_PROFILE = [
+    (0.0, BODY_H, BODY_R, GLASS),
+    (0.035, 0.085, BODY_R + 0.0004, LABEL),
+    (BODY_H, 0.118, 0.025, GLASS),
+    (0.118, 0.125, 0.020, GLASS),
+    (0.125, GRIP_Z0, 0.017, GLASS),
+    (GRIP_Z0, GRIP_Z1, GRIP_R, GLASS),
+    (GRIP_Z1, 0.170, 0.0135, GLASS),
+    (0.170, SEAT - BEAD_H, NECK_R, GLASS),
+    (SEAT - BEAD_H, SEAT, BEAD_R, GLASS),
+]
+
 BOTTLE = part(
     "bottle", pos=(BOTTLE_AT[0], BOTTLE_AT[1], TOP + 0.001), mass=BOTTLE_MASS, color=GLASS, friction=1.0,
     boxes=[((0.0, 0.0, 0.055), (0.03, 0.03, 0.08), GLASS)],
-    cylinders=[_cyl(0.0, BODY_H, BODY_R, GLASS),
-               _cyl(0.035, 0.085, BODY_R + 0.0004, LABEL),
-               _cyl(BODY_H, 0.118, 0.025, GLASS),
-               _cyl(0.118, 0.125, 0.020, GLASS),
-               _cyl(0.125, GRIP_Z0, 0.017, GLASS),
-               _cyl(GRIP_Z0, GRIP_Z1, GRIP_R, GLASS),
-               _cyl(GRIP_Z1, 0.170, 0.0135, GLASS),
-               _cyl(0.170, SEAT - BEAD_H, NECK_R, GLASS),
-               _cyl(SEAT - BEAD_H, SEAT, BEAD_R, GLASS)])
+    cylinders=[_cyl(z0, z1, r, c) for z0, z1, r, c in BOTTLE_PROFILE])
 
 
 def _skirt():
@@ -149,7 +164,7 @@ OBJECTS = [
 
 def _fresh() -> dict:
     return {"engaged": False, "popped": False, "tipped": False, "steps": 0, "pop_step": None, "tcps": [],
-            "max_edge_lift": 0.0}
+            "max_edge_lift": 0.0, "gap": -1.0, "gap_part": None}
 
 
 _S = _fresh()
@@ -179,8 +194,115 @@ def edge_lift(bottle, cap) -> float:
     return float(bottle.to_local(cap.pos + CAP_R * u)[2] - SEAT)
 
 
+def bottle_gap(points, bottle) -> np.ndarray:
+    """Signed distance (m) from world points to the bottle's glass, the union of BOTTLE_PROFILE's cylinders in the
+    bottle's frame: positive outside, negative inside."""
+    local = (np.asarray(points, dtype=np.float64) - np.asarray(bottle.pos, dtype=np.float64)) @ bottle.rotation()
+    r, z = np.hypot(local[:, 0], local[:, 1]), local[:, 2]
+    out = np.full(len(local), np.inf)
+    for z0, z1, rad, _ in BOTTLE_PROFILE:
+        dr, dz = r - rad, np.maximum(z0 - z, z - z1)
+        out = np.minimum(out, np.hypot(np.maximum(dr, 0.0), np.maximum(dz, 0.0)) + np.minimum(np.maximum(dr, dz), 0.0))
+    return out
+
+
+_ARM_SAMPLES: dict = {}
+
+
+def arm_samples() -> dict[str, tuple[np.ndarray, float, np.ndarray, float]]:
+    """(points, spacing, centre, radius) per moving link: points on the surface of the link's collision hulls in the
+    link's frame, sampled on a grid of that spacing, and a ball holding them all. The hulls are the YAM URDF's CoACD
+    convex hulls, which the simulator's arm colliders are converted from as-is. Points inside another hull of the same
+    link are dropped: they can never be the link's nearest point to the bottle."""
+    if _ARM_SAMPLES:
+        return _ARM_SAMPLES
+    import xml.etree.ElementTree as ET
+
+    from yam_arena import ASSET_DIR, YAM_URDF
+    from yam_arena.analysis import read_stl
+    from yam_arena.urdf import rpy_matrix
+
+    for link in ET.parse(YAM_URDF).getroot().iter("link"):
+        name = link.get("name")
+        if name not in ARM_LINKS:
+            continue
+        spacing, hulls = ARM_LINKS[name], []
+        for col in link.findall("collision"):
+            origin = col.find("origin")
+            rot, off = np.eye(3), np.zeros(3)
+            if origin is not None:
+                rot = rpy_matrix(np.array([float(v) for v in origin.get("rpy", "0 0 0").split()]))
+                off = np.array([float(v) for v in origin.get("xyz", "0 0 0").split()])
+            hulls.append(read_stl(ASSET_DIR / col.find("geometry/mesh").get("filename")) @ rot.T + off)
+        planes = []
+        for tris in hulls:  # each hull's outward face planes (n . x <= d inside)
+            n = np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0])
+            keep = np.linalg.norm(n, axis=1) > 1e-12
+            n = n[keep] / np.linalg.norm(n[keep], axis=1, keepdims=True)
+            d = np.einsum("ij,ij->i", n, tris[keep, 0])
+            flip = n @ tris.reshape(-1, 3).mean(axis=0) - d > 0
+            n[flip], d[flip] = -n[flip], -d[flip]
+            planes.append((n, d))
+        pts = []
+        for h, tris in enumerate(hulls):
+            edge = np.max(np.linalg.norm(tris - np.roll(tris, 1, axis=1), axis=2), axis=1)
+            steps = np.maximum(1, np.ceil(edge / spacing).astype(int))
+            for k in np.unique(steps):  # a barycentric grid of k x k per triangle
+                t = tris[steps == k]
+                ij = np.array([(i, j) for i in range(k + 1) for j in range(k + 1 - i)], dtype=np.float64) / k
+                p = t[:, None, 0] + ij[None, :, :1] * (t[:, None, 1] - t[:, None, 0]) \
+                    + ij[None, :, 1:] * (t[:, None, 2] - t[:, None, 0])
+                p = p.reshape(-1, 3)
+                inside = np.zeros(len(p), dtype=bool)
+                for g, (n, d) in enumerate(planes):
+                    if g != h:
+                        inside |= (p @ n.T - d).max(axis=1) < -1e-4
+                pts.append(p[~inside])
+        p = np.concatenate(pts)
+        p = p[np.unique(np.round(p / 1e-6).astype(np.int64), axis=0, return_index=True)[1]]  # shared corners/edges
+        centre = p.mean(axis=0)
+        _ARM_SAMPLES[name] = (p, spacing, centre, float(np.linalg.norm(p - centre, axis=1).max()))
+    missing = set(ARM_LINKS) - set(_ARM_SAMPLES)
+    if missing:
+        raise KeyError(f"no collision hulls for {sorted(missing)} in {YAM_URDF}")
+    return _ARM_SAMPLES
+
+
+def arms_clearance(link_poses: dict[str, dict[str, tuple]], bottle) -> tuple[float, str]:
+    """(gap, part): how far the nearest part of either arm is from the bottle's glass (m), less each link's sampling
+    allowance, and which arm and link that is. ``link_poses`` maps arm -> link -> (position, quat_xyzw) in the
+    env frame."""
+    samples = arm_samples()
+    middle = np.asarray(bottle.to_world((0.0, 0.0, SEAT / 2)), dtype=np.float64)
+    best, part_name = np.inf, "none"
+    for arm, poses in link_poses.items():
+        for name, (pts, spacing, centre, radius) in samples.items():
+            rot = quat_xyzw_to_matrix(np.asarray(poses[name][1], dtype=np.float64))
+            pos = np.asarray(poses[name][0], dtype=np.float64)
+            # the bottle fits in a 10 cm ball round its mid-height: skip a link whose own ball is well clear of it
+            if np.linalg.norm(rot @ centre + pos - middle) - radius > 0.10 + LET_GO + 0.02:
+                continue
+            gap = float(bottle_gap(pts @ rot.T + pos, bottle).min()) - 0.6 * spacing
+            if gap < best:
+                best, part_name = gap, f"{arm}/{name}"
+    return best, part_name
+
+
+def _link_poses(environment) -> dict[str, dict[str, tuple]]:
+    """Both arms' link poses (position, quat_xyzw) relative to the env origin, for the links in ARM_LINKS."""
+    base = environment.unwrapped
+    origin = _np(base.scene.env_origins[0])
+    out = {}
+    for key in ARMS:
+        art = base.scene[key]
+        names = list(art.body_names)
+        poses = _np(art.data.body_link_pose_w)[0]
+        out[key] = {n: (poses[names.index(n), :3] - origin, poses[names.index(n), 3:7]) for n in ARM_LINKS}
+    return out
+
+
 def grippers(environment) -> list[np.ndarray]:
-    """World positions of both grippers' TCP (between the finger pads, 13 mm above the pad tips)."""
+    """World positions of both grippers' TCP (between the pads, 13 mm above the pad tips), for the debug trace."""
     base = environment.unwrapped
     origin = base.scene.env_origins[0]
     out = []
@@ -205,6 +327,7 @@ def _seat_cap(environment, bottle) -> None:
 def _reset(environment=None):
     _S.clear()
     _S.update(_fresh())
+    arm_samples()  # sampled once, here (a few seconds), not in the middle of a trial
     if environment is not None:
         _seat_cap(environment, _part_state(environment, _SPECS[BOTTLE.name]))
 
@@ -230,6 +353,8 @@ def _follow(environment) -> None:
             _S["max_edge_lift"] = max(_S["max_edge_lift"], lifted)
         if engaged and lifted > POP_LIFT:
             _S["popped"], _S["pop_step"] = True, _S["steps"]
+            if _DEBUG:
+                print(f"[bottle] popped at step {_S['steps']}", flush=True)
             # the crimp lets go with a snap: within one control step the cap springs up off the finish and forward,
             # clear of the bead and of the prong, its free front flipping up, and it falls toward the robot
             jump = np.array([-SPRING_OFF[0], 0.0, SPRING_OFF[1]])
@@ -239,11 +364,14 @@ def _follow(environment) -> None:
             off = bottle.to_local(cap.pos)
             if abs(off[2] - SEAT) > REGLUE or np.linalg.norm(off[:2]) > REGLUE or _tilt_deg_rel(bottle, cap) > 1.0:
                 _seat_cap(environment, bottle)
+    if _S["popped"]:  # only the open bottle's let-go is scored
+        _S["gap"], _S["gap_part"] = arms_clearance(_link_poses(environment), bottle)
     if _DEBUG and _S["steps"] % 5 == 0:
         print(f"[bottle] step {_S['steps']} bottle {np.round(bottle.pos, 4)} tilt {_tilt_deg(bottle):.1f} "
               f"cap {np.round(cap.pos, 4)} reach {(LIP_TIP - float(cap.pos[0])) * 1000:.2f}mm "
               f"edge {(float(cap.pos[2]) - SKIRT_H - LIP_TOP) * 1000:.2f}mm lift {lifted * 1000:.2f}mm "
-              f"engaged {_S['engaged']} popped {_S['popped']} tcps {[np.round(t, 3).tolist() for t in _S['tcps']]}",
+              f"engaged {_S['engaged']} popped {_S['popped']} gap {_S['gap'] * 1000:.1f}mm {_S['gap_part']} "
+              f"score {score({BOTTLE.name: bottle}):.2f} tcps {[np.round(t, 3).tolist() for t in _S['tcps']]}",
               flush=True)
 
 
@@ -259,9 +387,10 @@ def on_coaster(bottle) -> bool:
             and _tilt_deg(bottle) < UPRIGHT_DEG)
 
 
-def released(bottle) -> bool:
-    grip = bottle.to_world((0.0, 0.0, GRIP_UP))
-    return bool(_S["tcps"]) and all(np.linalg.norm(np.asarray(t) - grip) > LET_GO for t in _S["tcps"])
+def released() -> bool:
+    """Neither arm holds or touches the bottle: no part of either (fingers, gripper, wrist or arm) within LET_GO of any
+    part of its glass, body included."""
+    return _S["gap"] >= LET_GO
 
 
 def score(objects) -> float:
@@ -272,7 +401,7 @@ def score(objects) -> float:
         return 0.25 if _S["engaged"] else 0.0
     if not on_coaster(bottle):
         return 0.5
-    if not (released(bottle) and bottle.resting()):
+    if not (released() and bottle.resting()):
         return 0.75
     return 1.0
 

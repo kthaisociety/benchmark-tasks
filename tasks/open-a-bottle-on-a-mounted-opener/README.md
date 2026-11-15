@@ -17,20 +17,22 @@ lip, the cap stays crimped on however it is pulled.
 
 All sizes are in the model (`task.py`) and in `task.json`.
 
-- **Bottle:** a 275 ml long-neck glass bottle with a standard 26 mm crown finish, 450 g full. It is 18.5 cm tall to the
-  top of the finish. The body is 5.8 cm across and 11 cm tall. The shoulder narrows to a lower neck 3.2 cm across
+- **Bottle:** a 275 ml long-neck glass bottle with a standard 26 mm crown finish, 450 g full of beer (or still water
+  for lab trials). It is 18.5 cm tall to the top of the finish. The body is 5.8 cm across and 11 cm tall. The shoulder narrows to a lower neck 3.2 cm across
   (13 to 16.2 cm up), then to 2.35 cm under the finish. The finish's bead is 2.64 cm across and 4.3 mm tall.
 - **Crown cap:** crimped on, 2.88 cm across the skirt and 6 mm tall. Its skirt reaches 0.7 mm below the bead, and its
   lower edge stands 1.2 mm out from the bead all round. That edge is what a catch lip gets under.
-- **Opener:** a back plate 6 cm wide, 7 cm tall and 5 mm thick, on a post 4.5 cm wide and 2.5 cm deep that stands on
-  the table and runs up to the plate's top, 23.5 cm. A jaw 1.8 cm wide sticks out of the plate's front face toward the robot. From the bottom up it has:
-  - **The catch lip:** 4 mm thick, its top 21.4 cm above the table, reaching 2.45 cm out from the plate.
-  - **The slot:** 8.5 mm tall, its back wall 2.35 cm out from the plate. The lip sticks 1 mm out of the back wall. When
-    the cap's skirt touches the back wall, the lip is 1 mm under the skirt's edge and 0.2 mm clear of the bead.
-  - **The upper prong:** 3 mm thick, reaching 3.15 cm out from the plate, 8 mm over the cap's top. It is the fulcrum
-    the cap tips against.
-  - **Placement:** the plate's front face is at x 43.8 cm, the jaw is centred on y -20 cm, and the plate spans 16.5 to
-    23.5 cm above the table.
+- **Opener:** a back plate 6 cm wide, 7 cm tall and 5 mm thick, on a dark-stained hardwood post 4.5 cm wide and
+  2.5 cm deep that stands on the table behind it, clamped to the table, and runs up to the plate's top, 23.5 cm. A jaw 1.8 cm wide sticks out of the plate's front face
+  toward the robot. From the bottom up it has:
+  - **The catch lip:** 4 mm thick, its top 21.4 cm above the table, reaching 3.2 cm out from the plate (to x 41.35 cm).
+  - **The slot:** 8.5 mm tall, its back wall 3.1 cm out from the plate (x 41.45 cm). The lip sticks 1 mm out of the
+    back wall. When the cap's skirt touches the back wall, the lip is 1 mm under the skirt's edge and 0.2 mm clear of
+    the bead.
+  - **The upper prong:** 3 mm thick, reaching 3.9 cm out from the plate (to x 40.65 cm), 8 mm over the cap's top. It
+    is the fulcrum the cap tips against.
+  - **Placement:** the plate's front face is at x 44.55 cm (`FACE_X` in `task.py`), the jaw is centred on y -20 cm,
+    and the plate spans 16.5 to 23.5 cm above the table. The post stands behind the plate, from x 45.05 to 47.55 cm.
 
 ## How it differs from nearby tasks
 
@@ -45,8 +47,9 @@ All sizes are in the model (`task.py`) and in `task.json`.
 
 | File | What |
 |---|---|
-| `task.py` | The yam_arena task file: objects, the crimp rule, `score()`, `success()` and the scripted `demo()` |
+| `task.py` | The yam_arena task file: objects, the crimp rule, the let-go check, `score()`, `success()` and the scripted `demo()` |
 | `partkit.py` | Rigid parts built from boxes and cylinders, with pose writes and step/reset hooks, for yam_arena task files |
+| `check_release.py` | Checks the let-go test without the simulator (yam_arena and NumPy only): see [Let go](#let-go) |
 
 ## Run a trial
 
@@ -65,11 +68,11 @@ fixed (`object_jitter=0`), so no seed is needed. A trial takes about 3.5 minutes
 
 ## Scripted demo
 
-Run it with `--policy yam_scripted` instead of `--policy dream`, and `--max-steps 450`. It reaches full score: the cap
-pops at step 263, and the episode ends on success at step 427 (21 s of simulated time). Set `BOTTLE_DEBUG=1` to print
+Run it with `--policy yam_scripted` instead of `--policy dream`, and `--max-steps 500`. It reaches full score: the cap
+pops at step 263, and the episode ends on success at step 413 (20.6 s of simulated time). Set `BOTTLE_DEBUG=1` to print
 the bottle, the cap and the trial record every 5 steps.
 
-1. The right arm grips the bottle by its lower neck and lifts it 3.5 cm.
+1. The right arm grips the bottle by its lower neck (its TCP 15.4 cm above the bottle's base) and lifts it 3.5 cm.
 2. It carries the bottle in front of the opener at slot height. Then it moves it straight back until the back of the
    cap's skirt reaches the back of the slot, so the catch lip is under the skirt's edge.
 3. It pulls the bottle down 6 mm while pressing it 4 mm further back into the jaw, as a person does. The lip holds the
@@ -97,24 +100,58 @@ The task file follows the trial after every control step and keeps a record that
 
 - **Caught:** the back of the cap's skirt is on the catch lip. The lip's tip is 12.8 to 14.2 mm in from the cap's axis
   (past the bead and inside the skirt), the cap's axis is within 6 mm of the jaw's centre line sideways, and the
-  skirt's lower edge is 0 to 2.5 mm above the lip (-0.5 mm allows for contact).
+  skirt's lower edge is 0 to 2.5 mm above the lip (-0.5 mm allows for contact), with the bottle within 20 degrees of
+  upright.
 - **Popped:** while caught, the skirt's edge on the opener side has been bent at least 1.5 mm up off the bead. The cap
   then springs 10 mm forward and 5.5 mm up within one control step, clear of the bead and the prong, flips and falls.
   Until then, the cap is put back on the finish after every step unless it is caught. Pulling, pushing or knocking it
   anywhere else does nothing.
-- **Tipped:** the bottle tilted more than 30 degrees at any time, or fell off the table.
+- **Tipped:** the bottle tilted more than 30 degrees at any time, or fell off the table. This holds before the pop
+  too: a full bottle of beer tipped that far and then opened foams over, and the opener is used with the bottle upright.
+- **Let go:** once the cap has popped, after every step: no part of either arm is within 1 cm of any part of the
+  bottle. See [Let go](#let-go).
 
 `score()` gives 0 if the bottle tipped. Otherwise it gives:
 
 - **1.0** when the cap has popped and the bottle stands on the coaster (axis within 3 cm of its centre, base on it,
-  within 10 degrees of upright), still, with each gripper's TCP (fingertip centre) at least 6 cm from the bottle's grip
-  point on its lower neck, 15.4 cm above its base.
-- **0.75** when popped and on the coaster.
+  within 10 degrees of upright), still (moving under 1 cm/s, turning under 0.5 rad/s), and let go: no part of either arm (fingers, gripper, wrist or arm) within 1 cm
+  of any part of the bottle, body included.
+- **0.75** when popped and on the coaster, but still held, touched or moving.
 - **0.5** when popped.
 - **0.25** when caught.
 - **0** otherwise.
 
 `success()` ends the episode once 1.0 has held for 1 s.
+
+### Let go
+
+Full score needs both arms clear of the whole bottle, not just of the place where the demo grips it. A hand that
+holds the bottle by its body, leans on it or keeps a finger on it gets 0.75.
+
+- **The arms:** every moving link of both arms (`link1` to `link5`, `gripper`, `tip_left`, `tip_right`), as the
+  convex collision hulls the simulator collides with. These are the YAM URDF's CoACD hulls, which the arm's USD is
+  converted from unchanged. The hulls' surfaces are sampled once, at reset, every 3 mm on the gripper, fingers and
+  wrist and every 6 mm on the upper and lower arm. Points inside another hull of the same link are dropped.
+- **The bottle:** the exact glass the model is built from (`BOTTLE_PROFILE`): body, label band, shoulder, necks and
+  finish, as stacked cylinders in the bottle's own frame.
+- **The test:** after every step, the arms' sample points are moved to the links' current poses and their signed
+  distance to the bottle is computed exactly. Every hull point lies within 0.6 × the spacing of a sample, so each
+  link's distance is reduced by that much first. The bottle counts as let go when the result is at least 1 cm, so an
+  arm part 1 cm or closer never passes.
+
+`python check_release.py` poses the arms with the URDF's kinematics around the bottle standing on the coaster and runs
+the same test, with the old test (each TCP more than 6 cm from the grip point on the neck) for comparison. A negative
+gap means a hull overlaps the glass: in these kinematic poses closed fingers sit at their closed target, where in the
+simulator they stop on the glass.
+
+| Case | Nearest part | Gap | Let go | Old test |
+|---|---|---|---|---|
+| Right gripper closed on the lower neck | right `tip_right` | -17.5 mm | no | no |
+| Right gripper half open round the neck | right `tip_left` | +5.7 mm | no | no |
+| Right gripper fully open round the neck (the demo's let-go) | right `tip_right` | +28.7 mm | yes | no |
+| Left fingertips resting on the body 7 cm up, TCP 10.1 cm from the grip point | left `tip_right` | -1.7 mm | no | yes |
+| Left fingertips 6 mm off the body | left `tip_right` | +4.9 mm | no | yes |
+| Left fingertips 2 cm off the body | left `tip_right` | +19.8 mm | yes | yes |
 
 ## Real-world build
 
@@ -122,7 +159,8 @@ Use a full 275 ml long-neck crown-capped glass bottle with a 26 mm crown finish.
 wall-mount bottle opener (a back plate and a jaw with a catch lip under an upper prong). Screw it to a post or block
 that stands on the table, with the catch lip's top at the height in `task.json` and the jaw facing the robot. If no
 cast opener matches the jaw's dimensions, bend and weld one from 3 mm steel. With the bottle held upright and pressed
-back into the jaw, a pull down pops the cap. To judge the 0.25 level, film the jaw from the side as well. Score
+back into the jaw, a pull down pops the cap. To judge the 0.25 level, film the jaw from the side (lip under the skirt) and from above (cap on the jaw's centre
+line) as well. Score
 from a video and a ruler. Opening the bottle is safe: the arm only pulls the bottle down a few millimetres with the
 cap in the jaw. Use a crown-capped PET bottle if glass on the bench isn't allowed.
 
