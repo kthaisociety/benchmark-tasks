@@ -42,14 +42,15 @@ The task file follows the trial after every control step:
 - **Still in the dispenser:** a cup hangs upright (within 10 degrees) no more than 5 mm lower than the bottom cup hung
   at the start (its bottom 15 cm above the counter). The next cup drops onto the gasket at exactly that height; a cup
   dragged partly through the gasket hangs lower. On a real rig this is measured at the outlet with a tape measure.
-- **Crushed:** a gripper squeezed a cup hard enough to dent or crease it. On a real rig, from the video: the wall
-  visibly pushed in. The sim's cups are rigid, so it reads the grip force instead: each gripper's squeeze is its
+- **Crushed:** a gripper squeezed a cup hard enough to leave a permanent dent or crease in its wall. On a real rig:
+  inspect and photograph the cup after it is let go. The sim's cups are rigid, so it reads the grip force instead: each gripper's squeeze is its
   fingers' position error times the gripper's stiffness (5,000 N/m, capped at the 50 N effort limit), the smaller of
-  the two fingers; over 20 N while the gripper's TCP is within 1 cm of a cup counts as crushing it. For scale, an
-  ordinary paper cup's wall gives about 6 mm under 5 N at two-thirds of its height (it is stiffer near the bottom,
-  where the demo pinches it), and the YAM's gripper squeezes 50 N when told to close fully.
-- **Tipped:** any cup ever tipped more than 60 degrees from upright (dropped or knocked over), judged from the video
-  on a real rig. **Fell:** a cup ended more than 5 cm below the counter (on the floor). A crushed, tipped or dropped
+  the two fingers; over 12 N while the gripper's TCP is within 1 cm of a cup counts as crushing it. For scale, an
+  ordinary paper cup's wall gives about 6 mm under 5 N at two-thirds of its height and creases well past that (it is
+  stiffer near the bottom, where the demo pinches it); the demo holds the cup securely with 5 N, and the YAM's gripper
+  squeezes 50 N when told to close fully.
+- **Dropped or knocked over:** a cup tipped more than 60 degrees from upright while no gripper held it (no TCP within
+  1 cm of it), judged from the video on a real rig. **Fell:** a cup ended more than 5 cm below the counter (on the floor). A crushed, tipped or dropped
   cup would be thrown away.
 
 `score()` gives:
@@ -78,8 +79,8 @@ inspect-robots run --embodiment yam_arena --policy dream \
 ```
 
 `task_score` prints the trial's score: 1.0 on success, otherwise `score()` at the end of the episode. The layout is
-fixed (`object_jitter=0`), so no seed is needed. A full 1,200-step trial takes about TBD minutes of wall time with
-frames stored; the scripted demo ends on success at step TBD.
+fixed (`object_jitter=0`), so no seed is needed. A full 1,200-step trial takes about 5 minutes of wall time with
+frames stored; the scripted demo ends on success at step 405 (about 2.5 minutes).
 
 ## Scripted demo
 
@@ -89,7 +90,7 @@ Run it with `--policy yam_scripted` instead of `--policy dream`. The left arm do
    arm comes in at the hanging cup's height with its fingers either side of it, and pinches the cup 1.9 cm above its
    bottom, near the pad tips (the fingers' roots join across the gap 4.4 cm behind the TCP, so a deeper pinch would
    put the cup's side into them). Both fingers close, centring the cup between them, but only to just inside its
-   sides: a squeeze of about 6 N, not fully (50 N would crush it).
+   sides: a squeeze of about 5 N (measured), not fully (50 N would crush it).
 2. It pulls the cup 11.6 cm straight down (aiming 0.6 cm further, because the arm gives against the flaps): after
    about 9 mm the rim pushes the flaps aside and snaps through (about 2 N), the next cup drops 1.8 cm onto the flaps
    and is caught by its rim, and the pulled cup slides on down off it until its rim is below the next cup's bottom.
@@ -109,17 +110,17 @@ Shortcuts, with `DEMO_VARIANT` set in the environment:
 
 | `DEMO_VARIANT` | What the left arm does | Score |
 |---|---|---|
-| `full` | as above | TBD (expected 1.0) |
-| `nothing` | waits | TBD (expected 0.0) |
-| `pull_only` | pulls a cup out and holds it in the air | TBD (expected 0.25) |
-| `counter` | stands the cup on the counter left of the dispenser, off the mat | TBD (expected 0.5) |
-| `keep_holding` | stands it on the mat but never lets go | TBD (expected 0.25) |
+| `full` | as above | 1.0 (success at step 405) |
+| `nothing` | waits | 0.0 |
+| `pull_only` | pulls a cup out and holds it in the air | 0.25 |
+| `counter` | stands the cup on the counter left of the dispenser, off the mat | 0.5 |
+| `keep_holding` | stands it on the mat but never lets go | 0.25 |
 
 ## Offline checks
 
 `test_task.py` checks the geometry (the gasket holds a rim but lets a pulled one through, the flaps stay inside the
 tube, nested cups clear each other, the pull brings the whole cup out above the counter), the scoring rules on
-hand-built states (including the squeeze force: the demo's 6 N pinch stays under 20 N even if the cup is half a
+hand-built states (including the squeeze force: the demo's 6 N pinch stays under 12 N even if the cup is half a
 millimetre wider than modelled, and a full close counts as crushing), the demo's reach with the robot's inverse kinematics, and runs `check_clearance.py`, without Isaac
 Sim:
 

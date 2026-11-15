@@ -233,13 +233,14 @@ LET_GO = 0.040  # each TCP at least this far from the cup: the finger surfaces r
 #                 no part of a gripper is within about 1.5 cm of it
 OFF_TABLE = 0.05  # below the counter by this: on the floor
 HELD_DROP = 0.005  # a cup still in the dispenser hangs no more than this below where the bottom cup hung at the start
-# Crushing. The sim's cups are rigid, so a crushed cup is scored from the grip force: a gripper squeezing a cup harder
-# than CRUSH_N has dented it (it would be thrown away). For scale, an ordinary paper cup's wall gives about 6 mm under
-# 5 N at two-thirds of its height; near the bottom, where it is pinched here, the bottom disc stiffens it. The YAM's
-# gripper squeezes up to 50 N when told to close fully. The force is read from the fingers' position error times the
+# Crushing: a permanent dent or crease in a cup's wall (it would be thrown away). The sim's cups are rigid, so a crushed
+# cup is scored from the grip force: a gripper squeezing a cup harder than CRUSH_N has dented it. For scale, an ordinary
+# paper cup's wall gives about 6 mm under 5 N at two-thirds of its height and creases well past that; near the bottom,
+# where it is held here, the bottom disc stiffens it. The demo holds the cup securely with 5 N (measured on Brev), so
+# CRUSH_N allows more than twice that; the YAM's gripper squeezes 50 N when told to close fully. The force is read from the fingers' position error times the
 # gripper's stiffness (yam_arena's implicit gripper actuator: 5,000 N/m, capped at 50 N), taking the smaller of the two
 # fingers (both press on a held cup; a finger held back by anything else would read high on its own).
-CRUSH_N = 20.0
+CRUSH_N = 12.0
 NEAR_CUP = 0.01  # a gripper counts as holding a cup when its TCP is within this of the cup's outside
 
 
@@ -390,15 +391,16 @@ def _reset(environment=None):
 def _follow(environment) -> None:
     _S["steps"] += 1
     states = {c.name: _part_state(environment, _SPECS[c.name]) for c in CUPS}
-    for st in states.values():
-        if tilt_deg(st) > TIPPED:
-            _S["tipped"] = True
-        if float(st.pos[2]) < TOP - OFF_TABLE:
-            _S["fell"] = True
     try:
         _S["tcps"] = grippers(environment)
     except (KeyError, ValueError, AttributeError):
         _S["tcps"] = []
+    for st in states.values():
+        # dropped or knocked over: tipped past TIPPED while no gripper holds it (a cup tilted in hand isn't wasted)
+        if tilt_deg(st) > TIPPED and not any(cup_distance(st, t) <= NEAR_CUP for t in _S["tcps"]):
+            _S["tipped"] = True
+        if float(st.pos[2]) < TOP - OFF_TABLE:
+            _S["fell"] = True
     try:
         _S["squeeze"] = squeezes(environment)
     except Exception as error:  # noqa: BLE001 - report once; GO_LIVE.md says to check for this line
