@@ -1,7 +1,10 @@
-"""A wardrobe rail is refitted between the two side panels of a wardrobe. The left end goes into a closed socket,
-the right end drops into an open U socket. The rail is longer than the gap minus the closed socket's depth, so it can't
-go in level: the left end is fed into the closed socket with the rail tilted, the right end held high, then the rail
-is swung down level into the U while the left end slides home. One gripper on each side of the rail.
+"""A wardrobe rail is refitted between the two side panels of a wardrobe, under the hat shelf, as rails are mounted
+in real wardrobes: the shelf sits 5.5 cm above the rail, so the rail and its supports are seen and reached only from
+below and in front. The left end goes into a closed socket, the right end into an open U socket. The rail is longer
+than the gap minus the closed socket's depth, and the shelf leaves no room to tilt it steeply, so it goes in nearly
+level and swung in plan: the left end is fed into the closed socket with the right end swung out toward the front,
+then the right end is swung back, lifted just over the U's front cheek, and lowered into the U. Both arms hold the
+rail from the front, fingers closing on its top and bottom.
 """
 
 import math
@@ -12,7 +15,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import numpy as np  # noqa: E402
-from partkit import env, on_reset, on_step, part  # noqa: E402
+from partkit import env, on_reset, on_step, part, write_pose  # noqa: E402
 from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN  # noqa: E402
 from yam_arena.demo import Waypoint  # noqa: E402
 from yam_arena.task_file import TABLE_TOP, Box  # noqa: E402
@@ -26,16 +29,23 @@ WHITE, CHROME, GREY, FOAM = (0.92, 0.91, 0.88), (0.78, 0.80, 0.83), (0.35, 0.36,
 AX = 0.32             # x of the socket axis (m)
 ZS = 0.08             # socket axis height above the wardrobe base's underside (m)
 GAP = 0.300           # inner face of each side panel, |y| (m)
-L, H, W = 0.592, 0.030, 0.015   # oval rail: length, height, width (m), modelled as a 30 x 15 mm bar
+L, D = 0.592, 0.025   # round chrome wardrobe rod: length, diameter (m)
+H = W = D
 CUP = 0.010           # closed socket depth (m): lip at y = GAP - CUP
 U_DEPTH = 0.015       # open socket depth along y (m)
-BX, BZ, WALL = 0.021, 0.038, 0.004   # closed socket bore: width (x), height (z); wall
+BX, BZ, WALL = 0.029, 0.029, 0.004   # closed socket bore (round socket modelled square): width (x), height (z); wall
+SHELF_GAP = 0.055     # rail top to the hat shelf's underside (m)
+SHELF_T = 0.018       # hat shelf thickness (m)
+SHELF_X0 = -0.006     # hat shelf front edge, relative to the rail axis (m): it covers the rail when seen from above
+SHELF_Z = ZS + H / 2 + SHELF_GAP + SHELF_T / 2
 
 _lip = GAP - CUP / 2
 WARDROBE = part("wardrobe", pos=(AX, 0.0, TOP), mass=25.0, friction=1.2, color=WHITE, boxes=[
     ((0, 0, 0.009), (0.20, 2 * GAP + 0.036, 0.018), WHITE),                 # base board
     ((0, GAP + 0.009, 0.089), (0.20, 0.018, 0.16), WHITE),                  # left side panel
     ((0, -GAP - 0.009, 0.089), (0.20, 0.018, 0.16), WHITE),                 # right side panel
+    # hat shelf between the panels, 5.5 cm above the rail, from just in front of the rail to the back
+    (((SHELF_X0 + 0.10) / 2, 0, SHELF_Z), (0.10 - SHELF_X0, 2 * GAP, SHELF_T), WHITE),
     # closed end support on the left panel: an oval cup, here a 21 x 38 mm bore, 10 mm deep
     ((0, _lip, ZS + BZ / 2 + WALL / 2), (BX + 2 * WALL, CUP, WALL), CHROME),
     ((0, _lip, ZS - BZ / 2 - WALL / 2), (BX + 2 * WALL, CUP, WALL), CHROME),
@@ -43,19 +53,26 @@ WARDROBE = part("wardrobe", pos=(AX, 0.0, TOP), mass=25.0, friction=1.2, color=W
     ((BX / 2 + WALL / 2, _lip, ZS), (WALL, CUP, BZ), CHROME),
     # open end support on the right panel: floor at the rail's underside, two cheeks, open on top and toward the rail
     ((0, -GAP + U_DEPTH / 2, ZS - H / 2 - WALL / 2), (BX + 2 * WALL, U_DEPTH, WALL), CHROME),
-    ((-BX / 2 - WALL / 2, -GAP + U_DEPTH / 2, ZS - H / 2 + 0.015), (WALL, U_DEPTH, 0.030), CHROME),
-    ((BX / 2 + WALL / 2, -GAP + U_DEPTH / 2, ZS - H / 2 + 0.015), (WALL, U_DEPTH, 0.030), CHROME)])
+    ((-BX / 2 - WALL / 2, -GAP + U_DEPTH / 2, ZS - H / 2 + 0.010), (WALL, U_DEPTH, 0.020), CHROME),
+    ((BX / 2 + WALL / 2, -GAP + U_DEPTH / 2, ZS - H / 2 + 0.010), (WALL, U_DEPTH, 0.020), CHROME)])
 RAIL0 = (0.16, 0.0, TOP + 0.05 + H / 2 + 0.001)
-RAIL = part("rail", pos=RAIL0, mass=0.35, friction=1.2, color=CHROME, boxes=[((0, 0, 0), (W, L, H), CHROME)])
+# the rod is built along the part's z axis (partkit cylinders are vertical) and laid along y at every reset
+RAIL = part("rail", pos=(0.16, 0.0, TOP + 0.45), mass=0.35, friction=1.2, color=CHROME,
+            boxes=[((0, 0, 0), (0.012, 0.012, L - 0.02), CHROME)], cylinders=[((0, 0, 0), D / 2, L, CHROME)])
+RAIL_Q = (-math.sqrt(0.5), 0.0, 0.0, math.sqrt(0.5))   # -90 degrees about x: the rod's axis (part z) along +y
 OBJECTS = [WARDROBE, RAIL,
-           Box("foam_left", pos=(0.16, 0.10, TOP + 0.025), size=(0.06, 0.06, 0.05), color=FOAM),
-           Box("foam_right", pos=(0.16, -0.10, TOP + 0.025), size=(0.06, 0.06, 0.05), color=FOAM)]
+           part("foam", pos=(0.16, 0.0, TOP), mass=3.0, friction=1.2, color=FOAM, boxes=[   # two grooved foam blocks
+               ((0, 0.10, 0.025), (0.06, 0.06, 0.05), FOAM), ((0, -0.10, 0.025), (0.06, 0.06, 0.05), FOAM),
+               ((-D / 2 - 0.006, 0.10, 0.055), (0.012, 0.06, 0.010), FOAM), ((D / 2 + 0.006, 0.10, 0.055), (0.012, 0.06, 0.010), FOAM),
+               ((-D / 2 - 0.006, -0.10, 0.055), (0.012, 0.06, 0.010), FOAM), ((D / 2 + 0.006, -0.10, 0.055), (0.012, 0.06, 0.010), FOAM)])]
 
 _S: dict = {}
 
 
 @on_reset
 def _reset(environment=None):
+    if environment is not None:
+        write_pose(environment, "rail", RAIL0, RAIL_Q)
     _S.update(recent=[], step=0, scored=None, last=0.0)
 
 
@@ -73,7 +90,7 @@ def _arm_clear(rail) -> bool:
     if e is None:
         return False
     scene = e.unwrapped.scene
-    a0, a1 = rail.to_world((0, -L / 2, 0)), rail.to_world((0, L / 2, 0))
+    a0, a1 = rail.to_world((0, 0, -L / 2)), rail.to_world((0, 0, L / 2))
     org = np.asarray(getattr(scene.env_origins, "torch", scene.env_origins)[0].detach().cpu(), float)
     for name in ("left_robot", "right_robot"):
         arm = scene[name]
@@ -106,8 +123,8 @@ def _arm_dbg():
 
 def _state(objects):
     w, r = objects["wardrobe"], objects["rail"]
-    left = w.to_local(r.to_world((0, L / 2, 0)))     # rail end centres in the wardrobe frame (m)
-    right = w.to_local(r.to_world((0, -L / 2, 0)))
+    left = w.to_local(r.to_world((0, 0, L / 2)))     # rail end centres in the wardrobe frame (m)
+    right = w.to_local(r.to_world((0, 0, -L / 2)))
     axis = right - left
     tilt = math.degrees(math.asin(abs(axis[2]) / np.linalg.norm(axis)))
     left_in = (left[1] >= GAP - CUP + 0.008 and abs(left[0]) <= (BX - W) / 2 + 0.001
@@ -138,72 +155,104 @@ def score(objects) -> float:
     return _S["last"]
 
 
-# -- scripted demo: both arms pinch the rail across its width (fingers closing along x, so the rail can pivot in them),
-# carry it in tilted, feed the left end into the closed socket, swing it level into the U, let go and park. --------
-GRIP = 0.18          # grasp points, m either side of the rail centre
-TCP_UP = 0.008       # TCP above the pad tips
+# -- scripted demo: both arms hold the rail from the front, gripper pointing forward (+x) and fingers closing on the
+# rail's top and bottom, the only way to reach it under the shelf. They lift it off the foam blocks, swing it so the
+# right end is toward the front, feed the left end into the closed socket, swing the right end back while lifting it
+# just over the U's front cheek, lower it into the U, let go and back out. ----------------------------------------------
+from yam_arena import demo as _ydemo  # noqa: E402
+
+if not getattr(_ydemo, "_wr_matrix_grips", False):   # let a Waypoint's yaw be a full 3x3 TCP rotation (world frame)
+    _plain_grip = _ydemo.grip_rotation
+
+    def _grip_rotation(yaw=0.0):
+        return np.asarray(yaw, float) if np.ndim(yaw) == 2 else _plain_grip(yaw)
+
+    _ydemo.grip_rotation = _grip_rotation
+    _ydemo._wr_matrix_grips = True
+_R0 = np.asarray(_ydemo.grip_rotation(0.0), float)    # straight-down grip: approach -z, fingers closing along y
+
+GRIP = float(os.environ.get("RAIL_GRIP", 0.18))      # grasp points, m either side of the rail centre
+FLIP = np.diag([-1.0, -1.0, 1.0])   # the right wrist reaches the same grip turned half a turn
+PITCH = math.radians(float(os.environ.get("RAIL_PITCH", 45.0)))   # grip tipped down from horizontal
 
 
-def _grips(x, tip_y, tip_z, theta_deg):
-    """TCP targets for both arms, rail left end at (x, tip_y, tip_z) and the right end raised by theta."""
-    t = math.radians(theta_deg)
-    cy, cz = tip_y - (L / 2) * math.cos(t), tip_z + (L / 2) * math.sin(t)
-    lp = (x, cy + GRIP * math.cos(t), cz - GRIP * math.sin(t) + TCP_UP)
-    rp = (x, cy - GRIP * math.cos(t), cz + GRIP * math.sin(t) + TCP_UP)
-    return lp, rp
+def _side_R(psi, theta):
+    """TCP rotation for a grip from the front on a rail swung psi in plan (right end toward the front) and tilted theta
+    (right end up): approach horizontal and square to the rail, fingers closing along the rail's own up direction."""
+    e = np.array([-math.sin(psi) * math.cos(theta), -math.cos(psi) * math.cos(theta), math.sin(theta)])  # left->right
+    ah = np.array([math.cos(psi), -math.sin(psi), 0.0])
+    n = np.cross(e, ah)
+    n /= np.linalg.norm(n)                       # the rail's up direction
+    a = math.cos(PITCH) * ah - math.sin(PITCH) * n   # approach: forward, tipped down by PITCH
+    c = np.cross(e, a)
+    c /= np.linalg.norm(c)
+    rot = np.column_stack([np.cross(a, c), c, -a])   # world -z -> a, world y -> c
+    return rot @ _R0
+
+
+def _grips(lx, ly, lz, psi_deg, theta_deg):
+    """TCP targets and rotations for both arms with the rail's left end centre at (lx, ly, lz)."""
+    psi, th = math.radians(psi_deg), math.radians(theta_deg)
+    e = np.array([-math.sin(psi) * math.cos(th), -math.cos(psi) * math.cos(th), math.sin(th)])
+    p = np.array([lx, ly, lz])
+    gl, gr = p + (L / 2 - GRIP) * e, p + (L / 2 + GRIP) * e
+    R = _side_R(psi, th)
+    return tuple(gl.tolist()), tuple(gr.tolist()), R
 
 
 def demo():
     v = os.environ.get("RAIL_VARIANT", "")
-    Y = math.pi / 2
-    YR = float(os.environ.get("RAIL_YR", math.pi / 2))
     zs = TOP + ZS
-    DZ = float(os.environ.get("RAIL_DZ", 0.0))  # aim offset for the left end's height (it sags in the pinch)
-    YB = float(os.environ.get("RAIL_YB", 0.006))   # the rail lags this far toward the right in the pinch: aim further left
+    PSI = float(os.environ.get("RAIL_PSI", 18.0))     # swing in plan while feeding the left end (deg)
+    LIFT = float(os.environ.get("RAIL_LIFT", 3.6))    # right-end tilt over the U cheek (deg): ~3.7 cm at the end
+    YB = float(os.environ.get("RAIL_YB", 0.004))      # aim the left end this much further left (it lags in the grip)
+    DZ = float(os.environ.get("RAIL_DZ", 0.0))        # aim offset for the left end's height
     x0, z0 = RAIL0[0], RAIL0[2]
-    keys = [  # (duration, x, left tip y, left tip z, tilt degrees, finger, label)
-        (2.0, x0, L / 2, z0 + 0.06, 0.0, FINGER_OPEN, "over the rail"),
-        (1.5, x0, L / 2, z0, 0.0, FINGER_OPEN, "down"),
-        (0.6, x0, L / 2, z0, 0.0, FINGER_OPEN, "settle"),
-        (0.8, x0, L / 2, z0, 0.0, FINGER_CLOSED, "pinch"),
-        (1.5, x0, L / 2, z0 + 0.06, 0.0, FINGER_CLOSED, "lift"),
-        (2.5, x0, 0.286, zs + 0.01, 13.0, FINGER_CLOSED, "tilt, right end up"),
-        (2.5, AX, 0.286, zs - DZ, 13.0, FINGER_CLOSED, "carry in between the panels"),
-        (1.5, AX, 0.296 + YB, zs - DZ, 13.0, FINGER_CLOSED, "feed the left end in"),
-        (1.5, AX, 0.297 + YB, zs - DZ * 0.8, 9.0, FINGER_CLOSED, "swing down"),
-        (1.5, AX, 0.298 + YB, zs - DZ * 0.5, 5.0, FINGER_CLOSED, "swing down"),
-        (1.5, AX, 0.299 + YB, zs - DZ * 0.2, 2.0, FINGER_CLOSED, "swing down"),
-        (1.5, AX, 0.2995 + YB, zs, 0.0, FINGER_CLOSED, "level, into the U"),
-        (0.8, AX, 0.2995 + YB, zs, 0.0, FINGER_CLOSED, "settle"),
+    Y0 = float(os.environ.get("RAIL_Y0", 0.270))   # left end y while carried in, clear of the left panel
+    zl = zs - DZ
+    keys = [  # (duration, left end x, y, z, psi deg, theta deg, finger, label)
+        (2.0, x0 - 0.08, L / 2, z0, 0, 0, FINGER_OPEN, "in front of the rail"),
+        (1.5, x0, L / 2, z0, 0, 0, FINGER_OPEN, "fingers around it"),
+        (0.8, x0, L / 2, z0, 0, 0, FINGER_CLOSED, "pinch top and bottom"),
+        (1.5, x0, L / 2, z0 + 0.03, 0, 0, FINGER_CLOSED, "lift off the foam"),
+        (2.5, AX - 0.05, Y0, zl, PSI, LIFT, FINGER_CLOSED, "swing right end to the front"),
+        (2.0, AX, Y0, zl, PSI, LIFT, FINGER_CLOSED, "left end at the socket"),
+        (1.5, AX, 0.298 + YB, zl, PSI, LIFT, FINGER_CLOSED, "feed the left end in"),
+        (1.5, AX, 0.299 + YB, zl, PSI * 0.6, LIFT, FINGER_CLOSED, "swing back"),
+        (1.5, AX, 0.2995 + YB, zl, PSI * 0.25, LIFT, FINGER_CLOSED, "swing back, over the cheek"),
+        (1.5, AX, 0.2995 + YB, zl, 0, LIFT, FINGER_CLOSED, "right end over the U"),
+        (1.5, AX, 0.2995 + YB, zs, 0, 0, FINGER_CLOSED, "lower into the U"),
+        (0.8, AX, 0.2995 + YB, zs, 0, 0, FINGER_CLOSED, "settle"),
     ]
-    if v == "level":    # wrong: try to put it in level, left end straight at the socket
-        keys = keys[:5] + [(2.5, x0, 0.286, zs, 0.0, FINGER_CLOSED, "level"),
-                           (2.5, AX, 0.286, zs, 0.0, FINGER_CLOSED, "carry in"),
-                           (2.0, AX, 0.2995, zs, 0.0, FINGER_CLOSED, "push left")]
-    if v == "on_top":   # wrong: lay it on top of both sockets
-        keys = keys[:5] + [(2.5, AX, 0.286, zs + 0.04, 0.0, FINGER_CLOSED, "carry over"),
-                           (1.5, AX, 0.286, zs + 0.03, 0.0, FINGER_CLOSED, "lower onto the tops")]
-    if v == "nothing":  # wrong: both arms park
+    if v == "tilt_in":   # wrong: the old way, right end raised 13 degrees: the shelf is in the way
+        keys = keys[:4] + [(2.5, AX - 0.05, 0.286, zl, 0, 13.0, FINGER_CLOSED, "tilt, right end up"),
+                           (2.0, AX, 0.286, zl, 0, 13.0, FINGER_CLOSED, "carry in"),
+                           (1.5, AX, 0.2995 + YB, zl, 0, 13.0, FINGER_CLOSED, "feed"),
+                           (2.0, AX, 0.2995 + YB, zs, 0, 0, FINGER_CLOSED, "swing down")]
+    if v == "level":     # wrong: carry it in level and square, push toward the closed socket
+        keys = keys[:4] + [(2.5, AX - 0.05, 0.286, zs, 0, 0, FINGER_CLOSED, "level"),
+                           (2.0, AX, 0.286, zs, 0, 0, FINGER_CLOSED, "carry in"),
+                           (2.0, AX, 0.2995 + YB, zs, 0, 0, FINGER_CLOSED, "push left")]
+    if v == "nothing":
         return {"left": [Waypoint(3.0, (0.18, 0.36, TOP + 0.22), FINGER_OPEN, "park")],
                 "right": [Waypoint(3.0, (0.18, -0.36, TOP + 0.22), FINGER_OPEN, "park")]}
-    if v == "hold":     # wrong: right, but never let go
-        keys = keys + [(4.0, AX, 0.2995, zs, 0.0, FINGER_CLOSED, "hold")]
+    if v == "hold":
+        keys = keys + [(4.0, AX, 0.2995 + YB, zs, 0, 0, FINGER_CLOSED, "hold")]
     left, right = [], []
-    XB = float(os.environ.get("RAIL_XB", 0.004))   # the left wrist turns a little short, so the left end sits ~4 mm toward -x
-    for i, (dur, x, ty, tz, th, f, lab) in enumerate(keys):
-        lp, rp = _grips(x, ty, tz, th)
-        if i >= 5:
-            lp = (lp[0] + XB, lp[1], lp[2])
-        left.append(Waypoint(dur, lp, f, lab, Y))
-        right.append(Waypoint(dur, rp, f, lab, YR))
+    XB = float(os.environ.get("RAIL_XB", 0.009))   # the rail sits this far toward -x of where the grip aims (m)
+    ZB = float(os.environ.get("RAIL_ZB", 0.014))   # ... and this far low
+    XBR = float(os.environ.get("RAIL_XBR", 0.008))  # extra for the right grip
+    for i, (dur, lx, ly, lz, psi, th, f, lab) in enumerate(keys):
+        gl, gr, R = _grips(lx, ly, lz, psi, th)
+        if i >= 4:   # once carried: aim off by the rail's offset in the grip
+            gl, gr = (gl[0] + XB, gl[1], gl[2] + ZB), (gr[0] + XB + XBR, gr[1], gr[2] + ZB)
+        left.append(Waypoint(dur, gl, f, lab, R))
+        right.append(Waypoint(dur, gr, f, lab, R @ FLIP))   # same grip turned 180 degrees about the approach
     if v != "hold":
-        last_l, last_r = left[-1].pos, right[-1].pos
-        left += [Waypoint(0.8, last_l, FINGER_OPEN, "let go", Y),
-                 Waypoint(1.2, (last_l[0] - 0.05, last_l[1], last_l[2] + 0.06), FINGER_OPEN, "back off", Y),
-                 Waypoint(2.0, (0.18, 0.36, TOP + 0.22), FINGER_OPEN, "park"),
-                 Waypoint(2.0, (0.18, 0.36, TOP + 0.22), FINGER_OPEN, "hold")]
-        right += [Waypoint(0.8, last_r, FINGER_OPEN, "let go", YR),
-                  Waypoint(1.2, (last_r[0] - 0.05, last_r[1], last_r[2] + 0.06), FINGER_OPEN, "back off", YR),
-                  Waypoint(2.0, (0.18, -0.36, TOP + 0.22), FINGER_OPEN, "park"),
-                  Waypoint(2.0, (0.18, -0.36, TOP + 0.22), FINGER_OPEN, "hold")]
+        for arm, side in ((left, 1), (right, -1)):
+            p, R = arm[-1].pos, arm[-1].yaw
+            arm += [Waypoint(0.8, p, FINGER_OPEN, "let go", R),
+                    Waypoint(1.5, (p[0] - 0.10, p[1], p[2]), FINGER_OPEN, "back out from under the shelf", R),
+                    Waypoint(2.0, (0.18, 0.36 * side, TOP + 0.22), FINGER_OPEN, "park"),
+                    Waypoint(2.0, (0.18, 0.36 * side, TOP + 0.22), FINGER_OPEN, "hold")]
     return {"left": left, "right": right}

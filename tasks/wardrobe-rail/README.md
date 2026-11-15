@@ -1,23 +1,38 @@
-# Refit a wardrobe rail between a closed and an open end support
+# Refit a wardrobe rail under the hat shelf, between a closed and an open end support
 
-A wardrobe section stands on the table: a base board and two white side panels 60 cm apart. The left panel carries a
-closed end support (a cup), the right panel an open U support. The rail, an oval steel wardrobe tube 59.2 cm long,
-lies on two foam blocks in front of the arms. The robot must fit the rail into both supports and let go. The scene,
+A wardrobe section stands on the table: a base board, two white side panels 60 cm apart and, as in a real wardrobe,
+a hat shelf across the top. The shelf hangs 5.5 cm above the rail, so the rail and its supports can be seen and
+reached only from below and in front, never from above. The left panel carries a closed end support (a round cup),
+the right panel an open U support. The rail, a round chrome wardrobe rod 25 mm across and 59.2 cm long, lies in two
+grooved foam blocks in front of the arms. The robot must fit the rail into both supports and let go. The scene,
 scorer and scripted demo are in `wardrobe_rail.py`.
 
-The rail is a few millimetres shorter than the gap between the panels, as real rails are cut, but it is longer than
-the gap minus the closed cup's depth. It therefore cannot be put in level: pushed in level, its far end hits the right
-panel before the near end reaches the cup. The way people do it is to hold the rail tilted with the right end high,
-feed the left end into the closed cup, then swing the rail down level into the U while the left end slides home.
-That needs both arms: they hold the rail at two points and move together so the rail turns in both grips while the
-left end stays in line with the bore (2.1 x 3.8 cm bore for a 1.5 x 3.0 cm rail).
+The rail is a few millimetres shorter than the gap between the panels, as real rails are cut, but longer than the gap
+minus the closed cup's depth. The shelf leaves no room to tilt it steeply (raised 13 degrees, the right end hits the
+shelf), so it goes in the way people fit a rail under a shelf: nearly level and swung in plan. The left end is fed
+into the closed cup with the right end swung about 18 degrees toward the front. The right end is then swung back,
+lifted just enough (about 3 cm) to clear the U's front cheek, and lowered into the U while the left end stays in its
+cup. Both arms hold the rail from the front and below the shelf, so the grippers are tipped forward instead of
+pointing straight down.
+
+## Revision (TK-F585ZS)
+
+Review: "Rails should be mounted such that only a view from below it is available." Changes:
+
+- A hat shelf (1.8 cm melamine) now spans the section 5.5 cm above the rail, covering the rail and both supports when
+  seen from above, as in real wardrobes.
+- The rail is fitted under it: nearly level and swung in plan, with the right end lifted only over the U's cheek. The
+  old 13 degree tilt-in is blocked by the shelf (variant `tilt_in`).
+- The rail is a round 25 mm wardrobe rod (the oval tube is also common, but a round rod is the standard closet rod);
+  the supports are sized for it (29 mm bore, 1.0 cm deep).
+- The scripted demo holds the rail with the grippers tipped 45 degrees forward, reaching under the shelf.
 
 ## Files
 
 | File | What |
 |---|---|
 | `wardrobe_rail.py` | The yam_arena task file: objects, `score()` and the scripted demo |
-| `partkit.py` | Rigid parts built from boxes (from the accepted `din-rail-mount` task) |
+| `partkit.py` | Rigid parts built from boxes and cylinders (from the accepted `din-rail-mount` task) |
 | `task.json` | The submission details |
 
 ## Run a trial
@@ -33,8 +48,8 @@ inspect-robots run --embodiment yam_arena --policy dream \
 ```
 
 Scripted demo: the same flags with `--policy yam_scripted --max-steps 640`. The score is printed as `task_score`.
-Wrong attempts for the shortcut checks: set `RAIL_VARIANT` to `level`, `on_top`, `hold` or `nothing` before the scripted
-run. `RAIL_DEBUG=1` prints the rail end positions every 20 steps.
+Wrong attempts for the shortcut checks: set `RAIL_VARIANT` to `tilt_in`, `level`, `hold` or `nothing` before the
+scripted run. `RAIL_DEBUG=1` prints the rail end positions every 20 steps.
 
 ## Scoring
 
@@ -49,30 +64,19 @@ pad tips at least 3 cm from the rail's axis, and the rail has moved less than 1 
 A real trial is scored by eye and with a ruler: the rail's left end is visibly inside the cup, the right end lies in
 the U, and a spirit level on the rail reads level.
 
-## Shortcut and robustness checks (scripted)
+## Shortcut checks (scripted)
 
 | Variant | What it does | Score |
 |---|---|---|
-| Demo | Tilts, feeds the left end, swings level, lets go, parks | 1.0 (also 1.0 over two trials with a reset between) |
-| `level` | Carries the rail in level and pushes it toward the closed cup | 0 (the far end meets the right panel; the rail ends on the base board) |
-| `on_top` | Lays the rail across the tops of both supports | 0 (it slides off onto the base board) |
+| Demo | Swings the rail in plan under the shelf, feeds the left end, lifts the right end over the cheek into the U, lets go, backs out, parks | 1.0 |
+| `tilt_in` | The old way: right end raised 13 degrees, left end fed, swung down | 0 |
+| `level` | Carries the rail in level and square and pushes it toward the closed cup | 0 |
 | `hold` | Fits it correctly but never lets go | 0 |
 | `nothing` | Both arms park | 0 |
-| Dream-1 | One run | 0.0 (see Results) |
 
 ## Results
 
-Dream-1: 0.0. Over about 2,000 steps (100 s) both arms move toward the rail and the panels, but the rail is never
-lifted off the foam blocks. The Dream-1 session expired at about step 2,000 and the run was stopped there; the video
-covers those steps. Demo: 1.0.
-
-## Note for reviewers
-
-This is not the "seat a bar across two supports" family: with two open supports a bar is simply lowered in. Here the
-left support is a closed cup and the rail is longer than the gap minus the cup's depth, so it cannot be put in level
-(tested: the `level` attempt scores 0). The left end has to be fed in along the bore with the rail tilted about 12
-degrees and the right end high, then the rail swung down into the U while the left end slides home, which is how
-wardrobe and closet rails are fitted.
+Dream-1: 0.0 over the full 2,400 steps (2 minutes). Both arms move toward the rail and the wardrobe, but the rail is never lifted out of the foam blocks. Demo: 1.0 (rail level, left end 9.7 mm into the cup, right end on the U floor).
 
 ## Runtime and seeds
 
@@ -82,19 +86,21 @@ wardrobe and closet rails are fitted.
 
 ## Fidelity
 
-Rigid bodies built from boxes. The oval tube is modelled as a 3.0 x 1.5 cm rectangular bar and the supports as
-rectangular bores, with 0.3 cm clearance at the sides and 0.4 cm at the top and bottom. The wardrobe section is one
-fixed 25 kg part. Friction 1.2 everywhere. No screws or fixings. The scripted demo aims the left grip 4 mm toward +x
-because the left wrist turns a few degrees short of the commanded angle in this pose.
+Rigid bodies built from boxes and cylinders. The rod is a 25 mm cylinder; the closed cup is a square 29 mm bore 1.0 cm
+deep, the U is 29 mm wide with 2 cm cheeks. The wardrobe section with its hat shelf is one fixed 25 kg part; the foam
+blocks are one 3 kg part with grooves that keep the rod from rolling. Friction 1.2 everywhere. No screws or fixings.
+The rod is built along the part's vertical axis and laid along y at each reset (partkit cylinders are vertical). The
+scripted demo lets a waypoint carry a full gripper rotation (a small wrapper on `yam_arena.demo.grip_rotation`, in
+the task file) and aims each grip a few millimetres off to allow for how the rod sits in the tipped grip.
 
 ## Real-world build
 
-A wardrobe section from two 16 cm offcuts of 18 mm melamine board screwed to a base board, 60.0 cm apart inside,
-with a standard closed oval end support and an open U support for 30 x 15 mm oval wardrobe tube, screwed on at the
-same height. A length of oval tube cut to 59.2 cm. Two foam blocks.
+A wardrobe section from two 16 cm offcuts of 18 mm melamine board screwed to a base board, 60.0 cm apart inside, a
+hat shelf of the same board 5.5 cm above the rail, a standard closed round end support and an open U support for
+25 mm wardrobe rod at the same height, and a 25 mm chrome rod cut to 59.2 cm. Two foam blocks with a groove.
 
 ## Licence
 
 The task is released under the MIT licence. It uses no library or third-party assets: every object is built from
-plain boxes and released under the task licence. `partkit.py` is reused from the accepted `din-rail-mount` task in
-this repository (same licence as the repository).
+plain boxes and cylinders and released under the task licence. `partkit.py` is reused from the accepted
+`din-rail-mount` task in this repository (same licence as the repository).
