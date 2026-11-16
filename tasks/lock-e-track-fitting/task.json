@@ -1,0 +1,20 @@
+{
+  "title": "Lock a spring E-track fitting into a van floor track",
+  "category": "Impact on jobs",
+  "keywords": [
+    "cargo securing",
+    "E-track",
+    "spring latch",
+    "truck driver",
+    "fine insertion"
+  ],
+  "instruction": "Lock the tie-off ring into the track.",
+  "context": "Securing cargo is an O*NET core task of heavy and tractor-trailer truck drivers (about 2.0 million US workers) and light truck drivers (about 1.1 million), done on every load, and every ratchet strap, load bar or tie-down in a van or trailer anchors to a spring E-track fitting locked into the track. Robots now load trucks, but this step is still done by hand: the head only enters a slot with its latch squeezed, must slide until its fixed lip is under the steel, and only then be let go. A latch released on top of the face is a false lock that holds nothing when the load shifts.",
+  "setup": "Layout as in the screenshot (x forward from the line between the arm bases, y to the left of the midline, heights from the bench). Grey rubber bench mat (52 x 80 x 0.3 cm) centred 34 cm out. Birch plywood van-floor panel (20 x 52 x 1.8 cm) centred 40 cm out on the midline. On it a section of horizontal floor E-track of 12-gauge galvanised steel (48 cm along y, 12.7 cm wide): two 1 cm formed legs 1 cm tall and a 2.7 mm face 1 cm above the plywood, with nine 62.2 x 14.7 mm slots (long along x) on 50.8 mm centres, the middle one on the midline. A beech stand (10 x 5 x 4 cm, a 8.4 x 1.2 x 1 cm groove on top) centred 22 cm out, 17 cm left. In its groove stands a zinc-plated steel spring E-track fitting, 0.2 kg: a 56 x 5 x 8 mm tongue with a 4 mm fixed lip at one end, a 50 x 20 x 14 mm body on it, a 4 x 12 x 12 mm heel tab at the fixed end, and a spring latch at the other end (red 4 x 12 x 12 mm trigger, 10 mm lip, 10 mm travel, 4 N out and 12 N squeezed); a 5 cm steel O-ring tie-off lies on its clip beside the body.",
+  "scoring": "Measured on the fitting: 0 if it is not in a slot, or its latch lip rests on top of the face (false lock), or its lips are not under the face. 0.25 in a slot with neither lip hooked; 0.5 with one lip at least 2 mm under the face, or both but the body more than 2 mm above the face; 0.75 both lips at least 2 mm under and the body on the face (within 2 mm) but still held; 1.0 the same with the gripper let go. Any slot counts.",
+  "run_limit": "1,600 steps (80 seconds at 20 Hz)",
+  "reset_notes": "Stand the fitting back in the stand's groove, latch out, ring on the -y side.",
+  "fidelity": "Rigid bodies, friction 1.2. The latch is a sprung slider (800 N/m, 4 N out, 12 N squeezed). The sim keeps a ~3 mm contact margin round thin parts, so the lips ride 4 mm under the 2.7 mm face (real: about 2 mm). The O-ring is visual only. The demo reads the fitting's pose to line it up, as a person does by eye. Real trials: a section of standard floor E-track and a spring E fitting with O-ring.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-RB7HJK"
+}
