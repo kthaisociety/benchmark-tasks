@@ -1,0 +1,20 @@
+{
+  "title": "Open a shelf-ready tray of cans by tearing its front panel off along the perforation",
+  "category": "Impact on jobs",
+  "keywords": [
+    "tearing",
+    "perforation",
+    "retail",
+    "shelf-ready packaging",
+    "restocking"
+  ],
+  "instruction": "Open this shelf-ready tray so it can go straight onto the shelf: take its front panel off along the perforation and leave every can standing in the tray.",
+  "context": "Stockers and order fillers (O*NET 53-7065) open shelf-ready trays all shift when they restock: the front panel comes off by hand along a printed perforation, with no knife, and the tray goes on the shelf as the display. A panel torn off the line or a can knocked over leaves a tray that can't be shelved.",
+  "setup": "Positions in cm from the midpoint between the arm bases (x forward, y left), heights above the table; one fixed layout, as in the screenshot. On the table, square to its edge and centred on y 0, stands an open-topped corrugated cardboard tray (brown, B-flute, 3 mm thick, 260 g, any shrink film already taken off): 31.0 across (y), 24.1 front to back (x) and 11.5 tall, its front face at x 25. Twelve 15 oz steel cans of vegetables (7.5 cm diameter, 11.1 cm tall, 425 g, paper labels) stand upright inside in 3 rows of 4, touching each other, the front row 8 mm back from the front wall. The part that comes off (die-line in the README) is the front wall above a 4 cm strip that stays as a lip, plus a triangle of each side wall above a dashed line running from the side wall's top edge 9 cm back from the front down to the top of the lip at the front corner. The line is an easy-open perforation (6 mm cuts, 1 mm ties), printed as dashes. Nothing else is on the table.",
+  "scoring": "Judged at the end of the trial (on a real rig: the video, tape marks at the tray's corners and a look at the torn edges). 0, whatever else: the board torn more than 5 mm off the perforation line anywhere, or the tray ever tipped more than 10 degrees. Otherwise 1.0: the panel off (every tie torn) and not in or on the tray, the tray moved no more than 2 cm at any corner, all 12 cans upright (within 10 degrees) in the tray, both grippers 3 cm or more from the tray and the panel, and everything still (under 1 cm/s) for 1 s. 0.5: the panel off, but not all of that. 0.25: the tear started (at least one tie torn), the panel still on. 0: nothing torn.",
+  "run_limit": "2,400 steps (120 seconds at 20 Hz)",
+  "reset_notes": "Each trial uses a fresh tray (the panel is torn off); load it with the same 12 cans in the same pattern and square it on its marks.",
+  "fidelity": "The removable part is rigid board: the front panel and two triangular side flaps, joined at the corners by sprung creases. The perforation is 15 ties (9 on the lip, 3 down each diagonal) that carry force, not moment, and break past 0.6 N (diagonals) or 1.2 N (lip), set so a peel out and down tears it with about 3 N (not measured on real board). A straight lift spreads over every tie and holds. Tears off the line aren't modelled.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-58WTTL"
+}
