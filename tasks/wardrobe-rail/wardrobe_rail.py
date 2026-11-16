@@ -34,9 +34,11 @@ H = W = D
 CUP = 0.010           # closed socket depth (m): lip at y = GAP - CUP
 U_DEPTH = 0.015       # open socket depth along y (m)
 BX, BZ, WALL = 0.029, 0.029, 0.004   # closed socket bore (round socket modelled square): width (x), height (z); wall
-SHELF_GAP = 0.055     # rail top to the hat shelf's underside (m)
+SHELF_GAP = float(os.environ.get("RAIL_SHELF_GAP", 0.055))   # rail top to the hat shelf's underside (m)
 SHELF_T = 0.018       # hat shelf thickness (m)
-SHELF_X0 = -0.006     # hat shelf front edge, relative to the rail axis (m): it covers the rail when seen from above
+SHELF_X0 = float(os.environ.get("RAIL_SHELF_X0", -0.030))   # hat shelf front edge, relative to the rail axis (m):
+#   3.0 cm in front of it: the rod's front is at -1.25 cm and the supports' front walls at -1.85 cm, so from
+#   directly above the shelf covers the rod and both supports with 1.15 cm to spare
 SHELF_Z = ZS + H / 2 + SHELF_GAP + SHELF_T / 2
 
 _lip = GAP - CUP / 2
@@ -173,7 +175,7 @@ _R0 = np.asarray(_ydemo.grip_rotation(0.0), float)    # straight-down grip: appr
 
 GRIP = float(os.environ.get("RAIL_GRIP", 0.18))      # grasp points, m either side of the rail centre
 FLIP = np.diag([-1.0, -1.0, 1.0])   # the right wrist reaches the same grip turned half a turn
-PITCH = math.radians(float(os.environ.get("RAIL_PITCH", 45.0)))   # grip tipped down from horizontal
+PITCH = math.radians(float(os.environ.get("RAIL_PITCH", 30.0)))   # grip tipped down from horizontal
 
 
 def _side_R(psi, theta):
@@ -241,7 +243,7 @@ def demo():
     left, right = [], []
     XB = float(os.environ.get("RAIL_XB", 0.009))   # the rail sits this far toward -x of where the grip aims (m)
     ZB = float(os.environ.get("RAIL_ZB", 0.014))   # ... and this far low
-    XBR = float(os.environ.get("RAIL_XBR", 0.008))  # extra for the right grip
+    XBR = float(os.environ.get("RAIL_XBR", 0.014))  # extra for the right grip
     for i, (dur, lx, ly, lz, psi, th, f, lab) in enumerate(keys):
         gl, gr, R = _grips(lx, ly, lz, psi, th)
         if i >= 4:   # once carried: aim off by the rail's offset in the grip
@@ -252,7 +254,8 @@ def demo():
         for arm, side in ((left, 1), (right, -1)):
             p, R = arm[-1].pos, arm[-1].yaw
             arm += [Waypoint(0.8, p, FINGER_OPEN, "let go", R),
-                    Waypoint(1.5, (p[0] - 0.10, p[1], p[2]), FINGER_OPEN, "back out from under the shelf", R),
+                    Waypoint(2.5, (0.15, p[1], p[2] - 0.02), FINGER_OPEN, "back out low from under the shelf", R),
+                    Waypoint(1.5, (0.15, p[1], TOP + 0.22), FINGER_OPEN, "rise in front of the shelf", R),
                     Waypoint(2.0, (0.18, 0.36 * side, TOP + 0.22), FINGER_OPEN, "park"),
                     Waypoint(2.0, (0.18, 0.36 * side, TOP + 0.22), FINGER_OPEN, "hold")]
     return {"left": left, "right": right}

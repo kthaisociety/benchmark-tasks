@@ -15,17 +15,23 @@ lifted just enough (about 3 cm) to clear the U's front cheek, and lowered into t
 cup. Both arms hold the rail from the front and below the shelf, so the grippers are tipped forward instead of
 pointing straight down.
 
-## Revision (TK-F585ZS)
+## Revisions
 
-Review: "Rails should be mounted such that only a view from below it is available." Changes:
+**Earlier feedback 1 (TK-F585ZS):** "Rails should be mounted such that only a view from below it is available."
+Addressed (revision 1): a hat shelf (1.8 cm melamine) spans the section 5.5 cm above the rail, as in real wardrobes.
+The rail is fitted under it, nearly level and swung in plan, with the right end lifted only over the U's cheek; the
+old 13 degree tilt-in is blocked by the shelf (variant `tilt_in`, score 0). The rail is a round 25 mm wardrobe
+rod and the supports are sized for it (29 mm bore, 1.0 cm deep). The scripted demo holds the rail with the grippers
+tipped forward, reaching under the shelf.
 
-- A hat shelf (1.8 cm melamine) now spans the section 5.5 cm above the rail, covering the rail and both supports when
-  seen from above, as in real wardrobes.
-- The rail is fitted under it: nearly level and swung in plan, with the right end lifted only over the U's cheek. The
-  old 13 degree tilt-in is blocked by the shelf (variant `tilt_in`).
-- The rail is a round 25 mm wardrobe rod (the oval tube is also common, but a round rod is the standard closet rod);
-  the supports are sized for it (29 mm bore, 1.0 cm deep).
-- The scripted demo holds the rail with the grippers tipped 45 degrees forward, reaching under the shelf.
+**Earlier feedback 2 (TK-3YRBZL):** "The shelf begins at x=31.4 cm, leaving the rod and support edges forward of it
+visible from directly above ... Extend the shelf to cover the rail and both supports from above, and update the
+simulation and full-score demo to show the revised setup working."
+Addressed (revision 2): the shelf now starts at **x = 29.0 cm** (and runs back to 42 cm, panel to panel). The
+foremost parts under it are the support walls at x = 30.15 cm and the rod's front at x = 30.75 cm, so the shelf covers
+the rail and both supports from directly above with at least 1.15 cm to spare (`SHELF_X0` in the task file).
+The demo was retuned for the deeper shelf (grippers tipped 30 degrees below level) and re-run: full score 1.0.
+Dream-1 was re-run on the revised scene. The setup image and both videos are new.
 
 ## Files
 
@@ -47,7 +53,7 @@ inspect-robots run --embodiment yam_arena --policy dream \
   --scorer task_score --store-frames --max-steps 2400 --log-dir runs/dream
 ```
 
-Scripted demo: the same flags with `--policy yam_scripted --max-steps 640`. The score is printed as `task_score`.
+Scripted demo: the same flags with `--policy yam_scripted --max-steps 720`. The score is printed as `task_score`.
 Wrong attempts for the shortcut checks: set `RAIL_VARIANT` to `tilt_in`, `level`, `hold` or `nothing` before the
 scripted run. `RAIL_DEBUG=1` prints the rail end positions every 20 steps.
 
@@ -61,8 +67,11 @@ pad tips at least 3 cm from the rail's axis, and the rail has moved less than 1 
   support axis height (so it lies on the floor, not on the cheeks).
 - 0.2: both ends in and the rail level within 1 degree.
 
-A real trial is scored by eye and with a ruler: the rail's left end is visibly inside the cup, the right end lies in
-the U, and a spirit level on the rail reads level.
+A real trial is scored with two pencil marks on the rod, 8 mm from each end, a ruler and a spirit level, looking up
+from below the shelf: the left end is in when its mark is inside the cup's lip; the right end is in when it lies on
+the U's floor (not on a cheek) with at least 5 mm of rod past the floor's inner edge; the rail is level when the
+spirit level on it reads within 1 degree. Laying the rod on top of the shelf, on the base board or across the
+supports' cheeks scores 0, as does holding it.
 
 ## Shortcut checks (scripted)
 
@@ -76,11 +85,11 @@ the U, and a spirit level on the rail reads level.
 
 ## Results
 
-Dream-1: 0.0 over the full 2,400 steps (2 minutes). Both arms move toward the rail and the wardrobe, but the rail is never lifted out of the foam blocks. Demo: 1.0 (rail level, left end 9.7 mm into the cup, right end on the U floor).
+Dream-1: 0.0 over the full 2,400 steps (2 minutes). Both arms move toward the rail and the wardrobe, but the rail is never lifted out of the foam blocks. Demo: 1.0 (rail level, left end 8.9 mm into the cup, right end on the U floor).
 
 ## Runtime and seeds
 
-- Scripted demo: about 560 steps (28 s simulated).
+- Scripted demo: about 610 steps (30 s simulated).
 - Dream-1: 2,400 steps (2 minutes simulated).
 - No randomness: run with `-E object_jitter=0`. No seeds.
 
@@ -89,7 +98,8 @@ Dream-1: 0.0 over the full 2,400 steps (2 minutes). Both arms move toward the ra
 Rigid bodies built from boxes and cylinders. The rod is a 25 mm cylinder; the closed cup is a square 29 mm bore 1.0 cm
 deep, the U is 29 mm wide with 2 cm cheeks. The wardrobe section with its hat shelf is one fixed 25 kg part; the foam
 blocks are one 3 kg part with grooves that keep the rod from rolling. Friction 1.2 everywhere. No screws or fixings.
-The rod is built along the part's vertical axis and laid along y at each reset (partkit cylinders are vertical). The
+The rod is built along the part's vertical axis and placed lying along y at each reset (partkit cylinders are
+vertical); this is setup only: nothing is moved by the task file during a trial. The
 scripted demo lets a waypoint carry a full gripper rotation (a small wrapper on `yam_arena.demo.grip_rotation`, in
 the task file) and aims each grip a few millimetres off to allow for how the rod sits in the tipped grip.
 
