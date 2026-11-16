@@ -1,0 +1,22 @@
+{
+  "title": "Close a dozen-egg carton with its locking flap tucked inside the lid",
+  "category": "Societal relatability",
+  "keywords": [
+    "bimanual",
+    "egg carton",
+    "pulp packaging",
+    "sprung hinge",
+    "lid and flap",
+    "timing",
+    "latch"
+  ],
+  "instruction": "Close the egg carton.",
+  "context": "Almost every adult closes an egg carton several times a week. A moulded pulp dozen carton only stays shut when its front locking flap is folded up inside the lid's front edge, where a bead along the flap's top catches under a bead inside the lid; the springy pulp hinge opens a lid closed over a flap left hanging out. A tucked flap that is let go creeps back out, so the flap is held in with one hand while the other brings the lid down over it.",
+  "setup": "Positions in cm from the arm-base line (x forward) and the midline (y left), one fixed layout matching the screenshot. A moulded grey pulp dozen-egg carton, 10 cm deep (x 20 to 30) and 30 cm long (y -15 to +15), stands on the table holding twelve eggs (4.2 cm across) in two rows of six; carton with eggs 0.75 kg. The cup tray is 4.5 cm tall. The lid (pulp, 20 g, 30.8 x 10.9 cm, 3.8 cm deep) is hinged along the tray's back top edge (x 30, 4.5 cm up) and stands open 100 degrees, leaning back past upright; its sprung hinge pushes it open with about 0.35 N at its front edge when shut. Inside the lid's front skirt is a 3 mm bead 6.0 to 6.4 cm above the table. The front locking flap (pulp, 29 x 3 cm, 2 mm thick, 5 g) is hinged along the tray's front top edge (x 19.9, 4.5 cm up) and hangs 60 degrees outward; its spring pushes it outward with about 0.3 N at its top when upright, and soft pulp makes a tucked flap creep back out at about 5 degrees a second. Along the flap's top is a 2.5 mm bead with a 45 degree lead-in above it. The flap stops against the eggs 18 degrees inside upright.",
+  "scoring": "Final state only. 1.0 if the lid is within 5 degrees of shut and the flap is within 6 degrees of upright or further in (inside the lid's skirt, where its bead holds the lid), both halves of the carton are within 1 cm of where they started, no finger is within 3 cm of the carton's closed outline, and the lid has been still (moving under 0.5 degrees) for the last 1 s. 0.5 for the same with the carton pushed more than 1 cm. 0 otherwise: a lid closed over a flap left outside springs back open once released.",
+  "run_limit": "2,400 steps (2 minutes at 20 Hz)",
+  "reset_notes": "Open the lid back past upright and let the flap hang out.",
+  "fidelity": "Rigid bodies built from boxes and cylinders. The carton is two rigid halves joined along the middle of the cup tray (0.375 kg each, so the lid and the flap can touch each other); the cup tray is a solid block and the eggs are 4.2 cm cylinders. Lid and flap are sprung revolute hinges (lid 0.02 N m/rad; flap 0.0086 N m/rad with 0.1 N m s/rad damping for the soft pulp). The lock is two beads 2.5 to 4 mm deep. Friction 1.2 (flap 0.5). Placed once at reset; nothing is moved during a trial.",
+  "scores": "Dream-1 run: 0.0 (the arms stay beside the carton and the right one only reaches toward it at the end; the lid stays open and the flap out); demo: 1.0",
+  "media": "M-PTY4MD"
+}
