@@ -33,7 +33,7 @@ from yam_arena.task_file import Box, ObjectState
 
 __all__ = ["Body", "BodyState", "BoxShape", "Clip", "CylShape", "HullShape", "SphereShape", "Thread", "allow_matrix_grips",
            "as_numpy", "clip", "install", "on_reset", "on_step", "plate", "rotation", "segment", "set_clip_on",
-           "set_slide_target", "set_thread_on", "thread"]
+           "set_slide_target", "set_thread_on", "thread", "tie"]
 
 Color = tuple[float, float, float]
 
@@ -471,6 +471,91 @@ def ball(*args, **kwargs) -> Ball:
     return b
 
 
+@dataclass(frozen=True)
+class Tie:
+    """A tie of a tear line (added in this copy): it holds ``body1`` only against being pulled open, so a push that
+    closes the line goes through the two bodies' contact, as board bears on board, and never through the tie. A PhysX
+    D6 joint at ``anchor`` (world, m, both bodies unrotated at the start), its frame x along ``opening`` (the direction
+    ``body1`` moves to open the line) and its frame y along ``second`` (perpendicular to it):
+    - x: a one-sided limit, closed at 0 and open toward closing for ``travel`` m, so it holds against opening only;
+    - y, and z (= x cross y): locked when ``lock_second`` / ``lock_third``, otherwise free;
+    - every rotation free (a tie carries force, not moment).
+    It breaks for good past ``break_force`` (N); every reset rebuilds it whole. Unlike the other joints here it leaves
+    the two bodies colliding (give their touching faces a hair of gap). ``body0`` must come before ``body1`` in
+    OBJECTS."""
+
+    name: str
+    body0: str
+    body1: str
+    anchor: tuple[float, float, float]
+    opening: tuple[float, float, float]
+    second: tuple[float, float, float]
+    lock_second: bool = True
+    lock_third: bool = True
+    travel: float = 0.02
+    break_force: float | None = None
+
+
+_TIES: list[Tie] = []
+
+
+def tie(*args, **kwargs) -> Tie:
+    """Register a :class:`Tie` (same arguments) and return it."""
+    t = Tie(*args, **kwargs)
+    _TIES.append(t)
+    return t
+
+
+def tie_frame(t: Tie) -> np.ndarray:
+    """The tie's joint frame as a rotation matrix: columns x (opening), y (second), z."""
+    x = np.asarray(t.opening, float) / np.linalg.norm(t.opening)
+    y = np.asarray(t.second, float) - np.dot(t.second, x) * x
+    y = y / np.linalg.norm(y)
+    return np.column_stack([x, y, np.cross(x, y)])
+
+
+def _quat_wxyz(R: np.ndarray) -> tuple[float, float, float, float]:
+    """(w, x, y, z) of a rotation matrix."""
+    w = math.sqrt(max(0.0, 1.0 + R[0, 0] + R[1, 1] + R[2, 2])) / 2
+    x = math.copysign(math.sqrt(max(0.0, 1.0 + R[0, 0] - R[1, 1] - R[2, 2])) / 2, R[2, 1] - R[1, 2])
+    y = math.copysign(math.sqrt(max(0.0, 1.0 - R[0, 0] + R[1, 1] - R[2, 2])) / 2, R[0, 2] - R[2, 0])
+    z = math.copysign(math.sqrt(max(0.0, 1.0 - R[0, 0] - R[1, 1] + R[2, 2])) / 2, R[1, 0] - R[0, 1])
+    return (w, x, y, z)
+
+
+def _author_ties(stage, prim_path: str, spec) -> None:
+    from pxr import Gf, UsdPhysics
+
+    parent = prim_path.rsplit("/", 1)[0]
+    for t in _TIES:
+        if t.body1 != spec.name:
+            continue
+        b0 = _SPECS[t.body0]
+        joint = UsdPhysics.Joint.Define(stage, f"{prim_path}/{t.name}")  # a plain Joint is a D6
+        joint.CreateBody0Rel().SetTargets([f"{parent}/{t.body0}/body"])
+        joint.CreateBody1Rel().SetTargets([f"{prim_path}/body"])
+        joint.CreateLocalPos0Attr(Gf.Vec3f(*(np.asarray(t.anchor, float) - np.asarray(b0.pos, float)).tolist()))
+        joint.CreateLocalPos1Attr(Gf.Vec3f(*(np.asarray(t.anchor, float) - np.asarray(spec.pos, float)).tolist()))
+        q = Gf.Quatf(*_quat_wxyz(tie_frame(t)))
+        joint.CreateLocalRot0Attr(q)
+        joint.CreateLocalRot1Attr(q)
+        joint.CreateCollisionEnabledAttr(True)  # the bodies bear on each other where the line closes
+        joint.CreateExcludeFromArticulationAttr(True)
+        if t.break_force is not None:
+            joint.CreateBreakForceAttr(float(t.break_force))
+            if f"{prim_path}/{t.name}" not in _BREAKABLE_PATHS:
+                _BREAKABLE_PATHS.append(f"{prim_path}/{t.name}")
+        prim = joint.GetPrim()
+        opening = UsdPhysics.LimitAPI.Apply(prim, "transX")  # body1 along x: closing free, opening held at 0
+        opening.CreateLowAttr(-float(t.travel))
+        opening.CreateHighAttr(0.0)
+        for dof, lock in (("transY", t.lock_second), ("transZ", t.lock_third)):
+            if lock:
+                limit = UsdPhysics.LimitAPI.Apply(prim, dof)  # low > high: locked
+                limit.CreateLowAttr(1.0)
+                limit.CreateHighAttr(-1.0)
+
+
 def _author_balls(stage, prim_path: str, spec) -> None:
     from pxr import Gf, UsdPhysics
 
@@ -858,6 +943,7 @@ def _spawn_body(prim_path: str, cfg, translation=None, orientation=None, **kwarg
     _author_hinges(stage, prim_path, spec)
     _author_threads(stage, prim_path, spec)
     _author_balls(stage, prim_path, spec)
+    _author_ties(stage, prim_path, spec)
     _author_glues(stage, prim_path, spec)
     _author_clips(stage, prim_path, spec)
     _author_sliders(stage, prim_path, spec)

@@ -8,10 +8,14 @@ front down to the lip's top at the front corner (the usual display cut-out). Off
 Model
 - The removable part is three rigid pieces of board: the front panel and the two triangular side flaps, joined at the
   front corners by the board's creases (hinges about the vertical, sprung straight).
-- The perforation is a row of ties: nine along the lip and three down each diagonal, each a ball joint (it carries
-  force, not moment, like a 2 mm tie of board) that breaks for good past its strength (F_LIP, F_DIAG). Peeling the panel
-  out and down about the lip loads the ties farthest from the lip most, so they break first and the tear runs down the
-  diagonals and then along the lip; a straight lift or a sideways pull spreads over all the ties and holds.
+- The perforation is a row of ties: nine along the lip and three down each diagonal. Each holds only against the line
+  being pulled open (a one-sided limit) and against out-of-plane shear, carries no moment, and breaks for good past its
+  strength (F_LIP, F_DIAG). The panel and flaps collide with the tray, a hair (GAP) off the board below the line, so a
+  push that closes the line (down, or a flap down into the side wall) bears on the board and never loads a tie. The lip
+  ties sit on the panel's outer bottom edge, the fold's pivot, so the panel turns out about them freely. Peeling the
+  panel out and down about the lip loads the ties farthest from the lip most, so they break first and the tear runs down the
+  diagonals; pulled at one end, the lip then tears from that end; a straight lift or a sideways pull spreads over all
+  the ties and holds. Both strengths are one calibration factor TIE_K times the base values 0.6 N and 1.2 N.
 - A tie counts as torn once its two ends are more than 2 mm apart.
 
 Scoring (judged at the end; the episode ends once 1.0 has held for SUCCESS_HOLD_S)
@@ -22,8 +26,8 @@ Scoring (judged at the end; the episode ends once 1.0 has held for SUCCESS_HOLD_
   0.25  the tear started (at least one tie torn), the panel still on
   0     nothing torn, or the tray ever tipped more than 10 degrees
 
-Env knobs: DEMO_VARIANT, TRAY_DEBUG=1 (a trace every 5 control steps), F_LIP / F_DIAG (N), HOOK_DEPTH, PEEL_DEG,
-PULL_OUT (demo).
+Env knobs: DEMO_VARIANT, TRAY_DEBUG=1 (a trace every 5 control steps), TIE_K, or F_LIP / F_DIAG (N) directly,
+PINCH_DEPTH, PEEL_DEG, ZIP_S, ZIP_F (demo).
 
 Run it:  inspect-robots run --embodiment yam_arena -E task=task.py -E object_jitter=0 --scorer task_score ...
 """
@@ -39,8 +43,8 @@ import numpy as np
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from bodykit import (Body, BoxShape, CylShape, HullShape, allow_matrix_grips, as_numpy, ball, hinge,  # noqa: E402
-                     on_reset, on_step, rotation)
+from bodykit import (Body, BoxShape, CylShape, HullShape, allow_matrix_grips, as_numpy, hinge, on_reset,  # noqa: E402
+                     on_step, rotation, tie)
 from yam_arena.constants import FINGER_CLOSED, FINGER_OPEN, TCP_OFFSET  # noqa: E402
 from yam_arena.demo import Waypoint, grip_rotation  # noqa: E402
 from yam_arena.task_file import TABLE_TOP  # noqa: E402
@@ -68,9 +72,13 @@ TW, TD, TH = 0.310, 0.241, 0.115  # outside width (y), depth (x), height
 LIP = 0.040  # the fixed lip under the front panel
 DX = 0.090  # each diagonal's top, this far back from the front
 XF = 0.25  # the tray's front face (world x)
-TRAY_MASS, PANEL_MASS, FLAP_MASS = 0.26, 0.015, 0.004  # kg (board about 0.55 kg/m2)
-F_LIP = float(os.environ.get("F_LIP", "1.2"))  # N: a lip tie's strength
-F_DIAG = float(os.environ.get("F_DIAG", "0.6"))  # N: a diagonal tie's strength
+TRAY_MASS, PANEL_MASS, FLAP_MASS = 0.26, 0.015, 0.004  # kg: the tray body (with its bottom flaps), the panel, a flap
+# The ties' calibration: one factor on both strengths (README "Tear force"; each batch of real trays is cut to match).
+# Set it to a measured tray's value in this one place (or with the env knob TIE_K).
+TIE_K = float(os.environ.get("TIE_K", "3.0"))
+F_LIP = float(os.environ.get("F_LIP", str(round(1.2 * TIE_K, 6))))  # N: a lip tie's strength (3.6 N at TIE_K 3)
+F_DIAG = float(os.environ.get("F_DIAG", str(round(0.6 * TIE_K, 6))))  # N: a diagonal tie's strength (1.8 N at TIE_K 3)
+GAP = 0.0001  # m: the panel and flaps' collision faces this far off the board below the line (no contact force at rest)
 CREASE_K = 0.002  # N m per degree: the front corners' creases, sprung straight (the flaps square to the panel)
 LIP_TIE_Y = tuple(round(-0.14 + 0.035 * k, 3) for k in range(9))  # on the peel axis: they carry a straight pull
 DIAG_TIE_F = (0.2, 0.5, 0.8)  # along each diagonal, from the lip
@@ -140,7 +148,8 @@ TRAY = Body.build("tray", pos=tuple(TRAY_POS.tolist()), mass=TRAY_MASS, shapes=_
 # -- the removable part ----------------------------------------------------------------------------------------------------
 PANEL_POS = TRAY_POS + np.array([B / 2, 0.0, (LIP + TH) / 2])
 PANEL = Body.build("panel", pos=tuple(PANEL_POS.tolist()), mass=PANEL_MASS,
-                   shapes=[BoxShape((0.0, 0.0, 0.0), (B, TW, TH - LIP), KRAFT),
+                   shapes=[BoxShape((0.0, 0.0, 0.0), (B, TW, TH - LIP), KRAFT, collide=False),
+                           BoxShape((0.0, 0.0, GAP / 2), (B, TW, TH - LIP - GAP), KRAFT),  # bears on the lip's top
                            # the panel's print: a coloured band with a light label panel in it (visual only)
                            BoxShape((-B / 2 - 0.0002, 0.0, 0.002), (0.0004, TW - 0.03, 0.040), PANEL_PRINT, collide=False),
                            BoxShape((-B / 2 - 0.0004, 0.0, 0.002), (0.0004, 0.12, 0.026), PANEL_LABEL, collide=False)],
@@ -155,9 +164,12 @@ def flap_pos(s: float) -> np.ndarray:
 def _flap(s: float) -> Body:
     name = "flap_left" if s > 0 else "flap_right"
     pts = [(0.0, 0.0), (0.0, TH - LIP), (DX - B, TH - LIP)]
+    dx, dz = DX - B, TH - LIP
+    length = math.hypot(dx, dz)  # the collision triangle: its diagonal edge GAP off the side wall's edge below it
+    hit = [(0.0, GAP * length / dx), (0.0, TH - LIP), (DX - B - GAP * length / dz, TH - LIP)]
     return Body.build(name, pos=tuple(flap_pos(s).tolist()), mass=FLAP_MASS,
-                      shapes=[_tri_xz(pts, -B / 2, B / 2, KRAFT)], friction=(0.5, 0.45), color=KRAFT,
-                      contact_offset=0.001, solver_iterations=32)
+                      shapes=[_tri_xz(pts, -B / 2, B / 2, KRAFT, collide=False), _tri_xz(hit, -B / 2, B / 2, KRAFT)],
+                      friction=(0.5, 0.45), color=KRAFT, contact_offset=0.001, solver_iterations=32)
 
 
 FLAPS = {1.0: _flap(1.0), -1.0: _flap(-1.0)}
@@ -165,14 +177,23 @@ FLAPS = {1.0: _flap(1.0), -1.0: _flap(-1.0)}
 # ties: (name, segment, anchor in the world)
 TIES: list[tuple[str, str, np.ndarray]] = []
 for _k, _y in enumerate(LIP_TIE_Y):  # (USD prim names: letters, digits and underscores only)
-    TIES.append((f"lip_{_k}", "panel", TRAY_POS + np.array([B / 2, _y, LIP])))
+    TIES.append((f"lip_{_k}", "panel", TRAY_POS + np.array([0.0, _y, LIP])))  # on the outer bottom edge: the pivot
 for _s, _f in FLAPS.items():
     for _k, _fr in enumerate(DIAG_TIE_F):
         _x, _z = diag_point(_fr)
         TIES.append((f"diag_{'l' if _s > 0 else 'r'}{_k}", _f.name, TRAY_POS + np.array([_x, flap_pos(_s)[1], _z])))
+_D = np.array([DX - B, 0.0, TH - LIP]) / math.hypot(DX - B, TH - LIP)  # along each diagonal, up and back
+DIAG_OPENING = np.array([-_D[2], 0.0, _D[0]])  # a flap opening its diagonal: up and forward, in the side wall
+# How each tie holds: (opening, second axis, lock second, lock third). Lip: held against lifting (opening), and locked
+# out of the wall (x) and along the line (y). Diagonal: held against opening, locked out of the side wall (y), free
+# along the line, so a flap pushed down slides on the side wall's edge (bearing, friction) and its fold, never a tie.
+TIE_HOLD = {"lip": ((0.0, 0.0, 1.0), (1.0, 0.0, 0.0), True, True),
+            "diag": (tuple(DIAG_OPENING.tolist()), (0.0, 1.0, 0.0), True, False)}
 for _name, _seg, _p in TIES:
-    ball(f"tie_{_name}", "tray", _seg, anchor=tuple(_p.tolist()),
-         break_force=F_LIP if _name.startswith("lip") else F_DIAG)
+    _kind = "lip" if _name.startswith("lip") else "diag"
+    _open, _second, _lock2, _lock3 = TIE_HOLD[_kind]
+    tie(f"tie_{_name}", "tray", _seg, anchor=tuple(_p.tolist()), opening=_open, second=_second, lock_second=_lock2,
+        lock_third=_lock3, break_force=F_LIP if _kind == "lip" else F_DIAG)
 for _s, _f in FLAPS.items():
     hinge(f"crease_{'l' if _s > 0 else 'r'}", "panel", _f.name,
           anchor=tuple((TRAY_POS + np.array([B, flap_pos(_s)[1], (LIP + TH) / 2])).tolist()), axis="Z",
@@ -180,6 +201,7 @@ for _s, _f in FLAPS.items():
 
 _SEG_POS = {"panel": PANEL_POS, FLAPS[1.0].name: flap_pos(1.0), FLAPS[-1.0].name: flap_pos(-1.0)}
 TIE_LOCAL = [(name, seg, p - _SEG_POS[seg], p - TRAY_POS) for name, seg, p in TIES]  # (segment-local, tray-local)
+# (template.py draws the real tray's tear line from these same ties: tray_template.svg)
 
 
 # -- the cans ---------------------------------------------------------------------------------------------------------------
@@ -355,9 +377,10 @@ def success(objects) -> bool:
 # The left hand turns its fingers to close along x, opens them 6 mm either side of the TCP and lowers them over the
 # middle of the front panel's top edge: the back finger goes down behind the panel into the gap between the two middle
 # front cans, the front finger in front of it. It pinches the top 2 cm of the panel and peels it out and down about the
-# lip, turning the wrist with it: the diagonals tear from the top. Holding the panel at about 55 degrees, it pulls it on
-# out (aimed well past: the arm gives about 200 N/m sideways), which tears the lip, carries the panel off to the left,
-# lowers it to the table and lets go. The right hand stays parked.
+# lip, turning the wrist with it: the diagonals tear from the top. Then it rips the lip from the panel's left end (see
+# ZIP_* below), lifting it up and out: the lip tears and the panel drops free onto the table in front of the tray (on
+# Brev it leaves the pinch as the lip tears; the scripted carry and put-down then run empty) and the hand parks. The
+# right hand stays parked.
 allow_matrix_grips()
 
 TIP = 0.013  # the pad tips this far below the TCP
@@ -365,12 +388,27 @@ APPROACH_V = -0.006  # finger setting going down: each pad 6 mm from the TCP alo
 #                      fit between the cans: the gap is 3 cm wide or more only within 19 mm of the front wall)
 PINCH = FINGER_CLOSED  # then closed on the 3 mm board: about 7 N of squeeze
 PINCH_DEPTH = float(os.environ.get("PINCH_DEPTH", "0.020"))  # the pad tips this far below the panel's top edge
-PEEL_DEG = float(os.environ.get("PEEL_DEG", "55"))  # the panel peeled this far out and down about the lip ...
-PULL_OUT = float(os.environ.get("PULL_OUT", "0.04"))  # ... then pulled straight out by this (commanded; tears the lip)
+PEEL_DEG = float(os.environ.get("PEEL_DEG", "55"))  # the panel peeled this far out and down about the lip
 R_HOOK = grip_rotation(-math.pi / 2)  # straight down, the fingers closing along x (-90: within the left wrist's range)
 PARK = {"left": (0.15, 0.30, TOP + 0.20), "right": (0.15, -0.30, TOP + 0.20)}
-DROP = (0.15, 0.24)  # where the torn-off panel is put down, on the table left of the tray
 _LIP_AXIS = np.array([XF + B / 2, 0.0, TOP + LIP])
+
+# The lip, ripped from a corner: after the peel, the pinch eases, slides along the panel's top edge to its left end and
+# closes again, then pulls that end away from the lip line, in the panel's plane. The pull's moment loads the lip ties
+# from the left end, so they tear one or two at a time toward the right (the way a panel is ripped off from its
+# corner), each next tie needing less; a pull at the middle loads all nine at once. The pinch only holds an in-plane
+# pull by friction (about 7.5 N: 7.5 N of squeeze on each side of the 3 mm board), so the lever is what lets it tear the
+# lip (on Brev: a straight pull at the middle slipped from TIE_K 2, the corner pull tore it up to TIE_K 3).
+ZIP_S = float(os.environ.get("ZIP_S", "0.125"))  # the pinch's y at the panel's left end (edge at 0.155; the left
+#                                                 flap stands there, so the back finger stays 1.5 cm clear of it)
+ZIP_EASE = -0.004  # finger setting while sliding: each pad 4 mm from the TCP, the 3 mm board resting on the front pad
+ZIP_F = float(os.environ.get("ZIP_F", "16"))  # N: the in-plane pull the arm is commanded to, ramped in three steps
+# The command offset per newton of pull along the panel at the zip pinch (PEEL_DEG 55, ZIP_S 0.125), from the arm's
+# static compliance (joint stiffness 80 / 10 N m/rad through the IK Jacobian; test_task.py recomputes it): the arm gives
+# about 1 mm per newton there, mostly sideways and up.
+ZIP_OFFSET_PER_N = np.array([-0.21e-3, -0.74e-3, 0.64e-3])  # m/N
+HOVER_WALL = (XF + 0.12, TW / 2 - B / 2)  # hand_over_tray: where the hand ends, over the left side wall's top edge
+DROP = (0.15, 0.28)  # the TCP when the panel is put down (pinched at its end, the panel reaches 28 cm to the right)
 
 
 def _ry(deg: float) -> np.ndarray:
@@ -400,7 +438,30 @@ def _w(t, pos, finger, label, R=R_HOOK) -> Waypoint:
     return Waypoint(float(t), tuple(float(v) for v in pos), finger, label, R)
 
 
+# push_down: the closed fingers press straight down on the panel's top edge near its left end, on the left flap's top
+# edge, and on the panel's top edge at its middle, each aimed PRESS_DEPTH below the edge (about 10 N at the arm's
+# 400-500 N/m down). The board bears it: nothing tears.
+PRESS_DEPTH = 0.025
+PRESSES = (((XF - 0.0045, 0.10, TOP + TH), R_HOOK, "the panel's top edge near its left end"),  # fingers clear of the
+           ((XF + 0.075, TW / 2 - B / 2 + 0.0095, TOP + TH), grip_rotation(0.0), "the left flap's top edge"),  # cans
+           ((XF - 0.0045, 0.0, TOP + TH), R_HOOK, "the panel's top edge at its middle"))
+
+
+def press_waypoints() -> list[Waypoint]:
+    wps = [_w(1.5, (0.24, 0.20, TOP + 0.22), FINGER_CLOSED, "toward the tray")]
+    for edge, R, what in PRESSES:
+        on = np.array(edge) + [0.0, 0.0, TIP]  # the TCP with the fingertips on the edge
+        wps += [_w(1.5, on + [0.0, 0.0, 0.05], FINGER_CLOSED, f"over {what}", R),
+                _w(1.0, on + [0.0, 0.0, 0.003], FINGER_CLOSED, "fingertips just over it", R),
+                _w(1.0, on - [0.0, 0.0, PRESS_DEPTH], FINGER_CLOSED, f"press {what} straight down", R),
+                _w(1.5, on - [0.0, 0.0, PRESS_DEPTH], FINGER_CLOSED, "hold the press", R),
+                _w(1.0, on + [0.0, 0.0, 0.05], FINGER_CLOSED, "up", R)]
+    return wps + [_w(2.0, PARK["left"], FINGER_OPEN, "park", grip_rotation(0.0))]
+
+
 def plan_left(variant: str) -> list[Waypoint]:
+    if variant == "push_down":
+        return press_waypoints()
     pinch = pinch_tcp()
     wps = [
         _w(1.5, (0.24, 0.20, TOP + 0.22), APPROACH_V, "toward the tray"),
@@ -415,31 +476,56 @@ def plan_left(variant: str) -> list[Waypoint]:
                       _w(0.6, pinch, APPROACH_V, "let go"),
                       _w(1.2, pinch + [0.0, 0.0, 0.07], APPROACH_V, "up out of the gap"),
                       _w(2.0, PARK["left"], FINGER_OPEN, "park", grip_rotation(0.0))]
-    stop = 3.0 if variant == "start_only" else PEEL_DEG
-    for d in [d for d in (3, 5, 10, 15, 20, 30, 40, 50, 55) if d <= stop]:
+    for d in [d for d in (3, 5, 10, 15, 20, 30, 40, 50, 55) if d <= PEEL_DEG]:
         p, R = peel_pose(d)
         wps.append(_w(0.8, p, PINCH, "peel the panel out and down about the lip", R))
-    p, R = peel_pose(stop)
-    if variant == "start_only":
-        return wps + [_w(60.0, p, PINCH, "hold the panel part-peeled", R)]
-    out = p + np.array([-PULL_OUT, 0.0, 0.0])
-    wps += [_w(1.5, out, PINCH, "pull it straight out: the lip tears", R), _w(0.8, out, PINCH, "steady", R)]
-    if variant == "keep_holding":
-        return wps + [_w(60.0, out, PINCH, "keep holding the panel", R)]
-    if variant == "drop_in_tray":  # torn off, but put down on top of the cans
-        over = np.array([XF + 0.08, 0.0, TOP + TH + 0.10])
-        down = np.array([XF + 0.08, 0.0, TOP + TH + 0.05])
-    else:
-        over = np.array([DROP[0], DROP[1], TOP + 0.10])
-        down = np.array([DROP[0], DROP[1], TOP + 0.045])
+    p, R = peel_pose(PEEL_DEG)
+    if variant == "start_only":  # the diagonals torn, the panel still on the lip: nothing pulls it off
+        return wps + [_w(60.0, p, PINCH, "hold the panel peeled down, without pulling it off", R)]
+    wps += zip_tear(p, R)
+    pulled = zip_pulled(p)
+    clear = _w(1.2, pulled + [-0.04, 0.0, 0.06], PINCH, "lift the panel clear, drawing it away from the cans", R)
+    if variant == "hand_over_tray":  # torn off, but the hand ends just over the tray's wall, never clear of it: 0.5
+        wall = np.array([HOVER_WALL[0], HOVER_WALL[1], TOP + TH + 0.005 + TIP])  # fingertips 5 mm over the rim
+        return wps + [clear,
+                      _w(1.0, np.asarray(clear.pos) + [0.0, 0.0, 0.08], FINGER_OPEN, "up", R),
+                      _w(2.0, wall + [0.0, 0.0, 0.04], FINGER_CLOSED, "over the tray's left wall", grip_rotation(0.0)),
+                      _w(1.0, wall, FINGER_CLOSED, "down to just over the wall", grip_rotation(0.0)),
+                      _w(60.0, wall, FINGER_CLOSED, "stay there, over the tray", grip_rotation(0.0))]
+    over = np.array([DROP[0], DROP[1], TOP + 0.10])
+    down = np.array([DROP[0], DROP[1], TOP + 0.045])
+    carry = "carry it off to the left"
     return wps + [
-        _w(1.2, out + [0.0, 0.0, 0.06], PINCH, "lift the panel clear", R),
-        _w(2.0, over, PINCH, "carry it off to the left", R),
-        _w(1.0, down, PINCH, "lower it to the table", R),
+        clear,
+        _w(2.0, over, PINCH, carry, R),
+        _w(1.0, down, PINCH, "lower it", R),
         _w(0.6, down, FINGER_OPEN, "let go", R),
         _w(1.2, down + [0.0, 0.0, 0.08], FINGER_OPEN, "lift away", R),
         _w(2.0, PARK["left"], FINGER_OPEN, "park", grip_rotation(0.0)),
     ]
+
+
+def zip_end(p) -> np.ndarray:
+    """The TCP pinching the panel's left end, with the panel peeled as at ``p`` (the pinch at its middle)."""
+    return np.asarray(p, float) + np.array([0.0, ZIP_S, 0.0])
+
+
+def zip_pulled(p) -> np.ndarray:
+    """Where the corner pull is aimed (the arm gives about 1 mm per newton there)."""
+    return zip_end(p) + ZIP_F * ZIP_OFFSET_PER_N
+
+
+def zip_tear(p, R) -> list[Waypoint]:
+    """From the end of the peel (TCP ``p``, rotation ``R``): slide to the panel's left end and rip the lip from there."""
+    end = zip_end(p)
+    wps = [_w(0.5, p, ZIP_EASE, "ease the pinch: the panel rests on the front pad", R),
+           _w(1.5, end, ZIP_EASE, "slide along the top edge to the panel's left end", R),
+           _w(0.6, end, PINCH, "pinch the panel's left end", R),
+           _w(0.4, end, PINCH, "steady", R)]
+    for f in (ZIP_F / 3, 2 * ZIP_F / 3, ZIP_F):
+        wps.append(_w(1.0, end + f * ZIP_OFFSET_PER_N, PINCH,
+                      "pull the left end away from the lip line, along the panel: the lip tears from the left", R))
+    return wps + [_w(1.0, zip_pulled(p), PINCH, "hold while the tear runs to the right end", R)]
 
 
 def _length(wps) -> float:
@@ -447,9 +533,10 @@ def _length(wps) -> float:
 
 
 def demo():
-    """DEMO_VARIANT: full (1.0); nothing (0); lift (pinched and pulled straight up, in the panel's plane: holds, 0);
-    start_only (peeled 3 degrees and held: the tear started, 0.25 if it hasn't run all the way); keep_holding (torn off,
-    still held: 0.5); drop_in_tray (torn off and put down on the cans: 0.5)."""
+    """DEMO_VARIANT: full (peel, rip the lip from the left end, the panel dropping free in front of the tray: 1.0);
+    nothing (0); lift (pinched and pulled straight up, in the panel's plane: holds, 0); start_only (peeled down and
+    held, not pulled off: the diagonals torn, the lip whole, 0.25); hand_over_tray (torn off, but the hand ends just over the tray's wall:
+    0.5); push_down (pressed straight down on the panel and a flap: the board bears it, 0)."""
     variant = os.environ.get("DEMO_VARIANT", "full")
     if variant == "nothing":
         left = [_w(3.0, PARK["left"], FINGER_OPEN, "park", grip_rotation(0.0))]
