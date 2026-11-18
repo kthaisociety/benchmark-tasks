@@ -14,11 +14,20 @@ yam_arena's task-file objects are single primitives. A ``Part`` is one rigid bod
 (a box with a pocket, a lid with tabs, a cap with lugs). Give it ``sliders`` and it becomes an articulation whose root is the part and whose
 sliders are boxes on prismatic joints along the part's z axis, each pushed up to its rest stop by a spring drive.
 A box may carry a fourth element, its rotation in the part frame as a (w, x, y, z) quaternion, for chamfers and
-ramps; a slider may have its own ``friction``, which wins its contacts (PhysX's "min" combine mode).
+ramps; a Part made ``kinematic`` stays fixed where it is spawned (a cast fitting with sloped faces, say), and
+``visual_boxes``/``visual_cylinders`` are only seen (no collider, no mass); a slider may have its own
+``friction``, which wins its contacts (PhysX's "min" combine mode).
 
 Importing this module hooks ``yam_arena.scene`` (and the embodiment's step and reset) without modifying yam_arena: ``success()/score()`` receive a :class:`PartState` (the body origin's pose, not the bounding-box centre that
 yam_arena reports for primitives, plus slider positions). ``on_step`` and ``on_reset`` register callbacks that run
 after every control step and after every reset, with the Isaac Lab environment.
+
+Two Parts can be joined by a :class:`TiltJoint` (a PhysX D6 joint): one held on the other at a point, unable to slide
+or turn about an axis, and only tilting off that axis against a spring. The task file can switch it off for good in the
+middle of an episode (:func:`set_joint_enabled`): a crimped cap letting go, say. (Added in this copy.)
+
+Quaternions: Isaac Lab 3.0, which yam_arena runs on, orders every pose quaternion (x, y, z, w), the
+``root_link_pose_w`` read here and the pose ``write_pose`` sends included. USD's Gf.Quat takes (w, x, y, z).
 
 Pure Python at import time; everything that needs Isaac Sim is imported lazily.
 """
@@ -35,12 +44,14 @@ import numpy as np
 from yam_arena import task_file
 from yam_arena.task_file import Box, ObjectState
 
-__all__ = ["Part", "PartState", "Slider", "on_reset", "on_step", "env", "write_pose", "install"]
+__all__ = ["Part", "PartState", "Slider", "TiltJoint", "on_reset", "on_step", "env", "write_pose", "install",
+           "tilt_joint", "set_joint_enabled"]
 
 Color = tuple[float, float, float]
 # centre, size, colour (part frame, m), and optionally the box's rotation in the part frame as a (w, x, y, z) quaternion
 BoxSpec = tuple
-CylSpec = tuple[tuple[float, float, float], float, float, Color]  # centre, radius, height (axis = part z), colour
+# centre, radius, height, colour, and optionally its axis in the part frame ("X", "Y" or "Z", the default)
+CylSpec = tuple
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,9 @@ class Part(Box):
     cylinders: tuple[CylSpec, ...] = ()
     sliders: tuple[Slider, ...] = ()
     friction: float = 0.8
+    kinematic: bool = False  # True: fixed in place (a kinematic body), e.g. a cast part with sloped faces
+    visual_boxes: tuple[BoxSpec, ...] = ()  # shapes that are only seen: nothing collides with them, no mass
+    visual_cylinders: tuple[CylSpec, ...] = ()
     meta: dict = field(default_factory=dict, compare=False, hash=False)
 
     def _check(self) -> None:
@@ -89,15 +103,18 @@ def _box(spec):
     return centre, size, color, (tuple(spec[3]) if len(spec) > 3 else (1.0, 0.0, 0.0, 0.0))
 
 
-def part(name, pos, boxes, mass, yaw=0.0, sliders=(), color=(0.5, 0.5, 0.5), friction=0.8, cylinders=()) -> Part:
+def part(name, pos, boxes, mass, yaw=0.0, sliders=(), color=(0.5, 0.5, 0.5), friction=0.8, cylinders=(),
+         kinematic=False, visual_boxes=(), visual_cylinders=()) -> Part:
     """Build a Part; ``size`` is filled in from the shapes' extent."""
     half = [np.abs(_quat_matrix(q)) @ (np.array(s) / 2) for _, s, _, q in map(_box, boxes)]
-    half += [np.array([r, r, h / 2]) for _, r, h, _ in cylinders]
-    centres = [np.array(b[0]) for b in boxes] + [np.array(c) for c, _, _, _ in cylinders]
+    half += [np.array({"X": [h / 2, r, r], "Y": [r, h / 2, r]}.get(c[4] if len(c) > 4 else "Z", [r, r, h / 2]))
+             for c in cylinders for r, h in [(c[1], c[2])]]
+    centres = [np.array(b[0]) for b in boxes] + [np.array(c[0]) for c in cylinders]
     lo = np.min([c - h for c, h in zip(centres, half)], axis=0)
     hi = np.max([c + h for c, h in zip(centres, half)], axis=0)
     return Part(name=name, pos=tuple(pos), size=tuple((hi - lo).tolist()), mass=mass, color=color, yaw=yaw,
-                boxes=tuple(boxes), cylinders=tuple(cylinders), sliders=tuple(sliders), friction=friction)
+                boxes=tuple(boxes), cylinders=tuple(cylinders), sliders=tuple(sliders), friction=friction,
+                kinematic=kinematic, visual_boxes=tuple(visual_boxes), visual_cylinders=tuple(visual_cylinders))
 
 
 @dataclass(frozen=True)
@@ -118,6 +135,103 @@ class PartState(ObjectState):
 
     def to_world(self, local_point) -> np.ndarray:
         return self.pos + self.rotation() @ np.asarray(local_point, float)
+
+
+# -- joints between parts -----------------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class TiltJoint:
+    """A PhysX D6 joint holding Part ``body1`` on Part ``body0``: ``anchor1`` (in body1's frame) stays at ``anchor0``
+    (in body0's frame), and body1 can't turn about ``axis`` (both parts' frames; they start unrotated against each
+    other). It can only tilt off that axis, against a spring of ``stiffness`` N m/rad and a damper of ``damping``
+    N m s/rad that pull it back in line. The two parts don't collide with each other while it holds. ``body0`` must
+    come before ``body1`` in OBJECTS: the joint is authored when ``body1`` is spawned. :func:`set_joint_enabled` lets it
+    go (or puts it back)."""
+
+    name: str  # a plain identifier: it is a USD prim name
+    body0: str
+    body1: str
+    anchor0: tuple[float, float, float]
+    anchor1: tuple[float, float, float]
+    axis: tuple[float, float, float] = (0.0, 0.0, 1.0)
+    stiffness: float = 0.0
+    damping: float = 0.0
+
+
+_JOINTS: list[TiltJoint] = []
+_JOINT_PATHS: dict[str, str] = {}
+_JOINT_ATTRS: dict[str, object] = {}
+
+
+def tilt_joint(*args, **kwargs) -> TiltJoint:
+    """Register a :class:`TiltJoint` (same arguments) and return it."""
+    j = TiltJoint(*args, **kwargs)
+    if not j.name.isidentifier():
+        raise ValueError(f"joint name {j.name!r} must be a plain identifier (it is a USD prim name)")
+    _JOINTS.append(j)
+    return j
+
+
+def _x_to(v) -> tuple[float, float, float, float]:
+    """(w, x, y, z) of the shortest rotation taking +x onto the direction v (a D6 joint's twist axis is its frame's x)."""
+    v = np.asarray(v, float) / np.linalg.norm(v)
+    c = float(v[0])
+    if c < -0.999999:
+        return (0.0, 0.0, 0.0, 1.0)
+    axis = np.cross([1.0, 0.0, 0.0], v)
+    s = float(np.linalg.norm(axis))
+    if s < 1e-9:
+        return (1.0, 0.0, 0.0, 0.0)
+    angle = math.atan2(s, c)
+    axis = axis / s * math.sin(angle / 2)
+    return (math.cos(angle / 2), float(axis[0]), float(axis[1]), float(axis[2]))
+
+
+def _author_joints(stage, prim_path: str, spec: Part) -> None:
+    from pxr import Gf, UsdPhysics
+
+    parent = prim_path.rsplit("/", 1)[0]
+    for j in _JOINTS:
+        if j.body1 != spec.name:
+            continue
+        path = f"{prim_path}/{j.name}"
+        joint = UsdPhysics.Joint.Define(stage, path)  # a plain Joint is a D6: limits lock or bound each axis
+        joint.CreateBody0Rel().SetTargets([f"{parent}/{j.body0}/body"])
+        joint.CreateBody1Rel().SetTargets([f"{prim_path}/body"])
+        joint.CreateLocalPos0Attr(Gf.Vec3f(*[float(v) for v in j.anchor0]))
+        joint.CreateLocalPos1Attr(Gf.Vec3f(*[float(v) for v in j.anchor1]))
+        frame = Gf.Quatf(*_x_to(j.axis))
+        joint.CreateLocalRot0Attr(frame)
+        joint.CreateLocalRot1Attr(frame)
+        joint.CreateCollisionEnabledAttr(False)
+        joint.CreateExcludeFromArticulationAttr(True)
+        joint.CreateJointEnabledAttr(True)
+        prim = joint.GetPrim()
+        for dof in ("transX", "transY", "transZ", "rotX"):  # no sliding, no turning about the axis
+            limit = UsdPhysics.LimitAPI.Apply(prim, dof)  # low > high: locked
+            limit.CreateLowAttr(1.0)
+            limit.CreateHighAttr(-1.0)
+        for dof in ("rotY", "rotZ"):  # tilting off the axis, against the spring
+            drive = UsdPhysics.DriveAPI.Apply(prim, dof)  # USD angular drives take degrees
+            drive.CreateTypeAttr("force")
+            drive.CreateStiffnessAttr(float(j.stiffness) * math.pi / 180.0)
+            drive.CreateDampingAttr(float(j.damping) * math.pi / 180.0)
+            drive.CreateTargetPositionAttr(0.0)
+            drive.CreateMaxForceAttr(1.0e6)
+        _JOINT_PATHS[j.name] = path
+        _JOINT_ATTRS.pop(j.name, None)
+
+
+def set_joint_enabled(name: str, on: bool) -> None:
+    """Switch a :class:`TiltJoint` off (the parts are free of each other from the next physics step) or back on."""
+    if name not in _JOINT_ATTRS:
+        from isaaclab.sim.utils.stage import get_current_stage
+        from pxr import UsdPhysics
+
+        prim = get_current_stage().GetPrimAtPath(_JOINT_PATHS[name])
+        _JOINT_ATTRS[name] = UsdPhysics.Joint(prim).GetJointEnabledAttr()
+    _JOINT_ATTRS[name].Set(bool(on))
 
 
 # -- spawning -----------------------------------------------------------------------------------------------------
@@ -174,7 +288,10 @@ def _spawn_part(prim_path: str, cfg, translation=None, orientation=None, **kwarg
         rb.CreateAngularDampingAttr(1.0)  # light damping: small stiff parts otherwise chatter in tight fits
         return prim
 
-    def collide(prim, color, material=phys):
+    def collide(prim, color, material=phys, solid=True):
+        if not solid:  # seen only: no collider, so it adds no mass and nothing touches it
+            bind_visual_material(str(prim.GetPath()), look(color), stage=stage)
+            return
         UsdPhysics.CollisionAPI.Apply(prim)
         cp = PhysxSchema.PhysxCollisionAPI.Apply(prim)
         cp.CreateContactOffsetAttr(0.0005)  # below the 1 mm fits, so tight parts do not touch on every face at once
@@ -182,29 +299,34 @@ def _spawn_part(prim_path: str, cfg, translation=None, orientation=None, **kwarg
         bind_physics_material(str(prim.GetPath()), material, stage=stage)
         bind_visual_material(str(prim.GetPath()), look(color), stage=stage)
 
-    def boxes(path: str, specs, offset=(0.0, 0.0, 0.0), material=phys):
+    def boxes(path: str, specs, offset=(0.0, 0.0, 0.0), material=phys, solid=True, tag="box"):
         for i, (centre, size, color, rot) in enumerate(map(_box, specs)):
-            cube = UsdGeom.Cube.Define(stage, f"{path}/box_{i}")
+            cube = UsdGeom.Cube.Define(stage, f"{path}/{tag}_{i}")
             cube.CreateSizeAttr(1.0)
             cube.AddTranslateOp().Set(Gf.Vec3d(*(np.array(centre) - np.array(offset))))
             if rot != (1.0, 0.0, 0.0, 0.0):
                 cube.AddOrientOp().Set(Gf.Quatf(*rot))
             cube.AddScaleOp().Set(Gf.Vec3f(*size))
-            collide(cube.GetPrim(), color, material)
+            collide(cube.GetPrim(), color, material, solid)
 
-    def cylinders(path: str, specs):
-        for i, (centre, radius, height, color) in enumerate(specs):
-            cyl = UsdGeom.Cylinder.Define(stage, f"{path}/cyl_{i}")
-            cyl.CreateAxisAttr("Z")
+    def cylinders(path: str, specs, solid=True, tag="cyl"):
+        for i, spec_i in enumerate(specs):
+            centre, radius, height, color = spec_i[:4]
+            cyl = UsdGeom.Cylinder.Define(stage, f"{path}/{tag}_{i}")
+            cyl.CreateAxisAttr(spec_i[4] if len(spec_i) > 4 else "Z")
             cyl.CreateRadiusAttr(radius)
             cyl.CreateHeightAttr(height)
             cyl.AddTranslateOp().Set(Gf.Vec3d(*centre))
-            collide(cyl.GetPrim(), color)
+            collide(cyl.GetPrim(), color, solid=solid)
 
     main = f"{prim_path}/body"
-    body(main, (0.0, 0.0, 0.0), spec.mass)
+    prim_main = body(main, (0.0, 0.0, 0.0), spec.mass)
+    if spec.kinematic:  # fixed where it is spawned: moved by nothing, collides with everything
+        UsdPhysics.RigidBodyAPI(prim_main).CreateKinematicEnabledAttr(True)
     boxes(main, spec.boxes)
     cylinders(main, spec.cylinders)
+    boxes(main, spec.visual_boxes, solid=False, tag="look_box")
+    cylinders(main, spec.visual_cylinders, solid=False, tag="look_cyl")
     for s in spec.sliders:
         path = f"{prim_path}/{s.name}"
         body(path, s.rest, s.mass)
@@ -230,6 +352,7 @@ def _spawn_part(prim_path: str, cfg, translation=None, orientation=None, **kwarg
         art.CreateEnabledSelfCollisionsAttr(False)
         art.CreateSolverPositionIterationCountAttr(32)
         art.CreateSolverVelocityIterationCountAttr(4)
+    _author_joints(stage, prim_path, spec)
     return root.GetPrim()
 
 
@@ -274,13 +397,20 @@ def _np(x) -> np.ndarray:
     return _t(x).detach().cpu().numpy().astype(np.float64)
 
 
+def isaac_quat_xyzw(pose7) -> np.ndarray:
+    """The (x, y, z, w) quaternion of an Isaac Lab 3.0 pose (x, y, z, qx, qy, qz, qw). Isaac Lab 3.0 orders its
+    quaternions xyzw (2.x ordered them wxyz); yam_arena, whose ``.torch`` buffers and ``*_index`` writers this file
+    uses, only runs on 3.0."""
+    return np.asarray(pose7, dtype=np.float64)[3:7]
+
+
 def _part_state(environment, spec: Part) -> PartState:
     base = environment.unwrapped
     asset = base.scene[spec.name]
     origin = _np(base.scene.env_origins[0])
     pose = _np(asset.data.root_link_pose_w)[0]
     vel = _np(asset.data.root_vel_w)[0] if hasattr(asset.data, "root_vel_w") else np.zeros(6)
-    probe = PartState(pos=pose[:3] - origin, quat_xyzw=pose[3:7], lin_vel=vel[:3], ang_vel=vel[3:6],
+    probe = PartState(pos=pose[:3] - origin, quat_xyzw=isaac_quat_xyzw(pose), lin_vel=vel[:3], ang_vel=vel[3:6],
                       low=np.zeros(3), high=np.zeros(3))
     corners = np.array([[sx, sy, sz] for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]) * np.array(spec.size) / 2
     pts = np.array([probe.to_world(c) for c in corners])
@@ -294,7 +424,8 @@ def _part_state(environment, spec: Part) -> PartState:
 
 
 def write_pose(environment, name: str, pos, quat_xyzw, lin_vel=(0, 0, 0), ang_vel=(0, 0, 0)) -> None:
-    """Teleport a part's body (env 0) to a world pose (relative to the env origin) with the given velocity."""
+    """Teleport a part's body (env 0) to a world pose (relative to the env origin) with the given velocity. The pose
+    goes to Isaac Lab 3.0 as (x, y, z, qx, qy, qz, qw), its own order."""
     import torch
 
     base = environment.unwrapped
